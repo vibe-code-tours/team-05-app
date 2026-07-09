@@ -6,7 +6,7 @@
 # More specific lines win. Every PR still needs 1 approval from a non-author.
 
 # Default owner for everything (fallback) — set to the week's Anchor:
-# *                     @team-anchor
+*                     @team-05-anchor
 
 # Split ownership across members so reviews rotate naturally:
 # /src/frontend/        @member-a @member-b
