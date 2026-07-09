@@ -5,9 +5,9 @@
   Then replace THIS README with your project's own (keep the Quickstart working).
 -->
 
-# {{PROJECT_NAME}}
+# CrossMart
 
-> One line: what you're building, and for which real user.
+> Myanmar's most trusted Cross-Border Marketplace Platform.
 
 ![ci](../../actions/workflows/ci.yml/badge.svg) ![security](../../actions/workflows/security.yml/badge.svg)
 
@@ -21,8 +21,8 @@
 git clone <your-repo-url> && cd <repo>
 cp .env.example .env        # fill in real values LOCALLY — never commit .env
 # then, for your stack:
-npm install && npm run dev  # Node    (or)
-# pip install -r requirements.txt && python -m app   # Python
+# Install dependencies for both Next.js frontend and NestJS backend
+npm install && npm run dev
 ```
 
 Keep this Quickstart working — it's how a new teammate onboards in 2 minutes.
