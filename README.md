@@ -22,7 +22,7 @@ npm install && npm run dev
 
 - **Frontend:** Next.js 15 (App Router), React, TypeScript, TailwindCSS, shadcn/ui
 - **Backend:** NestJS, PostgreSQL, Prisma, BullMQ
-- **Caching & Storage:** Redis, MinIO/AWS S3
+- **Caching & Storage:** Redis, Cloudflare R2 (AWS S3 planned for Phase 3/4)
 - **Deployment:** Docker, Coolify, Cloudflare
 
 ## Project Documentation
