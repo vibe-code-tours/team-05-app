@@ -15,7 +15,7 @@ This Software Requirement Specification outlines the functional and non-function
 - **REQ-5:** Sellers shall have a public profile showing their ratings, successful order count, and active listings.
 
 ### 2.3 Product Management
-- **REQ-6:** Sellers shall be able to create products with variants (e.g., size, color), images (uploaded via MinIO/S3), and categorize them as In Stock, Cargo, or Promotion.
+- **REQ-6:** Sellers shall be able to create products with variants (e.g., size, color), images (uploaded via Cloudflare R2), and categorize them as In Stock, Cargo, or Promotion.
 - **REQ-7:** The system shall automatically approve products from trusted sellers (based on business rules).
 - **REQ-8:** Admins shall have an interface to manually approve/reject pending products.
 

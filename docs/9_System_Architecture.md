@@ -18,7 +18,7 @@ graph TD
     G --> H[Background Workers]
     H --> E
     
-    D --> I[(MinIO / S3 Object Storage)]
+    D --> I[(Cloudflare R2 Object Storage)]
     
     D --> J[External Services - SMS OTP, Mail, Payment Gateway]
 ```
@@ -41,7 +41,7 @@ graph TD
 - **Relational Database:** PostgreSQL (Stores Users, Orders, Products).
 - **Cache:** Redis (Caches category trees, hot promotion items).
 - **Queue:** BullMQ (Handles asynchronous tasks like email sending, order status updates, and auto-approval cron jobs).
-- **Storage:** MinIO or AWS S3 (Stores product images, payment slips, and user avatars).
+- **Storage:** Cloudflare R2 (S3-compatible API). AWS S3 is deferred to Phase 3/4. (Stores product images, payment slips, and user avatars).
 
 ### 2.4 Infrastructure & Deployment
 - **Containerization:** Docker & Docker Compose.

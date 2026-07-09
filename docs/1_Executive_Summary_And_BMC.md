@@ -48,6 +48,6 @@ CrossMart aims to solve the current fragmentation in the Myanmar e-commerce mark
 - **Payment Gateways:** Local Myanmar payment methods (KPay, WavePay).
 
 ## 9. Cost Structure
-- **Development & Hosting:** Cloudflare, AWS/MinIO, Server hosting.
+- **Development & Hosting:** Cloudflare R2, Server hosting. (AWS deferred to Phase 3/4).
 - **Operations:** Admin and Customer Support salaries.
 - **Marketing:** User acquisition campaigns.
