@@ -1,4 +1,4 @@
-# Working Agreement — {{PROJECT_NAME}}
+# Working Agreement — CrossMart
 
 > How this team works together. Agreed by all members. Sensible defaults — edit to fit,
 > but keep each section answered.

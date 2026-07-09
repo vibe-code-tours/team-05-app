@@ -1,17 +1,10 @@
-<!--
-  Vibe Code Tours — Project Starter
-  A ready-to-build repo with CI, security scanning, and team practices baked in.
-  Click "Use this template" → "Create a new repository" to start your project.
-  Then replace THIS README with your project's own (keep the Quickstart working).
--->
+# CrossMart
 
-# {{PROJECT_NAME}}
-
-> One line: what you're building, and for which real user.
+> Myanmar's most trusted Cross-Border Marketplace Platform.
 
 ![ci](../../actions/workflows/ci.yml/badge.svg) ![security](../../actions/workflows/security.yml/badge.svg)
 
-<!-- A screenshot or GIF of the app goes here — it's the best README section. -->
+**CrossMart** is a comprehensive e-commerce platform tailored for the Myanmar market. It unifies Facebook-based seller markets into a standardized, trustworthy platform. It supports distinct product types including **In Stock**, **Cargo items** (e.g., cross-border from Bangkok), and **Promotion items**, ensuring transparent tracking from order placement to final delivery.
 
 ---
 
@@ -20,50 +13,31 @@
 ```bash
 git clone <your-repo-url> && cd <repo>
 cp .env.example .env        # fill in real values LOCALLY — never commit .env
-# then, for your stack:
-npm install && npm run dev  # Node    (or)
-# pip install -r requirements.txt && python -m app   # Python
-```
 
-Keep this Quickstart working — it's how a new teammate onboards in 2 minutes.
+# We use Next.js (Frontend) and NestJS (Backend)
+npm install && npm run dev
+```
 
 ## Stack
 
-<!-- Languages, frameworks, hosting/deploy target, AI/LLM provider. -->
+- **Frontend:** Next.js 15 (App Router), React, TypeScript, TailwindCSS, shadcn/ui
+- **Backend:** NestJS, PostgreSQL, Prisma, BullMQ
+- **Caching & Storage:** Redis, MinIO/AWS S3
+- **Deployment:** Docker, Coolify, Cloudflare
 
-## Project structure
+## Project Documentation
 
-| Path | What |
-|---|---|
-| `src/` (or `app/`) | application code |
-| `tests/` | tests |
-| `docs/` | ARCHITECTURE.md + decision records |
-| `.github/` | CI, security, PR/issue templates |
+We have thoroughly documented the business and technical requirements of CrossMart. Please refer to the `docs/` folder for detailed specifications:
 
-## Team
+- **[Phase 1] Core Strategy:** [Executive Summary & BMC](docs/1_Executive_Summary_And_BMC.md) | [PRD](docs/2_Product_Requirement_Document_PRD.md) | [BRS](docs/3_Business_Requirement_Specification_BRS.md)
+- **[Phase 2] System Specs:** [User & Business Flow](docs/4_User_Flow_And_Business_Workflow.md) | [SRS](docs/5_Software_Requirement_Specification_SRS.md) | [User Stories](docs/6_User_Stories.md)
+- **[Phase 3] Modules:** [Portal Specs](docs/7_Portal_Specifications.md) | [Core Modules (Cargo/Payment)](docs/8_Core_Modules.md)
+- **[Phase 4] Architecture:** [System Architecture](docs/9_System_Architecture.md) | [Database ERD](docs/10_Database_Design_ERD.md) | [API Spec](docs/11_API_Specification.md)
+- **[Phase 5] Project Mgmt:** [Roadmap (Sprints 1-12)](docs/12_Development_Roadmap.md) | [UI/UX Guidelines](docs/13_UI_UX_Guidelines.md)
 
-<!-- Members + this week's roles (Anchor / Reviewer). Link your board. -->
+## Team & Operations
 
----
-
-## What's already set up for you
-
-This repo was created from the **Vibe Code Tours project starter**. It ships with:
-
-| File | Gives you |
-|---|---|
-| `.github/workflows/ci.yml` | lint · typecheck · test · build on every PR (stays green until you add each script) |
-| `.github/workflows/security.yml` | gitleaks (leaked keys) + semgrep (SAST) — advisory, report-only |
-| `.github/dependabot.yml` | weekly PRs for vulnerable / outdated dependencies |
-| `.env.example` | secret hygiene — copy to `.env`, never commit real keys |
-| `.github/pull_request_template.md` · `ISSUE_TEMPLATE/` · `CODEOWNERS` | small reviewed PRs, one-owner issues |
-| `docs/ARCHITECTURE.md` · `docs/decisions/` | a 1-page overview + lightweight ADRs |
-| `working-agreement.md` | how your team works (GitHub Flow + rotating roles) |
-
-**First thing to do:** follow [`SETUP.md`](./SETUP.md) — a ~1-hour checklist to turn it all on.
+- **Working Agreement:** Read the [Team Working Agreement](./working-agreement.md) for GitHub flow, PR reviews, and team roles.
+- **Code Owners:** Managed via `.github/CODEOWNERS`.
 
 **Git rule:** branch → PR → 1 teammate review → merge. No push to `main`, no self-merge.
-
-> A green pipeline ≠ secure. Scanners catch leaked keys, known-CVE deps, and injection
-> patterns. They do **not** catch prompt-injection, over-scoped tokens, or hallucinated
-> packages — a human still reviews for those.

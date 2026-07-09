@@ -1,0 +1,10 @@
+{
+  "name": "crossmart",
+  "version": "1.0.0",
+  "description": "CrossMart E-commerce Platform",
+  "scripts": {
+    "lint": "echo 'No linting configured yet'",
+    "test": "echo 'No tests configured yet'",
+    "build": "echo 'No build configured yet'"
+  }
+}
