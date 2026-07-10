@@ -225,6 +225,94 @@ When working on tasks, consider which role best fits:
 
 ---
 
+## Automatic Routing Rules
+
+> **IMPORTANT:** When you receive a task, automatically determine which agents, skills, and subagents to use based on these rules. Do NOT wait for the user to specify — route yourself.
+
+### Agent Routing (Auto-invoke based on task)
+
+| Task Keywords / Pattern | Agent to Use | Why |
+|---|---|---|
+| "architecture", "scalability", "system design", "folder structure", "ADR" | `architect` | System-level decisions |
+| "user story", "PRD", "requirements", "acceptance criteria", "feature spec" | `business-analyst` | Requirements analysis |
+| "API endpoint", "controller", "service", "NestJS", "BullMQ", "Redis cache" | `backend` | Server-side implementation |
+| "page", "component", "React", "Next.js", "Tailwind", "shadcn", "UI" | `frontend` | Client-side implementation |
+| "database", "schema", "migration", "Prisma", "ERD", "index", "query" | `database` | Data layer |
+| "security", "JWT", "OTP", "RBAC", "OWASP", "vulnerability", "auth" | `security` | Security concerns |
+| "test", "bug", "regression", "E2E", "Playwright", "coverage" | `qa` | Quality assurance |
+| "Docker", "CI/CD", "GitHub Actions", "deploy", "Coolify", "production" | `devops` | Infrastructure |
+| "React Native", "mobile", "iOS", "Android", "Expo" | `mobile` | Mobile development |
+| "design", "wireframe", "accessibility", "WCAG", "color", "spacing" | `uiux` | Design system |
+| "sprint", "backlog", "release", "priority", "estimation" | `product-owner` | Product management |
+
+### Skill Routing (Load relevant SKILL.md for domain context)
+
+| Task Keywords / Pattern | Skill to Load | Context Provided |
+|---|---|---|
+| "product", "listing", "category", "brand", "seller" | `marketplace` | Marketplace domain rules |
+| "cargo", "shipment", "tracking", "warehouse", "customs" | `cargo-tracking` | Cargo domain rules |
+| "payment", "refund", "invoice", "slip", "verify" | `payment` | Payment domain rules |
+| "register", "login", "OTP", "JWT", "role", "permission" | `auth` | Authentication rules |
+| "module", "controller", "service", "DTO", "guard" | `nestjs` | NestJS coding rules |
+| "page", "layout", "App Router", "Server Component" | `nextjs` | Next.js conventions |
+| "schema", "model", "relation", "migration" | `prisma` | Prisma ORM rules |
+| "PostgreSQL", "index", "query", "connection pool" | `postgres` | Database rules |
+| "cache", "TTL", "invalidation" | `redis` | Caching strategies |
+| "queue", "job", "worker", "async" | `bullmq` | Job queue rules |
+| "Dockerfile", "container", "image" | `docker` | Container rules |
+| "component", "Button", "Card", "Dialog" | `shadcn` | UI component rules |
+| "className", "responsive", "breakpoint" | `tailwind` | Styling rules |
+| "unit test", "integration test", "mock" | `testing` | Test patterns |
+| "seller", "onboarding", "verification" | `seller-management` | Seller domain rules |
+| "customer", "address", "profile" | `customer-management` | Customer domain rules |
+| "stock", "inventory", "variant" | `inventory` | Inventory rules |
+| "order", "cart", "checkout" | `order-management` | Order domain rules |
+| "coupon", "discount", "flash sale" | `promotion` | Promotion rules |
+| "notification", "email", "SMS" | `notification` | Notification rules |
+| "admin", "dashboard", "management" | `admin-panel` | Admin panel rules |
+
+### Subagent Routing (Auto-invoke for review/validation)
+
+| Task Pattern | Subagent | When |
+|---|---|---|
+| After implementing a feature | `product-reviewer` | Verify business rules met |
+| After creating/modifying API endpoints | `api-reviewer` | Check REST conventions |
+| Before merging any PR | `code-reviewer` | SOLID, clean code, performance |
+| After database schema changes | `migration-reviewer` | Validate migration safety |
+| After bug fix or new feature | `test-writer` | Generate/update tests |
+| When docs are needed | `documentation` | Generate/maintain docs |
+
+### Workflow Routing (Auto-trigger multi-step processes)
+
+| User Request | Workflow | Steps |
+|---|---|---|
+| "build [feature]", "implement [feature]", "create [feature]" | `feature-workflow` | Business → Architecture → DB → API → Frontend → Test → Review |
+| "fix [bug]", "bug in [area]" | `bug-workflow` | Reproduce → Root Cause → Fix → Test → Review |
+| "release", "deploy", "ship" | `release-workflow` | Plan → Test → Docs → Version → Deploy → Verify |
+
+### Routing Decision Tree
+
+```
+1. READ the task description
+2. IDENTIFY keywords and patterns
+3. MATCH against routing tables above
+4. INVOKE primary agent(s) for the task
+5. LOAD relevant skill(s) for domain context
+6. AFTER implementation, invoke reviewer subagent(s)
+7. IF multi-step, follow the matching workflow
+```
+
+**Example:**
+> User: "Implement cargo tracking API endpoint"
+
+**Auto-route:**
+1. Skill: `cargo-tracking` (domain context) + `nestjs` (coding rules)
+2. Agent: `backend` (implementation)
+3. Subagent: `api-reviewer` (after API is created)
+4. Subagent: `code-reviewer` (before merge)
+
+---
+
 ## File Paths
 
 | Path | Contents |
