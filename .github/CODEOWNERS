@@ -1,15 +1,25 @@
 # CODEOWNERS — auto-requests a reviewer when a PR touches matching paths.
-# Spreads review load across the team so no one is skipped and no one is buried.
-# Replace the placeholders with real @github-usernames once your team is set.
+# Team: Win Naing Soe, ting (Htet Aung Hlaing), Samuel Bawi Nei Lian
 #
 # Syntax: <path>   <@owner> [<@owner2> ...]
 # More specific lines win. Every PR still needs 1 approval from a non-author.
 
-# Default owner for everything (fallback) — set to the week's Anchor:
-*                     @team-05-anchor
+# Default owner for everything (fallback)
+*                       @winnaingsoe6666 @vibecode-ting @Samm24TT
 
-# Split ownership across members so reviews rotate naturally:
-# /src/frontend/        @member-a @member-b
-# /src/backend/         @member-c @member-d
-# *.md                  @member-e
-# /.github/             @team-anchor
+# Frontend
+/apps/web/              @winnaingsoe6666
+
+# Backend
+/apps/api/              @vibecode-ting @Samm24TT
+
+# Shared packages
+/packages/              @winnaingsoe6666 @vibecode-ting
+
+# Infrastructure
+/docker-compose.yml     @Samm24TT
+/.github/               @winnaingsoe6666
+
+# Documentation
+/docs/                  @vibecode-ting
+*.md                    @winnaingsoe6666
