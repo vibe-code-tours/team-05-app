@@ -1,0 +1,45 @@
+import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
+import { ThrottlerModule } from "@nestjs/throttler";
+import { PrismaModule } from "./config/prisma.module";
+import { AuthModule } from "./modules/auth/auth.module";
+import { UserModule } from "./modules/user/user.module";
+import { ProductModule } from "./modules/product/product.module";
+import { OrderModule } from "./modules/order/order.module";
+import { CargoModule } from "./modules/cargo/cargo.module";
+import { PaymentModule } from "./modules/payment/payment.module";
+import { NotificationModule } from "./modules/notification/notification.module";
+import { SearchModule } from "./modules/search/search.module";
+import { AdminModule } from "./modules/admin/admin.module";
+import { HealthController } from "./config/health.controller";
+
+@Module({
+  imports: [
+    // Config
+    ConfigModule.forRoot({ isGlobal: true }),
+
+    // Rate limiting
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
+
+    // Database
+    PrismaModule,
+
+    // Feature modules
+    AuthModule,
+    UserModule,
+    ProductModule,
+    OrderModule,
+    CargoModule,
+    PaymentModule,
+    NotificationModule,
+    SearchModule,
+    AdminModule,
+  ],
+  controllers: [HealthController],
+})
+export class AppModule {}
