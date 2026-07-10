@@ -290,16 +290,38 @@ When working on tasks, consider which role best fits:
 | "fix [bug]", "bug in [area]" | `bug-workflow` | Reproduce → Root Cause → Fix → Test → Review |
 | "release", "deploy", "ship" | `release-workflow` | Plan → Test → Docs → Version → Deploy → Verify |
 
+### Speckit Routing (Specification-Driven Development)
+
+| Task Pattern | Action |
+|---|---|
+| "spec for [feature]", "write spec" | Load `speckit` skill → use `spec.md` template |
+| "implement from spec" | Read spec → route to agents via spec sections |
+| Complex feature (multi-module) | Auto-trigger `speckit-workflow` |
+| Simple fix / config change | Skip speckit, use direct agents |
+
+**Speckit Flow:** Spec → Validate → Plan → Generate → Verify → Deliver
+
+**Spec Section → Agent Mapping:**
+| Spec Section | Agent | Skill |
+|---|---|---|
+| API | backend | nestjs |
+| Database | database | prisma, postgres |
+| UI | frontend | nextjs, shadcn, tailwind |
+| Rules | backend | (domain skill) |
+| Testing | qa | testing |
+
 ### Routing Decision Tree
 
 ```
 1. READ the task description
 2. IDENTIFY keywords and patterns
-3. MATCH against routing tables above
-4. INVOKE primary agent(s) for the task
-5. LOAD relevant skill(s) for domain context
-6. AFTER implementation, invoke reviewer subagent(s)
-7. IF multi-step, follow the matching workflow
+3. IF complex feature → use speckit-workflow (spec-first)
+4. IF simple task → direct agent routing
+5. MATCH against routing tables above
+6. INVOKE primary agent(s) for the task
+7. LOAD relevant skill(s) for domain context
+8. AFTER implementation, invoke reviewer subagent(s)
+9. IF multi-step, follow the matching workflow
 ```
 
 **Example:**
