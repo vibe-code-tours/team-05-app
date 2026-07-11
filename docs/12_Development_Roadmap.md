@@ -15,7 +15,7 @@ This document outlines the agile development plan for Phase 1 of CrossMart, brok
 - **Deliverables:**
   - Build Seller Registration & Admin Approval workflow.
   - Implement Category management.
-  - Build Product creation endpoints (Image upload via MinIO).
+  - Build Product creation endpoints (Image upload via Cloudflare R2).
   - Develop basic Auto-approval logic for products.
 
 ## Sprint 3: Client Experience & Search
