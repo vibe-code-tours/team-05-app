@@ -14,15 +14,8 @@ build/
 .turbo/
 coverage/
 
-# Python
-__pycache__/
-*.py[cod]
-.venv/
-venv/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-*.egg-info/
+# Prisma
+apps/api/prisma/migrations/
 
 # OS / editor
 .DS_Store
@@ -30,3 +23,6 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Docker
+docker-compose.override.yml
