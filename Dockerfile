@@ -47,9 +47,9 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 
-# Generate Prisma client for production
-WORKDIR /app/apps/api
-RUN npx prisma generate
+# Copy Prisma client from builder (prisma CLI is devDependency, not available in production)
+COPY --from=builder /app/apps/api/node_modules/.prisma ./apps/api/node_modules/.prisma
+COPY --from=builder /app/apps/api/node_modules/@prisma ./apps/api/node_modules/@prisma
 
 # Switch to non-root user
 USER crossmart
