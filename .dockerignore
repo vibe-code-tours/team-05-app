@@ -1,0 +1,40 @@
+# Dependencies
+node_modules
+.npm
+
+# Build output
+dist
+.next
+.turbo
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+LICENSE
+
+# Tests
+coverage
+*.test.ts
+*.spec.ts
+
+# Docker
+docker-compose*.yml
+Dockerfile
+.dockerignore
