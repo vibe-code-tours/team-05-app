@@ -18,6 +18,14 @@ RUN npx prisma generate
 # Build
 RUN npm run build
 
+# Create non-root user and set ownership
+RUN addgroup -g 1001 -S crossmart && \
+    adduser -S crossmart -u 1001 && \
+    chown -R crossmart:crossmart /app
+
+# Switch to non-root user
+USER crossmart
+
 # Expose port
 EXPOSE 3001
 
