@@ -5,12 +5,15 @@ import helmet from "helmet";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { logger: ["error", "warn", "log"] });
 
   // Security
   app.use(helmet());
   app.enableCors({
-    origin: process.env.CORS_ORIGINS?.split(",") || ["http://localhost:3000"],
+    origin: process.env.CORS_ORIGINS?.split(",") || [
+      "http://localhost:3000",
+      "https://*.vercel.app",
+    ],
     credentials: true,
   });
 
@@ -43,4 +46,7 @@ async function bootstrap() {
   console.log(`📚 Swagger docs at http://localhost:${port}/docs`);
 }
 
-bootstrap();
+bootstrap().catch((err) => {
+  console.error("❌ Fatal error during startup:", err);
+  process.exit(1);
+});
