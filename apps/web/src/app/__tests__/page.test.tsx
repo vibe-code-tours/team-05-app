@@ -5,6 +5,15 @@ import Page from "../page";
 describe("Home page", () => {
   it("renders the CrossMart heading", () => {
     render(<Page />);
-    expect(screen.getByText("CrossMart")).toBeDefined();
+    // Multiple CrossMart headings exist (Header logo + Footer logo)
+    const headings = screen.getAllByText("CrossMart");
+    expect(headings.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("renders the homepage sections", () => {
+    render(<Page />);
+    expect(screen.getByText("Featured Products")).toBeDefined();
+    expect(screen.getByText("Browse Categories")).toBeDefined();
+    expect(screen.getByText("New Arrivals")).toBeDefined();
   });
 });
