@@ -5,14 +5,19 @@ import {
   Put,
   Body,
   Param,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
-import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from "@nestjs/swagger";
 import { CargoService } from "./cargo.service";
-import { CreateCargoTrackingDto, UpdateMilestoneDto } from "./dto/cargo.dto";
+import {
+  CreateCargoTrackingDto,
+  UpdateMilestoneDto,
+  AdminForceMilestoneDto,
+} from "./dto/cargo.dto";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
@@ -21,6 +26,8 @@ import { Roles } from "../../common/decorators/roles.decorator";
 @Controller("cargo")
 export class CargoController {
   constructor(private cargoService: CargoService) {}
+
+  // ─── Seller ──────────────────────────────────────────
 
   @Post()
   @UseGuards(AuthGuard("jwt"), RolesGuard)
@@ -40,7 +47,7 @@ export class CargoController {
   @Roles("SELLER")
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Update milestone (seller only)" })
+  @ApiOperation({ summary: "Update milestone (seller, sequential only)" })
   updateMilestone(
     @CurrentUser() user: { id: string },
     @Param("id") trackingId: string,
@@ -48,6 +55,47 @@ export class CargoController {
   ) {
     return this.cargoService.updateMilestone(user.id, trackingId, dto);
   }
+
+  // ─── Admin ───────────────────────────────────────────
+
+  @Put(":id/milestone/admin")
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles("ADMIN")
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Force milestone update (admin, skips validation)" })
+  adminForceMilestone(
+    @CurrentUser() user: { id: string },
+    @Param("id") trackingId: string,
+    @Body() dto: AdminForceMilestoneDto,
+  ) {
+    return this.cargoService.adminForceMilestone(user.id, trackingId, dto);
+  }
+
+  @Get("admin")
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles("ADMIN")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "List all shipments (admin)" })
+  @ApiQuery({ name: "page", required: false })
+  @ApiQuery({ name: "limit", required: false })
+  @ApiQuery({ name: "milestone", required: false })
+  @ApiQuery({ name: "carrier", required: false })
+  adminListShipments(
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+    @Query("milestone") milestone?: string,
+    @Query("carrier") carrier?: string,
+  ) {
+    return this.cargoService.adminListShipments(
+      page ? parseInt(page) : 1,
+      limit ? parseInt(limit) : 20,
+      milestone,
+      carrier,
+    );
+  }
+
+  // ─── Buyer / Seller ──────────────────────────────────
 
   @Get("order/:orderId")
   @UseGuards(AuthGuard("jwt"))
@@ -59,6 +107,8 @@ export class CargoController {
   ) {
     return this.cargoService.getTracking(user.id, orderId);
   }
+
+  // ─── Public ──────────────────────────────────────────
 
   @Get("track/:trackingNumber")
   @ApiOperation({ summary: "Track by tracking number (public)" })

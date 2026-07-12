@@ -1,5 +1,20 @@
-import { IsString, IsOptional, IsEnum, IsDateString } from "class-validator";
+import { IsString, IsOptional, IsDateString, IsIn } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+
+const CARGO_MILESTONES = [
+  "ORDER_PLACED",
+  "PAYMENT_CONFIRMED",
+  "WAITING_PURCHASE",
+  "PURCHASED",
+  "PACKED",
+  "BKK_WAREHOUSE",
+  "EXPORT_CLEARANCE",
+  "AIR_CARGO",
+  "CUSTOMS",
+  "YGN_WAREHOUSE",
+  "OUT_FOR_DELIVERY",
+  "DELIVERED",
+] as const;
 
 export class CreateCargoTrackingDto {
   @ApiProperty()
@@ -25,14 +40,8 @@ export class CreateCargoTrackingDto {
 }
 
 export class UpdateMilestoneDto {
-  @ApiProperty({
-    enum: [
-      "ORDER_PLACED", "PAYMENT_CONFIRMED", "WAITING_PURCHASE", "PURCHASED",
-      "PACKED", "BKK_WAREHOUSE", "EXPORT_CLEARANCE", "AIR_CARGO",
-      "CUSTOMS", "YGN_WAREHOUSE", "OUT_FOR_DELIVERY", "DELIVERED",
-    ],
-  })
-  @IsString()
+  @ApiProperty({ enum: CARGO_MILESTONES })
+  @IsIn(CARGO_MILESTONES)
   milestone: string;
 
   @ApiPropertyOptional({ example: "Cleared customs at Yangon" })
@@ -41,6 +50,22 @@ export class UpdateMilestoneDto {
   location?: string;
 
   @ApiPropertyOptional({ example: "Package inspected and cleared" })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class AdminForceMilestoneDto {
+  @ApiProperty({ enum: CARGO_MILESTONES })
+  @IsIn(CARGO_MILESTONES)
+  milestone: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  location?: string;
+
+  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   notes?: string;
