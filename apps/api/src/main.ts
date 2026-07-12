@@ -40,6 +40,12 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("docs", app, document);
 
+  // Root handler for Render health checks
+  const httpAdapter = app.getHttpAdapter();
+  httpAdapter.get("/", (req: any, res: any) => {
+    res.json({ status: "ok", service: "crossmart-api" });
+  });
+
   const port = process.env.PORT || 3001;
   await app.listen(port);
   console.log(`🚀 CrossMart API running on http://localhost:${port}`);
