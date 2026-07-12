@@ -40,9 +40,12 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("docs", app, document);
 
-  // Root handler for Render health checks
+  // Root + /health handlers for Render health checks (outside /api/v1 prefix)
   const httpAdapter = app.getHttpAdapter();
   httpAdapter.get("/", (req: any, res: any) => {
+    res.json({ status: "ok", service: "crossmart-api" });
+  });
+  httpAdapter.get("/health", (req: any, res: any) => {
     res.json({ status: "ok", service: "crossmart-api" });
   });
 
