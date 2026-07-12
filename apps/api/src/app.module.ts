@@ -7,6 +7,7 @@ import { UserModule } from "./modules/user/user.module";
 import { ProductModule } from "./modules/product/product.module";
 import { CatalogModule } from "./modules/catalog/catalog.module";
 import { SellerModule } from "./modules/seller/seller.module";
+import { CartModule } from "./modules/cart/cart.module";
 import { OrderModule } from "./modules/order/order.module";
 import { CargoModule } from "./modules/cargo/cargo.module";
 import { PaymentModule } from "./modules/payment/payment.module";
@@ -37,6 +38,7 @@ import { HealthController } from "./config/health.controller";
     ProductModule,
     CatalogModule,
     SellerModule,
+    CartModule,
     OrderModule,
     CargoModule,
     PaymentModule,
