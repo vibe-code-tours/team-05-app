@@ -103,6 +103,7 @@ model User {
   notifications    Notification[]
   addresses        Address[]
   sessions         Session[]
+  otpCodes         OtpCode[]
   cart             Cart?
   wishlist         Wishlist[]
   cargoUpdates     CargoTracking[]   @relation("RecordedBy")
@@ -124,6 +125,22 @@ model Session {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  userId    String
+  code      String
+  type      String   // VERIFY_EMAIL, RESET_PASSWORD, LOGIN
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([code])
+  @@index([expiresAt])
 }
 
 model Category {

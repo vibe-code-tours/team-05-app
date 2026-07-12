@@ -2,17 +2,20 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  BadRequestException,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import * as bcrypt from "bcrypt";
+import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../../config/prisma.service";
-import { RegisterDto, LoginDto } from "./dto/auth.dto";
+import { OtpService } from "./otp.service";
+import { RegisterDto, LoginDto, VerifyOtpDto } from "./dto/auth.dto";
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
-    private jwt: JwtService
+    private jwt: JwtService,
+    private otpService: OtpService
   ) {}
 
   async register(dto: RegisterDto) {
@@ -37,10 +40,22 @@ export class AuthService {
         phone: dto.phone,
         password: hashedPassword,
         role: "CLIENT",
+        status: "PENDING_VERIFICATION",
       },
     });
 
-    return this.generateTokens(user.id, user.email, user.role);
+    // Generate and send OTP
+    const code = await this.otpService.generate(user.id, "VERIFY_EMAIL");
+    await this.otpService.sendOtp(user.email, code, "email");
+
+    return {
+      success: true,
+      message: "Account created. Please verify your email with the OTP code sent.",
+      data: {
+        user: { id: user.id, email: user.email, name: user.name },
+        requiresVerification: true,
+      },
+    };
   }
 
   async login(dto: LoginDto) {
@@ -57,7 +72,68 @@ export class AuthService {
       throw new UnauthorizedException("Invalid email or password");
     }
 
+    if (user.status === "PENDING_VERIFICATION") {
+      // Resend OTP if not verified
+      const code = await this.otpService.generate(user.id, "VERIFY_EMAIL");
+      await this.otpService.sendOtp(user.email, code, "email");
+
+      return {
+        success: false,
+        message: "Please verify your email first. A new OTP has been sent.",
+        data: { requiresVerification: true, email: user.email },
+      };
+    }
+
+    if (user.status !== "ACTIVE") {
+      throw new UnauthorizedException(`Account is ${user.status.toLowerCase()}`);
+    }
+
     return this.generateTokens(user.id, user.email, user.role);
+  }
+
+  async verifyOtp(dto: VerifyOtpDto) {
+    // Find user by the token (JWT payload contains userId)
+    let userId: string;
+    try {
+      const payload = this.jwt.verify(dto.token);
+      userId = payload.sub;
+    } catch {
+      throw new BadRequestException("Invalid or expired token");
+    }
+
+    const result = await this.otpService.verify(userId, dto.code, "VERIFY_EMAIL");
+
+    if (!result.success) {
+      throw new BadRequestException(result.message);
+    }
+
+    // Activate user
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { status: "ACTIVE" },
+    });
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    return this.generateTokens(user.id, user.email, user.role);
+  }
+
+  async resendOtp(email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      // Don't reveal if user exists
+      return { success: true, message: "If the email exists, an OTP has been sent." };
+    }
+
+    const code = await this.otpService.generate(user.id, "VERIFY_EMAIL");
+    await this.otpService.sendOtp(user.email, code, "email");
+
+    return { success: true, message: "If the email exists, an OTP has been sent." };
   }
 
   private generateTokens(userId: string, email: string, role: string) {
