@@ -5,6 +5,8 @@ import { PrismaModule } from "./config/prisma.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { UserModule } from "./modules/user/user.module";
 import { ProductModule } from "./modules/product/product.module";
+import { CatalogModule } from "./modules/catalog/catalog.module";
+import { SellerModule } from "./modules/seller/seller.module";
 import { OrderModule } from "./modules/order/order.module";
 import { CargoModule } from "./modules/cargo/cargo.module";
 import { PaymentModule } from "./modules/payment/payment.module";
@@ -33,6 +35,8 @@ import { HealthController } from "./config/health.controller";
     AuthModule,
     UserModule,
     ProductModule,
+    CatalogModule,
+    SellerModule,
     OrderModule,
     CargoModule,
     PaymentModule,
