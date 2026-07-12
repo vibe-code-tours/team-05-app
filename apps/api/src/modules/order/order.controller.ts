@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Body,
   Param,
   Query,
@@ -13,7 +14,7 @@ import {
 import { AuthGuard } from "@nestjs/passport";
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from "@nestjs/swagger";
 import { OrderService } from "./order.service";
-import { CreateOrderDto, UpdateOrderStatusDto } from "./dto/order.dto";
+import { CreateOrderDto, UpdateOrderStatusDto, CancelOrderDto } from "./dto/order.dto";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
@@ -29,9 +30,9 @@ export class OrderController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: "Create order from cart (checkout)" })
+  @ApiOperation({ summary: "Create order(s) from cart (splits by seller)" })
   createOrder(
-    @CurrentUser() user: { id: string },
+    @CurrentUser() user: { id: string; role: string },
     @Body() dto: CreateOrderDto,
   ) {
     return this.orderService.createOrder(user.id, dto);
@@ -51,6 +52,17 @@ export class OrderController {
       page ? parseInt(page) : 1,
       limit ? parseInt(limit) : 20,
     );
+  }
+
+  @Patch(":id/cancel")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Cancel order (buyer or admin)" })
+  cancelOrder(
+    @CurrentUser() user: { id: string; role: string },
+    @Param("id") orderId: string,
+    @Body() dto: CancelOrderDto,
+  ) {
+    return this.orderService.cancelOrder(user.id, orderId, dto, user.role);
   }
 
   // ─── Seller ──────────────────────────────────────────
@@ -74,7 +86,7 @@ export class OrderController {
   @Put(":id/status")
   @UseGuards(RolesGuard)
   @Roles("SELLER")
-  @ApiOperation({ summary: "Update order status (seller only)" })
+  @ApiOperation({ summary: "Update order status (seller only, with optimistic locking)" })
   updateStatus(
     @CurrentUser() user: { id: string },
     @Param("id") orderId: string,
