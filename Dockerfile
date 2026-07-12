@@ -27,4 +27,5 @@ USER crossmart
 
 EXPOSE 3001
 
-CMD ["node", "apps/api/dist/main.js"]
+WORKDIR /app/apps/api
+CMD ["node", "dist/main.js"]
