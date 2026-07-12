@@ -25,12 +25,12 @@ jobs:
     runs-on: ubuntu-latest      # never windows/macos — they bill 2x / 10x
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       # ---------- Node / TypeScript (runs only if package.json exists) ----------
       - name: Setup Node
         if: ${{ hashFiles('package.json') != '' }}
-        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: "22"
           cache: "npm"
@@ -55,7 +55,7 @@ jobs:
       # ---------- Python (runs only if requirements/pyproject exists) ----------
       - name: Setup Python
         if: ${{ hashFiles('requirements.txt', 'pyproject.toml') != '' }}
-        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.12"
           # cache: "pip" # Commented out to prevent errors when requirements.txt does not exist
