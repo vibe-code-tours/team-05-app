@@ -7,21 +7,20 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../../config/prisma.service";
 import { CreateOrderDto, UpdateOrderStatusDto, CancelOrderDto } from "./dto/order.dto";
-import { OrderStatus } from "@prisma/client";
 
 // Valid status transitions per role
-const BUYER_CANCEL_STATUSES: OrderStatus[] = [
+const BUYER_CANCEL_STATUSES = [
   "PENDING_PAYMENT",
   "PAYMENT_SUBMITTED",
 ];
 
-const SELLER_TRANSITIONS: Record<string, OrderStatus[]> = {
+const SELLER_TRANSITIONS: Record<string, string[]> = {
   PAYMENT_CONFIRMED: ["PROCESSING", "CANCELLED"],
   PROCESSING: ["PACKING", "CANCELLED"],
   PACKING: ["IN_CARGO"],
 };
 
-const ADMIN_TRANSITIONS: Record<string, OrderStatus[]> = {
+const ADMIN_TRANSITIONS: Record<string, string[]> = {
   PENDING_PAYMENT: ["CANCELLED"],
   PAYMENT_SUBMITTED: ["PAYMENT_CONFIRMED", "PAYMENT_REJECTED", "CANCELLED"],
   PAYMENT_CONFIRMED: ["PROCESSING", "CANCELLED"],
@@ -324,7 +323,7 @@ export class OrderService {
     const updated = await this.prisma.order.update({
       where: { id: orderId, version: dto.version },
       data: {
-        status: dto.status,
+        status: dto.status as any,
         version: { increment: 1 },
       },
       include: { items: true },
@@ -400,7 +399,7 @@ export class OrderService {
    */
   async getAllOrders(page = 1, limit = 20, status?: string) {
     const skip = (page - 1) * limit;
-    const where = status ? { status: status as OrderStatus } : {};
+    const where = status ? { status: status as any } : {};
 
     const [orders, total] = await Promise.all([
       this.prisma.order.findMany({
