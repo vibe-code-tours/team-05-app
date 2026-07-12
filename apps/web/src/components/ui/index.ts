@@ -11,7 +11,6 @@ export {
 } from "./card"
 
 export { Input } from "./input"
-export type { InputProps } from "./input"
 
 export { Label } from "./label"
 
@@ -73,4 +72,3 @@ export { ScrollArea, ScrollBar } from "./scroll-area"
 export { Tabs, TabsList, TabsTrigger, TabsContent } from "./tabs"
 
 export { Textarea } from "./textarea"
-export type { TextareaProps } from "./textarea"
