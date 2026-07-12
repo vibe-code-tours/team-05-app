@@ -6,9 +6,43 @@ import {
 import { PrismaService } from "../../config/prisma.service";
 import { AddToCartDto, UpdateCartItemDto } from "./dto/cart.dto";
 
+const CART_EXPIRY_MINUTES = 30;
+const MIN_ORDER_AMOUNT = 5000;
+const MAX_ORDER_AMOUNT = 10_000_000;
+
 @Injectable()
 export class CartService {
   constructor(private prisma: PrismaService) {}
+
+  /**
+   * Check if cart has expired (30 min inactivity).
+   * If expired, clear all items and refresh lastActivityAt.
+   */
+  private async handleCartExpiration(cartId: string, lastActivityAt: Date): Promise<boolean> {
+    const now = new Date();
+    const diffMs = now.getTime() - lastActivityAt.getTime();
+    const diffMinutes = diffMs / (1000 * 60);
+
+    if (diffMinutes > CART_EXPIRY_MINUTES) {
+      await this.prisma.cartItem.deleteMany({ where: { cartId } });
+      await this.prisma.cart.update({
+        where: { id: cartId },
+        data: { lastActivityAt: now },
+      });
+      return true; // cart was expired
+    }
+    return false;
+  }
+
+  /**
+   * Touch the cart's lastActivityAt timestamp.
+   */
+  private async touchCart(cartId: string): Promise<void> {
+    await this.prisma.cart.update({
+      where: { id: cartId },
+      data: { lastActivityAt: new Date() },
+    });
+  }
 
   async getCart(userId: string) {
     let cart = await this.prisma.cart.findUnique({
@@ -55,20 +89,54 @@ export class CartService {
           },
         },
       });
+      return {
+        success: true,
+        data: {
+          ...cart,
+          items: [],
+          subtotal: 0,
+          itemCount: 0,
+          hasOutOfStockItems: false,
+          expired: false,
+        },
+      };
     }
 
-    // Calculate totals
+    // Check cart expiration
+    const expired = await this.handleCartExpiration(cart.id, cart.lastActivityAt);
+
+    if (expired) {
+      return {
+        success: true,
+        data: {
+          ...cart,
+          items: [],
+          subtotal: 0,
+          itemCount: 0,
+          hasOutOfStockItems: false,
+          expired: true,
+        },
+      };
+    }
+
+    // Calculate totals and flag out-of-stock items
     const items = cart.items.map((item) => {
       const price = item.variant?.price || item.product.price;
       const itemTotal = Number(price) * item.quantity;
+      const availableStock = item.variant ? item.variant.stock : item.product.stock;
+      const isOutOfStock = item.product.status !== "APPROVED" || availableStock < item.quantity;
+
       return {
         ...item,
         itemTotal,
+        isOutOfStock,
+        availableStock,
       };
     });
 
     const subtotal = items.reduce((sum, item) => sum + item.itemTotal, 0);
     const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+    const hasOutOfStockItems = items.some((item) => item.isOutOfStock);
 
     return {
       success: true,
@@ -77,6 +145,8 @@ export class CartService {
         items,
         subtotal,
         itemCount,
+        hasOutOfStockItems,
+        expired: false,
       },
     };
   }
@@ -95,8 +165,24 @@ export class CartService {
       throw new BadRequestException("Product is not available");
     }
 
-    if (product.stock < dto.quantity) {
-      throw new BadRequestException(`Insufficient stock. Available: ${product.stock}`);
+    // Check stock (use variant stock if variantId provided)
+    let availableStock = product.stock;
+    if (dto.variantId) {
+      const variant = await this.prisma.productVariant.findUnique({
+        where: { id: dto.variantId },
+      });
+
+      if (!variant || variant.productId !== dto.productId) {
+        throw new NotFoundException("Product variant not found");
+      }
+
+      availableStock = variant.stock;
+    }
+
+    if (availableStock < dto.quantity) {
+      throw new BadRequestException(
+        `Insufficient stock. Available: ${availableStock}`,
+      );
     }
 
     // Get or create cart
@@ -104,6 +190,9 @@ export class CartService {
     if (!cart) {
       cart = await this.prisma.cart.create({ data: { userId } });
     }
+
+    // Check if cart has expired
+    await this.handleCartExpiration(cart.id, cart.lastActivityAt);
 
     // Check if item already in cart
     const existingItem = await this.prisma.cartItem.findFirst({
@@ -116,8 +205,10 @@ export class CartService {
 
     if (existingItem) {
       const newQty = existingItem.quantity + dto.quantity;
-      if (newQty > product.stock) {
-        throw new BadRequestException(`Cannot add more. Stock: ${product.stock}, in cart: ${existingItem.quantity}`);
+      if (newQty > availableStock) {
+        throw new BadRequestException(
+          `Cannot add more. Stock: ${availableStock}, in cart: ${existingItem.quantity}`,
+        );
       }
 
       await this.prisma.cartItem.update({
@@ -135,6 +226,9 @@ export class CartService {
       });
     }
 
+    // Touch cart to reset expiration timer
+    await this.touchCart(cart.id);
+
     return this.getCart(userId);
   }
 
@@ -144,23 +238,33 @@ export class CartService {
       throw new NotFoundException("Cart not found");
     }
 
+    // Check cart expiration
+    await this.handleCartExpiration(cart.id, cart.lastActivityAt);
+
     const item = await this.prisma.cartItem.findFirst({
       where: { id: itemId, cartId: cart.id },
-      include: { product: true },
+      include: { product: true, variant: true },
     });
 
     if (!item) {
       throw new NotFoundException("Cart item not found");
     }
 
-    if (dto.quantity > item.product.stock) {
-      throw new BadRequestException(`Insufficient stock. Available: ${item.product.stock}`);
+    // Check stock
+    const availableStock = item.variant ? item.variant.stock : item.product.stock;
+    if (dto.quantity > availableStock) {
+      throw new BadRequestException(
+        `Insufficient stock. Available: ${availableStock}`,
+      );
     }
 
     await this.prisma.cartItem.update({
       where: { id: itemId },
       data: { quantity: dto.quantity },
     });
+
+    // Touch cart to reset expiration timer
+    await this.touchCart(cart.id);
 
     return this.getCart(userId);
   }
@@ -181,6 +285,9 @@ export class CartService {
 
     await this.prisma.cartItem.delete({ where: { id: itemId } });
 
+    // Touch cart to reset expiration timer
+    await this.touchCart(cart.id);
+
     return this.getCart(userId);
   }
 
@@ -191,6 +298,9 @@ export class CartService {
     }
 
     await this.prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
+
+    // Touch cart to reset expiration timer
+    await this.touchCart(cart.id);
 
     return { success: true, message: "Cart cleared" };
   }
