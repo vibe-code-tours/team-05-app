@@ -5,17 +5,22 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 import { PrismaService } from "../../config/prisma.service";
-import { CreatePaymentDto, VerifyPaymentDto } from "./dto/payment.dto";
+import {
+  CreatePaymentDto,
+  VerifyPaymentDto,
+  RequestRefundDto,
+  ProcessRefundDto,
+} from "./dto/payment.dto";
 
 @Injectable()
 export class PaymentService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * Buyer submits payment slip
+   * Buyer submits payment slip.
+   * Validates: order exists, belongs to buyer, correct status, no duplicate confirmed payment.
    */
   async submitPayment(buyerId: string, dto: CreatePaymentDto) {
-    // Verify order exists and belongs to buyer
     const order = await this.prisma.order.findUnique({
       where: { id: dto.orderId },
     });
@@ -29,16 +34,23 @@ export class PaymentService {
     }
 
     if (order.status !== "PENDING_PAYMENT" && order.status !== "PAYMENT_SUBMITTED") {
-      throw new BadRequestException(`Order cannot accept payment in status: ${order.status}`);
+      throw new BadRequestException(
+        `Order cannot accept payment in status: ${order.status}`,
+      );
     }
 
-    // Check if payment already exists
+    // Check for existing confirmed payment
     const existingPayment = await this.prisma.payment.findUnique({
       where: { orderId: dto.orderId },
     });
 
     if (existingPayment && existingPayment.status === "CONFIRMED") {
       throw new BadRequestException("Payment already confirmed");
+    }
+
+    // Check for duplicate slip URL
+    if (existingPayment && existingPayment.slipUrl === dto.slipUrl) {
+      throw new BadRequestException("Duplicate payment slip detected");
     }
 
     // Create or update payment
@@ -73,7 +85,7 @@ export class PaymentService {
   }
 
   /**
-   * Get payment for an order
+   * Get payment for an order (buyer, seller, or admin).
    */
   async getPayment(userId: string, orderId: string) {
     const order = await this.prisma.order.findUnique({
@@ -96,9 +108,11 @@ export class PaymentService {
   }
 
   /**
-   * Seller/Admin verifies payment
+   * Seller or Admin verifies payment.
+   * CONFIRMED → order moves to PAYMENT_CONFIRMED
+   * REJECTED → order moves to PAYMENT_REJECTED, stock restored
    */
-  async verifyPayment(verifierId: string, orderId: string, dto: VerifyPaymentDto) {
+  async verifyPayment(verifierId: string, orderId: string, dto: VerifyPaymentDto, role: string) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
     });
@@ -107,8 +121,12 @@ export class PaymentService {
       throw new NotFoundException("Order not found");
     }
 
-    if (order.sellerId !== verifierId) {
-      throw new ForbiddenException("Not your order");
+    // Only seller of the order or admin can verify
+    const isSeller = order.sellerId === verifierId;
+    const isAdmin = role === "ADMIN";
+
+    if (!isSeller && !isAdmin) {
+      throw new ForbiddenException("Not authorized to verify this payment");
     }
 
     const payment = await this.prisma.payment.findUnique({
@@ -144,21 +162,26 @@ export class PaymentService {
       if (dto.status === "REJECTED") {
         const items = await tx.orderItem.findMany({ where: { orderId } });
         for (const item of items) {
-          await tx.product.update({
-            where: { id: item.productId },
-            data: { stock: { increment: item.quantity } },
-          });
+          if (item.variantId) {
+            await tx.productVariant.update({
+              where: { id: item.variantId },
+              data: { stock: { increment: item.quantity } },
+            });
+          } else {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { stock: { increment: item.quantity } },
+            });
+          }
         }
       }
     });
-
-    // TODO: Send notification to buyer
 
     return { success: true, message: `Payment ${dto.status.toLowerCase()}` };
   }
 
   /**
-   * Seller: Get all pending payments
+   * Seller: Get all pending payments for their orders.
    */
   async getPendingPayments(sellerId: string) {
     const payments = await this.prisma.payment.findMany({
@@ -180,5 +203,128 @@ export class PaymentService {
     });
 
     return { success: true, data: payments };
+  }
+
+  /**
+   * Buyer requests a refund (within 7 days of delivery).
+   */
+  async requestRefund(buyerId: string, orderId: string, dto: RequestRefundDto) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { payment: true },
+    });
+
+    if (!order) {
+      throw new NotFoundException("Order not found");
+    }
+
+    if (order.buyerId !== buyerId) {
+      throw new ForbiddenException("Not your order");
+    }
+
+    // Only COMPLETED or DELIVERED orders can be refunded
+    if (!["COMPLETED", "DELIVERED"].includes(order.status)) {
+      throw new BadRequestException(
+        `Cannot request refund for order in ${order.status} status`,
+      );
+    }
+
+    // Check 7-day refund window
+    if (order.status === "COMPLETED" || order.status === "DELIVERED") {
+      const deliveredAt = order.updatedAt;
+      const daysSinceDelivery = Math.floor(
+        (Date.now() - deliveredAt.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      if (daysSinceDelivery > 7) {
+        throw new BadRequestException(
+          "Refund window has expired (7 days after delivery)",
+        );
+      }
+    }
+
+    // Check if payment exists and is confirmed
+    if (!order.payment || order.payment.status !== "CONFIRMED") {
+      throw new BadRequestException("No confirmed payment to refund");
+    }
+
+    // Check if refund already requested
+    if (order.status === "REFUNDED") {
+      throw new BadRequestException("Refund already processed");
+    }
+
+    // Update order status to REFUNDED
+    const updated = await this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status: "REFUNDED",
+        notes: `${order.notes ? order.notes + "\n" : ""}Refund requested: ${dto.reason}`,
+      },
+      include: { payment: true },
+    });
+
+    // TODO: Send notification to seller about refund request
+
+    return { success: true, data: updated };
+  }
+
+  /**
+   * Seller/Admin processes a refund request (approve or reject).
+   */
+  async processRefund(verifierId: string, orderId: string, dto: ProcessRefundDto, role: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { items: true },
+    });
+
+    if (!order) {
+      throw new NotFoundException("Order not found");
+    }
+
+    const isSeller = order.sellerId === verifierId;
+    const isAdmin = role === "ADMIN";
+
+    if (!isSeller && !isAdmin) {
+      throw new ForbiddenException("Not authorized to process this refund");
+    }
+
+    if (order.status !== "REFUNDED") {
+      throw new BadRequestException("Order is not awaiting refund processing");
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      if (dto.status === "APPROVED") {
+        // Restore stock on approved refund
+        for (const item of order.items) {
+          if (item.variantId) {
+            await tx.productVariant.update({
+              where: { id: item.variantId },
+              data: { stock: { increment: item.quantity } },
+            });
+          } else {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { stock: { increment: item.quantity } },
+            });
+          }
+        }
+      } else {
+        // Rejected — revert to COMPLETED
+        await tx.order.update({
+          where: { id: orderId },
+          data: {
+            status: "COMPLETED",
+            notes: `${order.notes ? order.notes + "\n" : ""}Refund rejected: ${dto.notes || "No reason provided"}`,
+          },
+        });
+      }
+    });
+
+    // TODO: Send notification to buyer about refund decision
+
+    return {
+      success: true,
+      message: `Refund ${dto.status.toLowerCase()}`,
+    };
   }
 }
