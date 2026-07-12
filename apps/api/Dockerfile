@@ -1,65 +1,77 @@
-# ─── Build Stage ─────────────────────────────────────────
-FROM node:20-alpine AS builder
-
+# ─── Stage 1: Dependencies ─────────────────────────────
+FROM node:22-alpine AS deps
 WORKDIR /app
 
-# Copy workspace root files (needed for package-lock.json)
+# Install dependencies needed for native modules
+RUN apk add --no-cache libc6-compat
+
+# Copy workspace root package files
 COPY package.json package-lock.json ./
 
-# Copy API package.json
+# Copy api workspace package files
 COPY apps/api/package.json ./apps/api/
+COPY packages/shared/package.json ./packages/shared/
 
-# Install all dependencies
-RUN npm ci
+# Install all workspace dependencies
+RUN npm ci --workspace=apps/api --workspace=packages/shared
 
-# Copy API source code
+# ─── Stage 2: Build ───────────────────────────────────
+FROM node:22-alpine AS builder
+WORKDIR /app
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+
+# Copy source code
 COPY apps/api ./apps/api
+COPY packages/shared ./packages/shared
+COPY package.json package-lock.json ./
 
 # Generate Prisma client
 WORKDIR /app/apps/api
 RUN npx prisma generate
 
-# Build TypeScript
+# Build the application
 RUN npm run build
 
-# ─── Production Stage ────────────────────────────────────
-FROM node:20-alpine AS production
-
+# ─── Stage 3: Production ──────────────────────────────
+FROM node:22-alpine AS runner
 WORKDIR /app
+
+ENV NODE_ENV=production
 
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init
 
 # Create non-root user
-RUN addgroup -g 1001 -S crossmart && \
-    adduser -S crossmart -u 1001
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nestjs
 
-# Copy workspace root files
-COPY package.json package-lock.json ./
+# Copy built application
+COPY --from=builder /app/apps/api/dist ./dist
+COPY --from=builder /app/apps/api/prisma ./prisma
+COPY --from=builder /app/apps/api/package.json ./
 
-# Copy API package.json
-COPY apps/api/package.json ./apps/api/
+# Copy Prisma generated client
+COPY --from=builder /app/apps/api/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/apps/api/node_modules/@prisma ./node_modules/@prisma
 
-# Install production dependencies only
-RUN npm ci --omit=dev
+# Copy shared package
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder /app/packages/shared/package.json ./packages/shared/
 
-# Copy built application from builder
-COPY --from=builder /app/apps/api/dist ./apps/api/dist
-COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+# Set ownership
+RUN chown -R nestjs:nodejs /app
 
-# Generate Prisma client for production
-WORKDIR /app/apps/api
-RUN npx prisma generate
-
-# Switch to non-root user
-USER crossmart
+USER nestjs
 
 # Expose port
 EXPOSE 3001
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3001/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3001/api/v1/health || exit 1
 
 # Start application
-CMD ["dumb-init", "node", "apps/api/dist/main.js"]
+CMD ["dumb-init", "node", "dist/main.js"]

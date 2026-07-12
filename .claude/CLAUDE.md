@@ -28,7 +28,12 @@
 | Storage | Cloudflare R2 | Object storage (images, files) |
 | Auth | JWT + OTP | Authentication |
 | Container | Docker & Docker Compose | Local dev + deployment |
-| Deploy | Coolify | Self-hosted PaaS |
+| Deploy (Frontend) | Vercel | Free tier (100GB bandwidth) |
+| Deploy (Backend) | Railway | Free trial ($5 credit, ~2-4 weeks) |
+| Database | Supabase | Free tier (500MB PostgreSQL) |
+| Auth | Supabase Auth | Free tier (50k MAU) |
+| Cache | Upstash Redis | Free tier (10k cmds/day) |
+| Storage | Cloudflare R2 | Free tier (10GB) |
 | CDN/DNS | Cloudflare | CDN, WAF, DNS |
 | CI/CD | GitHub Actions | Continuous integration |
 | Testing | Vitest + Jest + Playwright | Unit, integration, E2E |

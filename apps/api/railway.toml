@@ -1,0 +1,12 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "apps/api/Dockerfile"
+
+[deploy]
+startCommand = "node dist/main.js"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 5
+
+[variables]
+NODE_ENV = "production"
+PORT = "3001"
