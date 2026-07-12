@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Body,
   Param,
   UseGuards,
@@ -12,7 +13,12 @@ import {
 import { AuthGuard } from "@nestjs/passport";
 import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
 import { PaymentService } from "./payment.service";
-import { CreatePaymentDto, VerifyPaymentDto } from "./dto/payment.dto";
+import {
+  CreatePaymentDto,
+  VerifyPaymentDto,
+  RequestRefundDto,
+  ProcessRefundDto,
+} from "./dto/payment.dto";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
@@ -23,6 +29,8 @@ import { Roles } from "../../common/decorators/roles.decorator";
 @Controller("payments")
 export class PaymentController {
   constructor(private paymentService: PaymentService) {}
+
+  // ─── Buyer ───────────────────────────────────────────
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -43,17 +51,30 @@ export class PaymentController {
     return this.paymentService.getPayment(user.id, orderId);
   }
 
+  @Post("order/:orderId/refund")
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: "Request refund (buyer, within 7 days of delivery)" })
+  requestRefund(
+    @CurrentUser() user: { id: string },
+    @Param("orderId") orderId: string,
+    @Body() dto: RequestRefundDto,
+  ) {
+    return this.paymentService.requestRefund(user.id, orderId, dto);
+  }
+
+  // ─── Seller / Admin ──────────────────────────────────
+
   @Put("order/:orderId/verify")
   @UseGuards(RolesGuard)
-  @Roles("SELLER")
+  @Roles("SELLER", "ADMIN")
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Verify payment (seller only)" })
+  @ApiOperation({ summary: "Verify payment (seller or admin)" })
   verifyPayment(
-    @CurrentUser() user: { id: string },
+    @CurrentUser() user: { id: string; role: string },
     @Param("orderId") orderId: string,
     @Body() dto: VerifyPaymentDto,
   ) {
-    return this.paymentService.verifyPayment(user.id, orderId, dto);
+    return this.paymentService.verifyPayment(user.id, orderId, dto, user.role);
   }
 
   @Get("pending")
@@ -62,5 +83,18 @@ export class PaymentController {
   @ApiOperation({ summary: "Get pending payments (seller only)" })
   getPendingPayments(@CurrentUser() user: { id: string }) {
     return this.paymentService.getPendingPayments(user.id);
+  }
+
+  @Patch("order/:orderId/refund")
+  @UseGuards(RolesGuard)
+  @Roles("SELLER", "ADMIN")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Process refund request (seller or admin)" })
+  processRefund(
+    @CurrentUser() user: { id: string; role: string },
+    @Param("orderId") orderId: string,
+    @Body() dto: ProcessRefundDto,
+  ) {
+    return this.paymentService.processRefund(user.id, orderId, dto, user.role);
   }
 }
