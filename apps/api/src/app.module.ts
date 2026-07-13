@@ -14,6 +14,8 @@ import { PaymentModule } from "./modules/payment/payment.module";
 import { NotificationModule } from "./modules/notification/notification.module";
 import { ReviewModule } from "./modules/review/review.module";
 import { SearchModule } from "./modules/search/search.module";
+import { BannerModule } from "./modules/banner/banner.module";
+import { CouponModule } from "./modules/coupon/coupon.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { HealthController } from "./config/health.controller";
 
@@ -46,6 +48,8 @@ import { HealthController } from "./config/health.controller";
     NotificationModule,
     ReviewModule,
     SearchModule,
+    BannerModule,
+    CouponModule,
     AdminModule,
   ],
   controllers: [HealthController],
