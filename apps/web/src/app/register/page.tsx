@@ -2,11 +2,13 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { User, Mail, Phone, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useRegister } from '@/lib/services/auth.service'
 
 interface RegisterForm {
   fullName: string
@@ -36,9 +38,11 @@ type PasswordStrength = {
 }
 
 export default function RegisterPage() {
+  const router = useRouter()
+  const registerMutation = useRegister()
+  const isLoading = registerMutation.isPending
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState<RegisterForm>({
     fullName: '',
     email: '',
@@ -135,19 +139,18 @@ export default function RegisterPage() {
       return
     }
 
-    setIsLoading(true)
-
     try {
-      // TODO: Implement actual registration API call
-      console.log('Registration attempt:', { ...formData, password: undefined })
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      // Redirect on success
-    } catch (error) {
+      await registerMutation.mutateAsync({
+        name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+      })
+      // Redirect to OTP verification
+      router.push(`/verify-otp?email=${encodeURIComponent(formData.email)}`)
+    } catch (error: any) {
       console.error('Registration error:', error)
-      setErrors({ email: 'Email or phone already in use' })
-    } finally {
-      setIsLoading(false)
+      setErrors({ email: error.message || 'Email or phone already in use' })
     }
   }
 

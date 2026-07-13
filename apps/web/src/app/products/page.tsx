@@ -1,23 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Home, ChevronRight } from 'lucide-react';
+import { Home, ChevronRight, Loader2 } from 'lucide-react';
 import { FilterToggleButton, FilterOverlay } from '@/components/products';
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  image: string;
-  category: string;
-  inStock: boolean;
-}
-
-interface ActiveFilter {
-  id: string;
-  label: string;
-  value: string;
-}
+import { useProducts, ProductFilters } from '@/lib/services/product.service';
+import Link from 'next/link';
 
 const SORT_OPTIONS = [
   { value: 'relevance', label: 'Relevance' },
@@ -27,43 +14,32 @@ const SORT_OPTIONS = [
   { value: 'rating', label: 'Top Rated' },
 ];
 
-const MOCK_PRODUCTS: Product[] = Array.from({ length: 20 }, (_, i) => ({
-  id: `product-${i + 1}`,
-  name: `Product ${i + 1}`,
-  price: Math.floor(Math.random() * 100) + 10,
-  image: `https://via.placeholder.com/300?text=Product+${i + 1}`,
-  category: ['Electronics', 'Clothing', 'Home & Garden', 'Sports'][i % 4],
-  inStock: Math.random() > 0.2,
-}));
-
-const MOCK_ACTIVE_FILTERS: ActiveFilter[] = [
-  { id: '1', label: 'Electronics', value: 'electronics' },
-  { id: '2', label: 'In Stock', value: 'in-stock' },
-];
-
 export default function ProductsPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [sortBy, setSortBy] = useState('relevance');
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const itemsPerPage = 20;
-  const totalProducts = 156;
+
+  const filters: ProductFilters = {
+    page: currentPage,
+    limit: itemsPerPage,
+    sort: sortBy !== 'relevance' ? sortBy : undefined,
+    category: selectedCategories.length > 0 ? selectedCategories[0] : undefined,
+  };
+
+  const { data: response, isLoading, error } = useProducts(filters);
+
+  const products = response?.data || [];
+  const totalProducts = response?.meta?.total || 0;
+  const totalPages = Math.ceil(totalProducts / itemsPerPage);
 
   const toggleFilter = () => setIsFilterOpen(!isFilterOpen);
-
-  const removeFilter = (filterId: string) => {
-    console.log('Remove filter:', filterId);
-  };
-
-  const clearAllFilters = () => {
-    console.log('Clear all filters');
-  };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  const totalPages = Math.ceil(totalProducts / itemsPerPage);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -175,21 +151,21 @@ export default function ProductsPage() {
               </div>
 
               {/* Active Filters */}
-              {MOCK_ACTIVE_FILTERS.length > 0 && (
+              {selectedCategories.length > 0 && (
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   <span className="text-sm text-gray-500">Active Filters:</span>
-                  {MOCK_ACTIVE_FILTERS.map((filter) => (
+                  {selectedCategories.map((category) => (
                     <button
-                      key={filter.id}
-                      onClick={() => removeFilter(filter.id)}
+                      key={category}
+                      onClick={() => setSelectedCategories(prev => prev.filter(c => c !== category))}
                       className="inline-flex items-center gap-1 px-3 py-1 text-sm text-blue-700 bg-blue-50 rounded-full hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
                     >
-                      {filter.label}
+                      {category}
                       <span className="ml-1 text-blue-400">&times;</span>
                     </button>
                   ))}
                   <button
-                    onClick={clearAllFilters}
+                    onClick={() => setSelectedCategories([])}
                     className="text-sm text-gray-500 hover:text-gray-700 underline"
                   >
                     Clear all
@@ -199,34 +175,64 @@ export default function ProductsPage() {
             </div>
 
             {/* Product Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {MOCK_PRODUCTS.map((product) => (
-                <div
-                  key={product.id}
-                  className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200"
-                >
-                  <div className="aspect-square bg-gray-200 relative">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                    />
-                    {!product.inStock && (
-                      <div className="absolute top-2 right-2 px-2 py-1 bg-red-500 text-white text-xs font-medium rounded">
-                        Out of Stock
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <span className="ml-2 text-gray-600">Loading products...</span>
+              </div>
+            ) : error ? (
+              <div className="text-center py-12">
+                <p className="text-red-600">Failed to load products. Please try again.</p>
+              </div>
+            ) : products.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-600">No products found.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {products.map((product) => (
+                  <Link
+                    key={product.id}
+                    href={`/products/${product.slug}`}
+                    className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200"
+                  >
+                    <div className="aspect-square bg-gray-200 relative">
+                      <img
+                        src={product.images[0] || 'https://via.placeholder.com/300'}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                      />
+                      {product.stock <= 0 && (
+                        <div className="absolute top-2 right-2 px-2 py-1 bg-red-500 text-white text-xs font-medium rounded">
+                          Out of Stock
+                        </div>
+                      )}
+                      {product.compareAtPrice && product.compareAtPrice > product.price && (
+                        <div className="absolute top-2 left-2 px-2 py-1 bg-green-500 text-white text-xs font-medium rounded">
+                          Sale
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <h3 className="text-sm font-medium text-gray-900 mb-2 line-clamp-2">
+                        {product.name}
+                      </h3>
+                      <p className="text-xs text-gray-500 mb-2">{product.category?.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-lg font-semibold text-gray-900">
+                          ${product.price.toLocaleString()}
+                        </p>
+                        {product.compareAtPrice && product.compareAtPrice > product.price && (
+                          <p className="text-sm text-gray-400 line-through">
+                            ${product.compareAtPrice.toLocaleString()}
+                          </p>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <h3 className="text-sm font-medium text-gray-900 mb-2 line-clamp-2">
-                      {product.name}
-                    </h3>
-                    <p className="text-xs text-gray-500 mb-2">{product.category}</p>
-                    <p className="text-lg font-semibold text-gray-900">${product.price.toFixed(2)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
 
             {/* Pagination */}
             <nav className="mt-8 flex items-center justify-between" aria-label="Pagination">

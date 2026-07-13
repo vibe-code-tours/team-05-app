@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useLogin } from '@/lib/services/auth.service'
 
 interface LoginForm {
   email: string
@@ -20,14 +21,16 @@ interface ValidationErrors {
 }
 
 export default function LoginPage() {
+  const loginMutation = useLogin()
   const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState<LoginForm>({
     email: '',
     password: '',
     rememberMe: false,
   })
   const [errors, setErrors] = useState<ValidationErrors>({})
+
+  const isLoading = loginMutation.isPending
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -60,19 +63,14 @@ export default function LoginPage() {
       return
     }
 
-    setIsLoading(true)
-
     try {
-      // TODO: Implement actual authentication API call
-      console.log('Login attempt:', { email: formData.email, rememberMe: formData.rememberMe })
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      // Redirect on success
-    } catch (error) {
+      await loginMutation.mutateAsync({
+        email: formData.email,
+        password: formData.password,
+      })
+    } catch (error: any) {
       console.error('Login error:', error)
-      setErrors({ email: 'Invalid credentials. Please try again.' })
-    } finally {
-      setIsLoading(false)
+      setErrors({ email: error.message || 'Invalid credentials. Please try again.' })
     }
   }
 
