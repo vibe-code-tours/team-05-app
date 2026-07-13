@@ -18,9 +18,9 @@ import { useCartStore } from '@/stores/cart.store';
 const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/products', label: 'Products' },
-  { href: '/categories', label: 'Categories' },
-  { href: '/cargo-tracking', label: 'Cargo Tracking' },
-  { href: '/deals', label: 'Deals' },
+  { href: '/products?category=electronics', label: 'Categories' },
+  { href: '/seller/cargo', label: 'Cargo Tracking' },
+  { href: '/products?sort=deals', label: 'Deals' },
 ];
 
 export function Header() {
