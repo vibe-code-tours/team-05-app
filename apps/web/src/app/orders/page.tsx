@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Package,
@@ -11,175 +11,72 @@ import {
   ChevronUp,
   ShoppingBag,
   AlertCircle,
+  Search,
+  ExternalLink,
+  MapPin,
+  Calendar,
+  Hash,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { Header } from '@/components/layout/header';
+import { Footer } from '@/components/layout/footer';
+import { MOCK_ORDERS } from '@/lib/mock-orders';
+import { cn } from '@/lib/utils';
+import { formatPrice } from '@/lib/utils';
+import { Order, OrderStatus } from '@/types/order';
 
-interface OrderItem {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  image: string;
-}
-
-interface Order {
-  id: string;
-  orderNumber: string;
-  date: string;
-  status: 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  total: number;
-  items: OrderItem[];
-}
-
-const MOCK_ORDERS: Order[] = [
+const STATUS_CONFIG: Record<
+  OrderStatus,
   {
-    id: 'order-1',
-    orderNumber: 'ORD-38472916',
-    date: '2026-07-10',
-    status: 'shipped',
-    total: 138.96,
-    items: [
-      {
-        id: '1',
-        name: 'Premium Wireless Bluetooth Headphones',
-        price: 79.99,
-        quantity: 1,
-        image: 'https://via.placeholder.com/80?text=Headphones',
-      },
-      {
-        id: '2',
-        name: 'USB-C Fast Charging Cable (2m)',
-        price: 12.99,
-        quantity: 2,
-        image: 'https://via.placeholder.com/80?text=Cable',
-      },
-      {
-        id: '3',
-        name: 'Laptop Stand - Aluminum',
-        price: 45.00,
-        quantity: 1,
-        image: 'https://via.placeholder.com/80?text=Stand',
-      },
-    ],
-  },
-  {
-    id: 'order-2',
-    orderNumber: 'ORD-92710458',
-    date: '2026-07-05',
-    status: 'delivered',
-    total: 56.47,
-    items: [
-      {
-        id: '4',
-        name: 'Organic Cotton T-Shirt (L)',
-        price: 24.99,
-        quantity: 2,
-        image: 'https://via.placeholder.com/80?text=T-Shirt',
-      },
-      {
-        id: '5',
-        name: 'Running Socks (3-Pack)',
-        price: 8.50,
-        quantity: 1,
-        image: 'https://via.placeholder.com/80?text=Socks',
-      },
-    ],
-  },
-  {
-    id: 'order-3',
-    orderNumber: 'ORD-61058327',
-    date: '2026-06-28',
-    status: 'delivered',
-    total: 215.00,
-    items: [
-      {
-        id: '6',
-        name: 'Smart Watch Pro',
-        price: 199.00,
-        quantity: 1,
-        image: 'https://via.placeholder.com/80?text=Watch',
-      },
-      {
-        id: '7',
-        name: 'Watch Band - Silicone',
-        price: 12.00,
-        quantity: 1,
-        image: 'https://via.placeholder.com/80?text=Band',
-      },
-    ],
-  },
-  {
-    id: 'order-4',
-    orderNumber: 'ORD-74829103',
-    date: '2026-06-20',
-    status: 'processing',
-    total: 89.99,
-    items: [
-      {
-        id: '8',
-        name: 'Mechanical Keyboard - RGB',
-        price: 89.99,
-        quantity: 1,
-        image: 'https://via.placeholder.com/80?text=Keyboard',
-      },
-    ],
-  },
-  {
-    id: 'order-5',
-    orderNumber: 'ORD-55390184',
-    date: '2026-06-15',
-    status: 'cancelled',
-    total: 34.99,
-    items: [
-      {
-        id: '9',
-        name: 'Wireless Mouse - Ergonomic',
-        price: 34.99,
-        quantity: 1,
-        image: 'https://via.placeholder.com/80?text=Mouse',
-      },
-    ],
-  },
-];
-
-const STATUS_CONFIG = {
+    label: string;
+    variant: 'warning' | 'default' | 'success' | 'destructive';
+    icon: typeof Clock;
+    color: string;
+    bgColor: string;
+  }
+> = {
   processing: {
     label: 'Processing',
-    variant: 'warning' as const,
+    variant: 'warning',
     icon: Clock,
     color: 'text-yellow-600',
     bgColor: 'bg-yellow-100',
   },
   shipped: {
     label: 'Shipped',
-    variant: 'default' as const,
+    variant: 'default',
     icon: Truck,
     color: 'text-blue-600',
     bgColor: 'bg-blue-100',
   },
   delivered: {
     label: 'Delivered',
-    variant: 'success' as const,
+    variant: 'success',
     icon: CheckCircle,
     color: 'text-green-600',
     bgColor: 'bg-green-100',
   },
   cancelled: {
     label: 'Cancelled',
-    variant: 'destructive' as const,
+    variant: 'destructive',
     icon: AlertCircle,
     color: 'text-red-600',
     bgColor: 'bg-red-100',
   },
 };
+
+const TAB_FILTERS: { value: string; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'processing', label: 'Processing' },
+  { value: 'shipped', label: 'Shipped' },
+  { value: 'delivered', label: 'Delivered' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
@@ -190,51 +87,74 @@ function formatDate(dateString: string): string {
   });
 }
 
+function formatEstimatedDelivery(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
 function OrderCard({ order }: { order: Order }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const statusConfig = STATUS_CONFIG[order.status];
   const StatusIcon = statusConfig.icon;
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden transition-shadow hover:shadow-md">
       <button
+        type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full text-left p-0 hover:bg-gray-50 transition-colors"
+        className="w-full text-left p-0 hover:bg-muted/30 transition-colors"
       >
         <CardContent className="p-4 sm:p-5">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-            {/* Order Icon */}
+            {/* Status Icon */}
             <div
-              className={`w-12 h-12 ${statusConfig.bgColor} rounded-xl flex items-center justify-center flex-shrink-0`}
+              className={cn(
+                'w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0',
+                statusConfig.bgColor
+              )}
             >
-              <StatusIcon className={`w-6 h-6 ${statusConfig.color}`} />
+              <StatusIcon className={cn('w-6 h-6', statusConfig.color)} />
             </div>
 
             {/* Order Info */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-sm font-bold text-gray-900">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <h3 className="text-sm font-bold text-foreground">
                   {order.orderNumber}
                 </h3>
                 <Badge variant={statusConfig.variant} className="text-xs">
                   {statusConfig.label}
                 </Badge>
+                {order.isCargo && (
+                  <Badge variant="secondary" className="text-xs">
+                    Cargo
+                  </Badge>
+                )}
               </div>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 {formatDate(order.date)} &middot; {order.items.length}{' '}
                 {order.items.length === 1 ? 'item' : 'items'}
               </p>
+              {order.estimatedDelivery && order.status === 'shipped' && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Est. delivery: {formatEstimatedDelivery(order.estimatedDelivery)}
+                </p>
+              )}
             </div>
 
             {/* Total & Expand */}
             <div className="flex items-center gap-3">
-              <p className="text-base font-bold text-gray-900">
-                ${order.total.toFixed(2)}
+              <p className="text-base font-bold text-foreground">
+                {formatPrice(order.total, order.currency || 'MMK')}
               </p>
               {isExpanded ? (
-                <ChevronUp className="w-5 h-5 text-gray-400" />
+                <ChevronUp className="w-5 h-5 text-muted-foreground" />
               ) : (
-                <ChevronDown className="w-5 h-5 text-gray-400" />
+                <ChevronDown className="w-5 h-5 text-muted-foreground" />
               )}
             </div>
           </div>
@@ -243,38 +163,122 @@ function OrderCard({ order }: { order: Order }) {
 
       {/* Expanded Details */}
       {isExpanded && (
-        <div className="border-t border-gray-100 bg-gray-50">
-          <div className="p-4 sm:p-5 space-y-3">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Order Items
-            </p>
-            {order.items.map((item) => (
-              <div key={item.id} className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-white rounded-lg border border-gray-200 overflow-hidden flex-shrink-0">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {item.name}
-                  </p>
-                  <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
-                </div>
-                <p className="text-sm font-semibold text-gray-900 flex-shrink-0">
-                  ${(item.price * item.quantity).toFixed(2)}
-                </p>
+        <div className="border-t border-border bg-muted/20">
+          <div className="p-4 sm:p-5 space-y-4">
+            {/* Items Section */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                Order Items
+              </p>
+              <div className="space-y-3">
+                {order.items.map((item) => (
+                  <div key={item.id} className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-background rounded-lg border border-border overflow-hidden flex-shrink-0">
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {item.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Qty: {item.quantity}
+                        {item.variant && (
+                          <span className="ml-2">&middot; {item.variant}</span>
+                        )}
+                      </p>
+                    </div>
+                    <p className="text-sm font-semibold text-foreground flex-shrink-0">
+                      {formatPrice(item.price * item.quantity, order.currency || 'MMK')}
+                    </p>
+                  </div>
+                ))}
               </div>
-            ))}
-
-            <Separator className="my-3" />
-
-            <div className="flex justify-between text-sm font-bold text-gray-900">
-              <span>Total</span>
-              <span>${order.total.toFixed(2)}</span>
             </div>
+
+            <Separator />
+
+            {/* Shipping Address */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Shipping Address
+              </p>
+              <div className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-foreground">
+                  <p className="font-medium">{order.shippingAddress.name}</p>
+                  <p>{order.shippingAddress.line1}</p>
+                  {order.shippingAddress.line2 && (
+                    <p>{order.shippingAddress.line2}</p>
+                  )}
+                  <p>
+                    {order.shippingAddress.city},{' '}
+                    {order.shippingAddress.postalCode}
+                  </p>
+                  <p>{order.shippingAddress.country}</p>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Tracking & Cargo Info */}
+            {order.isCargo && order.trackingNumber && (
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  Cargo Tracking
+                </p>
+                <div className="flex items-center gap-2">
+                  <Hash className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-foreground font-mono">
+                    {order.trackingNumber}
+                  </span>
+                  <Link
+                    href={`/cargo-tracking?tracking=${order.trackingNumber}`}
+                    className="text-sm text-primary hover:underline inline-flex items-center gap-1 ml-2"
+                  >
+                    Track
+                    <ExternalLink className="w-3 h-3" />
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Estimated Delivery for processing orders */}
+            {order.estimatedDelivery && order.status === 'processing' && (
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  Estimated Delivery
+                </p>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-foreground">
+                    {formatEstimatedDelivery(order.estimatedDelivery)}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <Separator />
+
+            {/* Total */}
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-bold text-foreground">Total</span>
+              <span className="text-sm font-bold text-foreground">
+                {formatPrice(order.total, order.currency || 'MMK')}
+              </span>
+            </div>
+
+            {/* View Detail Link */}
+            <Link href={`/orders/${order.id}`} className="block">
+              <Button variant="outline" className="w-full" size="sm">
+                View Order Details
+                <ExternalLink className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
           </div>
         </div>
       )}
@@ -282,55 +286,181 @@ function OrderCard({ order }: { order: Order }) {
   );
 }
 
+function EmptyState() {
+  return (
+    <Card>
+      <CardContent className="p-12 text-center">
+        <div className="flex justify-center mb-4">
+          <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center">
+            <Package className="w-10 h-10 text-muted-foreground" />
+          </div>
+        </div>
+        <h2 className="text-lg font-semibold text-foreground mb-2">
+          No orders found
+        </h2>
+        <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+          No orders match your current filters. Try adjusting your search or
+          browse our products to place your first order.
+        </p>
+        <Link href="/products">
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+            <ShoppingBag className="w-4 h-4 mr-2" />
+            Browse Products
+          </Button>
+        </Link>
+      </CardContent>
+    </Card>
+  );
+}
+
+function NoResultsState({ searchTerm }: { searchTerm: string }) {
+  return (
+    <Card>
+      <CardContent className="p-12 text-center">
+        <div className="flex justify-center mb-4">
+          <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center">
+            <Search className="w-10 h-10 text-muted-foreground" />
+          </div>
+        </div>
+        <h2 className="text-lg font-semibold text-foreground mb-2">
+          No orders found
+        </h2>
+        <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+          No orders matching &ldquo;{searchTerm}&rdquo;. Try a different order
+          number or clear your search.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function OrdersPage() {
-  const orders = MOCK_ORDERS;
+  const [activeTab, setActiveTab] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredOrders = useMemo(() => {
+    let orders = MOCK_ORDERS;
+
+    // Filter by status tab
+    if (activeTab !== 'all') {
+      orders = orders.filter((order) => order.status === activeTab);
+    }
+
+    // Filter by search term (order number)
+    if (searchTerm.trim()) {
+      const term = searchTerm.trim().toLowerCase();
+      orders = orders.filter((order) =>
+        order.orderNumber.toLowerCase().includes(term)
+      );
+    }
+
+    return orders;
+  }, [activeTab, searchTerm]);
+
+  const orderCountByStatus = useMemo(() => {
+    const counts: Record<string, number> = {
+      all: MOCK_ORDERS.length,
+      processing: 0,
+      shipped: 0,
+      delivered: 0,
+      cancelled: 0,
+    };
+    MOCK_ORDERS.forEach((order) => {
+      counts[order.status] = (counts[order.status] || 0) + 1;
+    });
+    return counts;
+  }, []);
+
+  const hasFilters = activeTab !== 'all' || searchTerm.trim().length > 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h1 className="text-2xl font-bold text-gray-900">My Orders</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            View and track your order history
-          </p>
-        </div>
-      </div>
+    <div className="min-h-screen flex flex-col bg-background">
+      <Header />
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {orders.length === 0 ? (
-          /* Empty State */
-          <Card>
-            <CardContent className="p-12 text-center">
-              <div className="flex justify-center mb-4">
-                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
-                  <Package className="w-10 h-10 text-gray-400" />
-                </div>
-              </div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">
-                No orders yet
-              </h2>
-              <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
-                When you place an order, it will appear here. Start browsing
-                our products to find something you love.
-              </p>
-              <Link href="/products">
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                  <ShoppingBag className="w-4 h-4 mr-2" />
-                  Browse Products
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        ) : (
-          /* Orders List */
-          <div className="space-y-4">
-            {orders.map((order) => (
-              <OrderCard key={order.id} order={order} />
-            ))}
+      <main className="flex-1">
+        {/* Page Header */}
+        <div className="border-b border-border bg-muted/30">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <h1 className="text-2xl font-bold text-foreground">My Orders</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              View and track your order history
+            </p>
           </div>
-        )}
-      </div>
+        </div>
+
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search by order number..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {/* Status Filter Tabs */}
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            defaultValue="all"
+          >
+            <TabsList className="w-full justify-start overflow-x-auto">
+              {TAB_FILTERS.map((tab) => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="text-xs sm:text-sm"
+                >
+                  {tab.label}
+                  <span className="ml-1.5 text-xs text-muted-foreground">
+                    ({orderCountByStatus[tab.value] || 0})
+                  </span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+
+          {/* Order Count */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {filteredOrders.length}{' '}
+              {filteredOrders.length === 1 ? 'order' : 'orders'}
+              {hasFilters && ' found'}
+            </p>
+            {hasFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setActiveTab('all');
+                  setSearchTerm('');
+                }}
+                className="text-xs"
+              >
+                Clear filters
+              </Button>
+            )}
+          </div>
+
+          {/* Orders List or Empty State */}
+          {filteredOrders.length > 0 ? (
+            <div className="space-y-4">
+              {filteredOrders.map((order) => (
+                <OrderCard key={order.id} order={order} />
+              ))}
+            </div>
+          ) : hasFilters ? (
+            <NoResultsState searchTerm={searchTerm} />
+          ) : (
+            <EmptyState />
+          )}
+        </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }
