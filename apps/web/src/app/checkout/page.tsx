@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { MapPin, CreditCard, CheckCircle, ArrowLeft, ArrowRight, ShoppingCart } from 'lucide-react'
+import { MapPin, CreditCard, CheckCircle, ArrowLeft, ArrowRight, ShoppingCart, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -16,6 +16,7 @@ import { PaymentMethod, type PaymentMethodType } from '@/components/checkout/pay
 import { OrderReview } from '@/components/checkout/order-review'
 import { PaymentSlipUpload } from '@/components/checkout/payment-slip-upload'
 import { formatPrice } from '@/lib/utils'
+import { useCreateOrder } from '@/lib/services/order.service'
 
 type CheckoutStep = 'address' | 'payment' | 'review'
 
@@ -33,12 +34,14 @@ export default function CheckoutPage() {
   const getTax = useCartStore((state) => state.getTax)
   const getTotal = useCartStore((state) => state.getTotal)
   const clearCart = useCartStore((state) => state.clearCart)
+  const createOrderMutation = useCreateOrder()
 
   const [currentStep, setCurrentStep] = useState<CheckoutStep>('address')
   const [address, setAddress] = useState<AddressData | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType | null>(null)
   const [paymentSlip, setPaymentSlip] = useState<File | null>(null)
-  const [isPlacingOrder, setIsPlacingOrder] = useState(false)
+
+  const isPlacingOrder = createOrderMutation.isPending
 
   // Redirect to cart if empty
   useEffect(() => {
@@ -86,19 +89,13 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async () => {
     if (!address || !paymentMethod) return
 
-    setIsPlacingOrder(true)
     try {
-      // TODO: Implement actual order creation API call
-      console.log('Placing order:', {
-        items,
-        address,
-        paymentMethod,
-        paymentSlip,
-        total,
+      // For now, we'll pass the address data directly
+      // In a real app, you'd first create/save the address, then use its ID
+      await createOrderMutation.mutateAsync({
+        shippingAddressId: 'temp-address-id', // This would be the actual address ID
+        note: `Payment method: ${paymentMethod}`,
       })
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000))
 
       // Clear cart and redirect to confirmation
       clearCart()
@@ -106,8 +103,6 @@ export default function CheckoutPage() {
     } catch (error) {
       console.error('Error placing order:', error)
       alert('Failed to place order. Please try again.')
-    } finally {
-      setIsPlacingOrder(false)
     }
   }
 
