@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../config/prisma.service";
-import { Prisma } from "@prisma/client";
 
 @Injectable()
 export class NotificationService {
@@ -96,7 +95,7 @@ export class NotificationService {
     title: string;
     message: string;
     type: string;
-    data?: Prisma.InputJsonValue;
+    data?: any;
   }) {
     // Verify user exists
     const user = await this.prisma.user.findUnique({ where: { id: dto.userId } });
