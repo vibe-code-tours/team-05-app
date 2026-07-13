@@ -18,42 +18,42 @@ const categories: Category[] = [
     name: 'Electronics',
     icon: <Smartphone className="h-8 w-8" />,
     productCount: 1250,
-    href: '/categories/electronics',
+    href: '/products?category=electronics',
   },
   {
     id: '2',
     name: 'Fashion',
     icon: <Shirt className="h-8 w-8" />,
     productCount: 890,
-    href: '/categories/fashion',
+    href: '/products?category=fashion',
   },
   {
     id: '3',
     name: 'Beauty',
     icon: <Sparkles className="h-8 w-8" />,
     productCount: 645,
-    href: '/categories/beauty',
+    href: '/products?category=beauty',
   },
   {
     id: '4',
     name: 'Home & Living',
     icon: <Home className="h-8 w-8" />,
     productCount: 420,
-    href: '/categories/home-living',
+    href: '/products?category=home-living',
   },
   {
     id: '5',
     name: 'Food & Groceries',
     icon: <Utensils className="h-8 w-8" />,
     productCount: 780,
-    href: '/categories/food-groceries',
+    href: '/products?category=food-groceries',
   },
   {
     id: '6',
     name: 'Sports',
     icon: <Dumbbell className="h-8 w-8" />,
     productCount: 315,
-    href: '/categories/sports',
+    href: '/products?category=sports',
   },
 ];
 
@@ -72,7 +72,7 @@ export function CategoryGrid() {
             </p>
           </div>
           <Button variant="ghost" asChild>
-            <Link href="/categories" className="flex items-center gap-2">
+            <Link href="/products" className="flex items-center gap-2">
               View All
               <ArrowRight className="h-4 w-4" />
             </Link>

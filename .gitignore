@@ -26,3 +26,6 @@ Thumbs.db
 
 # Docker
 docker-compose.override.yml
+
+# TypeScript build info
+*.tsbuildinfo
