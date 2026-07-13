@@ -12,6 +12,7 @@ import { OrderModule } from "./modules/order/order.module";
 import { CargoModule } from "./modules/cargo/cargo.module";
 import { PaymentModule } from "./modules/payment/payment.module";
 import { NotificationModule } from "./modules/notification/notification.module";
+import { ReviewModule } from "./modules/review/review.module";
 import { SearchModule } from "./modules/search/search.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { HealthController } from "./config/health.controller";
@@ -43,6 +44,7 @@ import { HealthController } from "./config/health.controller";
     CargoModule,
     PaymentModule,
     NotificationModule,
+    ReviewModule,
     SearchModule,
     AdminModule,
   ],
