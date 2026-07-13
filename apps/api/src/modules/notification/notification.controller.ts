@@ -1,18 +1,32 @@
 import {
   Controller,
   Get,
+  Post,
   Put,
   Delete,
   Param,
+  Body,
   Query,
   UseGuards,
   HttpCode,
   HttpStatus,
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from "@nestjs/swagger";
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from "@nestjs/swagger";
 import { NotificationService } from "./notification.service";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { RolesGuard } from "../../common/guards/roles.guard";
+import { Roles } from "../../common/decorators/roles.decorator";
+import {
+  CreateNotificationDto,
+  NotificationQueryDto,
+  AdminNotificationQueryDto,
+} from "./dto/notification.dto";
 
 @ApiTags("Notifications")
 @ApiBearerAuth()
@@ -21,19 +35,18 @@ import { CurrentUser } from "../../common/decorators/current-user.decorator";
 export class NotificationController {
   constructor(private notificationService: NotificationService) {}
 
+  // ── User Endpoints ──────────────────────────────────────────────────────
+
   @Get()
   @ApiOperation({ summary: "Get user notifications" })
-  @ApiQuery({ name: "page", required: false })
-  @ApiQuery({ name: "limit", required: false })
   getNotifications(
     @CurrentUser() user: { id: string },
-    @Query("page") page?: string,
-    @Query("limit") limit?: string,
+    @Query() query: NotificationQueryDto,
   ) {
     return this.notificationService.getNotifications(
       user.id,
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
+      query.page ?? 1,
+      query.limit ?? 20,
     );
   }
 
@@ -68,5 +81,33 @@ export class NotificationController {
     @Param("id") notificationId: string,
   ) {
     return this.notificationService.deleteNotification(user.id, notificationId);
+  }
+
+  // ── Admin Endpoints ─────────────────────────────────────────────────────
+
+  @Post("admin")
+  @UseGuards(RolesGuard)
+  @Roles("ADMIN")
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: "Admin: Create notification for a user" })
+  adminCreateNotification(@Body() dto: CreateNotificationDto) {
+    return this.notificationService.adminCreateNotification(dto);
+  }
+
+  @Get("admin")
+  @UseGuards(RolesGuard)
+  @Roles("ADMIN")
+  @ApiOperation({ summary: "Admin: Get all notifications" })
+  adminGetAllNotifications(@Query() query: AdminNotificationQueryDto) {
+    return this.notificationService.adminGetAllNotifications(query);
+  }
+
+  @Delete("admin/:id")
+  @UseGuards(RolesGuard)
+  @Roles("ADMIN")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Admin: Delete any notification" })
+  adminDeleteNotification(@Param("id") notificationId: string) {
+    return this.notificationService.adminDeleteNotification(notificationId);
   }
 }
