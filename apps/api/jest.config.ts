@@ -10,6 +10,7 @@ const config: Config = {
   collectCoverageFrom: ["**/*.service.ts", "!**/*.module.ts", "!main.ts"],
   coverageDirectory: "../coverage",
   testEnvironment: "node",
+  moduleDirectories: ["node_modules", "../../node_modules"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/../$1",
   },
