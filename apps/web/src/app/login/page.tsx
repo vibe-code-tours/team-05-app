@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card'
@@ -22,7 +21,6 @@ interface ValidationErrors {
 }
 
 export default function LoginPage() {
-  const router = useRouter()
   const loginMutation = useLogin()
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState<LoginForm>({

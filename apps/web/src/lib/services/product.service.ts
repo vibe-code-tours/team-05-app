@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { api, ApiResponse } from "@/lib/api";
+import { api } from "@/lib/api";
 
 // Types
 export interface Product {

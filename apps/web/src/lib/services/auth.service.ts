@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, ApiResponse } from "@/lib/api";
+import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth.store";
 import { useRouter } from "next/navigation";
 
@@ -52,8 +52,6 @@ export const authApi = {
 
 // React Query hooks
 export function useRegister() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: authApi.register,
     onSuccess: (response) => {

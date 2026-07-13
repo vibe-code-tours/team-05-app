@@ -1,19 +1,17 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { OtpVerification } from '@/components/auth';
 import { useVerifyOtp, useResendOtp } from '@/lib/services/auth.service';
 import { useAuthStore } from '@/stores/auth.store';
 
-export default function VerifyOtpPage() {
+function VerifyOtpContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const email = searchParams.get('email') || '';
   const verifyOtpMutation = useVerifyOtp();
   const resendOtpMutation = useResendOtp();
-
-  // Get the token from auth store (set during registration)
-  const user = useAuthStore((state) => state.user);
 
   const handleVerify = async (otp: string) => {
     // The token should be stored somewhere during registration
@@ -39,5 +37,17 @@ export default function VerifyOtpPage() {
         router.push('/register');
       }}
     />
+  );
+}
+
+export default function VerifyOtpPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    }>
+      <VerifyOtpContent />
+    </Suspense>
   );
 }

@@ -6,12 +6,6 @@ import { FilterToggleButton, FilterOverlay } from '@/components/products';
 import { useProducts, ProductFilters } from '@/lib/services/product.service';
 import Link from 'next/link';
 
-interface ActiveFilter {
-  id: string;
-  label: string;
-  value: string;
-}
-
 const SORT_OPTIONS = [
   { value: 'relevance', label: 'Relevance' },
   { value: 'price-asc', label: 'Price: Low to High' },
@@ -41,14 +35,6 @@ export default function ProductsPage() {
   const totalPages = Math.ceil(totalProducts / itemsPerPage);
 
   const toggleFilter = () => setIsFilterOpen(!isFilterOpen);
-
-  const removeFilter = (filterId: string) => {
-    console.log('Remove filter:', filterId);
-  };
-
-  const clearAllFilters = () => {
-    console.log('Clear all filters');
-  };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
