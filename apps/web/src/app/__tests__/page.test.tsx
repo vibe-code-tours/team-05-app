@@ -14,6 +14,8 @@ describe("Home page", () => {
     render(<Page />);
     expect(screen.getByText("Featured Products")).toBeDefined();
     expect(screen.getByText("Browse Categories")).toBeDefined();
-    expect(screen.getByText("New Arrivals")).toBeDefined();
+    // "New Arrivals" may appear in hero banner and promo sections
+    const newArrivals = screen.getAllByText("New Arrivals");
+    expect(newArrivals.length).toBeGreaterThanOrEqual(1);
   });
 });
