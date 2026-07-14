@@ -14,8 +14,7 @@ import {
   Search,
   ExternalLink,
   MapPin,
-  Calendar,
-  Hash,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -25,10 +24,10 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
-import { MOCK_ORDERS } from '@/lib/mock-orders';
-import { cn } from '@/lib/utils';
-import { formatPrice } from '@/lib/utils';
-import { Order, OrderStatus } from '@/types/order';
+import { cn, formatPrice } from '@/lib/utils';
+import { useMyOrders } from '@/lib/services/order.service';
+import type { Order as ApiOrder } from '@/lib/services/order.service';
+import type { Order, OrderStatus } from '@/types/order';
 
 const STATUS_CONFIG: Record<
   OrderStatus,
@@ -78,20 +77,56 @@ const TAB_FILTERS: { value: string; label: string }[] = [
   { value: 'cancelled', label: 'Cancelled' },
 ];
 
+function mapApiStatusToDisplayStatus(
+  apiStatus: ApiOrder['status']
+): OrderStatus {
+  switch (apiStatus) {
+    case 'PENDING':
+    case 'CONFIRMED':
+    case 'PROCESSING':
+      return 'processing';
+    case 'SHIPPED':
+      return 'shipped';
+    case 'DELIVERED':
+      return 'delivered';
+    case 'CANCELLED':
+      return 'cancelled';
+    default:
+      return 'processing';
+  }
+}
+
+function mapApiOrderToUiOrder(apiOrder: ApiOrder): Order {
+  return {
+    id: apiOrder.id,
+    orderNumber: apiOrder.orderNumber,
+    date: apiOrder.createdAt,
+    status: mapApiStatusToDisplayStatus(apiOrder.status),
+    total: apiOrder.total,
+    currency: 'MMK',
+    isCargo: false,
+    items: apiOrder.items.map((item) => ({
+      id: item.id,
+      name: item.product.name,
+      price: item.product.price,
+      quantity: item.quantity,
+      image: item.product.images?.[0] || '/placeholder.png',
+    })),
+    shippingAddress: {
+      name: apiOrder.shippingAddress.name,
+      line1: apiOrder.shippingAddress.address,
+      city: apiOrder.shippingAddress.city,
+      postalCode: apiOrder.shippingAddress.zipCode || '',
+      country: 'Myanmar',
+    },
+  };
+}
+
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
-    day: 'numeric',
-  });
-}
-
-function formatEstimatedDelivery(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
     day: 'numeric',
   });
 }
@@ -139,11 +174,6 @@ function OrderCard({ order }: { order: Order }) {
                 {formatDate(order.date)} &middot; {order.items.length}{' '}
                 {order.items.length === 1 ? 'item' : 'items'}
               </p>
-              {order.estimatedDelivery && order.status === 'shipped' && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Est. delivery: {formatEstimatedDelivery(order.estimatedDelivery)}
-                </p>
-              )}
             </div>
 
             {/* Total & Expand */}
@@ -186,9 +216,6 @@ function OrderCard({ order }: { order: Order }) {
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Qty: {item.quantity}
-                        {item.variant && (
-                          <span className="ml-2">&middot; {item.variant}</span>
-                        )}
                       </p>
                     </div>
                     <p className="text-sm font-semibold text-foreground flex-shrink-0">
@@ -211,56 +238,13 @@ function OrderCard({ order }: { order: Order }) {
                 <div className="text-sm text-foreground">
                   <p className="font-medium">{order.shippingAddress.name}</p>
                   <p>{order.shippingAddress.line1}</p>
-                  {order.shippingAddress.line2 && (
-                    <p>{order.shippingAddress.line2}</p>
-                  )}
                   <p>
                     {order.shippingAddress.city},{' '}
                     {order.shippingAddress.postalCode}
                   </p>
-                  <p>{order.shippingAddress.country}</p>
                 </div>
               </div>
             </div>
-
-            <Separator />
-
-            {/* Tracking & Cargo Info */}
-            {order.isCargo && order.trackingNumber && (
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  Cargo Tracking
-                </p>
-                <div className="flex items-center gap-2">
-                  <Hash className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm text-foreground font-mono">
-                    {order.trackingNumber}
-                  </span>
-                  <Link
-                    href={`/cargo-tracking?tracking=${order.trackingNumber}`}
-                    className="text-sm text-primary hover:underline inline-flex items-center gap-1 ml-2"
-                  >
-                    Track
-                    <ExternalLink className="w-3 h-3" />
-                  </Link>
-                </div>
-              </div>
-            )}
-
-            {/* Estimated Delivery for processing orders */}
-            {order.estimatedDelivery && order.status === 'processing' && (
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  Estimated Delivery
-                </p>
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm text-foreground">
-                    {formatEstimatedDelivery(order.estimatedDelivery)}
-                  </span>
-                </div>
-              </div>
-            )}
 
             <Separator />
 
@@ -286,6 +270,54 @@ function OrderCard({ order }: { order: Order }) {
   );
 }
 
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-4">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <Card key={i} className="overflow-hidden">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 animate-pulse">
+              <div className="w-12 h-12 rounded-xl bg-muted flex-shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-muted rounded w-1/3" />
+                <div className="h-3 bg-muted rounded w-1/2" />
+              </div>
+              <div className="h-5 bg-muted rounded w-20" />
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function ErrorState({ message }: { message?: string }) {
+  return (
+    <Card>
+      <CardContent className="p-12 text-center">
+        <div className="flex justify-center mb-4">
+          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center">
+            <AlertCircle className="w-10 h-10 text-red-600" />
+          </div>
+        </div>
+        <h2 className="text-lg font-semibold text-foreground mb-2">
+          Failed to load orders
+        </h2>
+        <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+          {message || 'Something went wrong while fetching your orders. Please try again later.'}
+        </p>
+        <Button
+          onClick={() => window.location.reload()}
+          className="bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          <Loader2 className="w-4 h-4 mr-2" />
+          Try Again
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 function EmptyState() {
   return (
     <Card>
@@ -303,7 +335,7 @@ function EmptyState() {
           browse our products to place your first order.
         </p>
         <Link href="/products">
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
             <ShoppingBag className="w-4 h-4 mr-2" />
             Browse Products
           </Button>
@@ -338,8 +370,17 @@ export default function OrdersPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
+  const { data: apiResponse, isLoading, error } = useMyOrders();
+
+  const apiOrders = apiResponse?.data;
+
+  const mappedOrders = useMemo(() => {
+    if (!apiOrders) return [];
+    return apiOrders.map(mapApiOrderToUiOrder);
+  }, [apiOrders]);
+
   const filteredOrders = useMemo(() => {
-    let orders = MOCK_ORDERS;
+    let orders = mappedOrders;
 
     // Filter by status tab
     if (activeTab !== 'all') {
@@ -355,21 +396,21 @@ export default function OrdersPage() {
     }
 
     return orders;
-  }, [activeTab, searchTerm]);
+  }, [activeTab, searchTerm, mappedOrders]);
 
   const orderCountByStatus = useMemo(() => {
     const counts: Record<string, number> = {
-      all: MOCK_ORDERS.length,
+      all: mappedOrders.length,
       processing: 0,
       shipped: 0,
       delivered: 0,
       cancelled: 0,
     };
-    MOCK_ORDERS.forEach((order) => {
+    mappedOrders.forEach((order) => {
       counts[order.status] = (counts[order.status] || 0) + 1;
     });
     return counts;
-  }, []);
+  }, [mappedOrders]);
 
   const hasFilters = activeTab !== 'all' || searchTerm.trim().length > 0;
 
@@ -389,72 +430,88 @@ export default function OrdersPage() {
         </div>
 
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-          {/* Search Input */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search by order number..."
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+          {/* Error State */}
+          {error && !isLoading && <ErrorState message={error.message} />}
 
-          {/* Status Filter Tabs */}
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            defaultValue="all"
-          >
-            <TabsList className="w-full justify-start overflow-x-auto">
-              {TAB_FILTERS.map((tab) => (
-                <TabsTrigger
-                  key={tab.value}
-                  value={tab.value}
-                  className="text-xs sm:text-sm"
+          {/* Search Input (hidden while loading) */}
+          {!isLoading && !error && (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search by order number..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          )}
+
+          {/* Status Filter Tabs (hidden while loading) */}
+          {!isLoading && !error && (
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              defaultValue="all"
+            >
+              <TabsList className="w-full justify-start overflow-x-auto">
+                {TAB_FILTERS.map((tab) => (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className="text-xs sm:text-sm"
+                  >
+                    {tab.label}
+                    <span className="ml-1.5 text-xs text-muted-foreground">
+                      ({orderCountByStatus[tab.value] || 0})
+                    </span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          )}
+
+          {/* Order Count (hidden while loading) */}
+          {!isLoading && !error && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                {filteredOrders.length}{' '}
+                {filteredOrders.length === 1 ? 'order' : 'orders'}
+                {hasFilters && ' found'}
+              </p>
+              {hasFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setActiveTab('all');
+                    setSearchTerm('');
+                  }}
+                  className="text-xs"
                 >
-                  {tab.label}
-                  <span className="ml-1.5 text-xs text-muted-foreground">
-                    ({orderCountByStatus[tab.value] || 0})
-                  </span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          )}
 
-          {/* Order Count */}
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              {filteredOrders.length}{' '}
-              {filteredOrders.length === 1 ? 'order' : 'orders'}
-              {hasFilters && ' found'}
-            </p>
-            {hasFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setActiveTab('all');
-                  setSearchTerm('');
-                }}
-                className="text-xs"
-              >
-                Clear filters
-              </Button>
-            )}
-          </div>
+          {/* Loading Skeleton */}
+          {isLoading && <LoadingSkeleton />}
 
           {/* Orders List or Empty State */}
-          {filteredOrders.length > 0 ? (
+          {!isLoading && !error && filteredOrders.length > 0 && (
             <div className="space-y-4">
               {filteredOrders.map((order) => (
                 <OrderCard key={order.id} order={order} />
               ))}
             </div>
-          ) : hasFilters ? (
+          )}
+
+          {!isLoading && !error && filteredOrders.length === 0 && hasFilters && (
             <NoResultsState searchTerm={searchTerm} />
-          ) : (
+          )}
+
+          {!isLoading && !error && filteredOrders.length === 0 && !hasFilters && (
             <EmptyState />
           )}
         </div>
