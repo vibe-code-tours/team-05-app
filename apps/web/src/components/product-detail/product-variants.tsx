@@ -31,7 +31,7 @@ export function ProductVariants({
       {/* Size Variants */}
       {variants.size && variants.size.length > 0 && (
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">Size</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-3">Size</h3>
           <div className="flex flex-wrap gap-3">
             {variants.size.map((variant) => (
               <button
@@ -40,17 +40,17 @@ export function ProductVariants({
                 disabled={!variant.inStock}
                 className={cn(
                   'relative px-4 py-2 rounded-lg border-2 font-medium transition-all',
-                  'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+                  'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
                   selectedVariants.size === variant.value
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    ? 'border-primary bg-primary/10 text-primary'
                     : variant.inStock
-                    ? 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-                    : 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed line-through'
+                    ? 'border-border bg-card text-foreground hover:border-border hover:bg-muted'
+                    : 'border-border bg-muted text-muted-foreground cursor-not-allowed line-through'
                 )}
               >
                 {variant.name}
                 {selectedVariants.size === variant.value && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
                     <Check className="w-3 h-3 text-white" />
                   </span>
                 )}
@@ -63,7 +63,7 @@ export function ProductVariants({
       {/* Color Variants */}
       {variants.color && variants.color.length > 0 && (
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">Color</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-3">Color</h3>
           <div className="flex flex-wrap gap-3">
             {variants.color.map((variant) => (
               <button
@@ -72,12 +72,12 @@ export function ProductVariants({
                 disabled={!variant.inStock}
                 className={cn(
                   'relative w-10 h-10 rounded-full border-2 transition-all',
-                  'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+                  'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
                   selectedVariants.color === variant.value
-                    ? 'border-blue-500 ring-2 ring-blue-200'
+                    ? 'border-primary ring-2 ring-primary/30'
                     : variant.inStock
-                    ? 'border-gray-200 hover:border-gray-400'
-                    : 'border-gray-200 cursor-not-allowed opacity-50'
+                    ? 'border-border hover:border-border'
+                    : 'border-border cursor-not-allowed opacity-50'
                 )}
                 title={variant.name}
               >
@@ -95,7 +95,7 @@ export function ProductVariants({
           </div>
           {/* Show selected color name */}
           {selectedVariants.color && (
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-muted-foreground">
               Selected:{' '}
               <span className="font-medium">
                 {variants.color.find((v) => v.value === selectedVariants.color)?.name}

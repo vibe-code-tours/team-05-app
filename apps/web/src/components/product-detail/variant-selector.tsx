@@ -213,7 +213,7 @@ export function VariantSelector({
           <p className="text-sm text-muted-foreground">
             {selectedVariant.name}
             {selectedVariant.inStock && (
-              <span className="ml-2 text-green-600">✓ In Stock</span>
+              <span className="ml-2 text-primary">✓ In Stock</span>
             )}
             {!selectedVariant.inStock && (
               <span className="ml-2 text-destructive">Out of Stock</span>

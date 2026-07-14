@@ -1,37 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-
-// Types
-export interface CartItem {
-  id: string;
-  product: {
-    id: string;
-    name: string;
-    slug: string;
-    price: number;
-    images: string[];
-    stock: number;
-  };
-  quantity: number;
-  totalPrice: number;
-}
-
-export interface Cart {
-  id: string;
-  items: CartItem[];
-  subtotal: number;
-  itemCount: number;
-}
-
-export interface AddToCartInput {
-  productId: string;
-  quantity: number;
-}
-
-export interface UpdateCartItemInput {
-  itemId: string;
-  quantity: number;
-}
+import type { Cart, AddToCartInput, UpdateCartItemInput } from "@/types/cart";
 
 // API calls
 export const cartApi = {

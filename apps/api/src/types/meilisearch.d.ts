@@ -1,5 +1,5 @@
 declare module "meilisearch" {
-  export class MeiliSearch {
+  export class Meilisearch {
     constructor(config: { host: string; apiKey?: string });
     index(uid: string): Index;
   }

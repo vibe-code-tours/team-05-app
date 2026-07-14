@@ -2,29 +2,101 @@
 
 import { ShoppingCart, Trash2, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-import { useCartStore } from '@/stores/cart.store'
+import { useCart, useUpdateCartItem, useRemoveCartItem, useClearCart } from '@/lib/services/cart.service'
 import { CartItem, CartSummary, EmptyCart } from '@/components/cart'
 import { formatPrice } from '@/lib/utils'
+import type { CartItemView } from '@/types/cart'
+
+/** Map nested API CartItem to flat CartItemView for UI components. */
+function toCartItemView(item: import('@/types/cart').CartItem): CartItemView {
+  return {
+    id: item.id,
+    productId: item.product.id,
+    name: item.product.name,
+    price: item.product.price,
+    image: item.product.images[0] ?? '/placeholder.png',
+    quantity: item.quantity,
+    stock: item.product.stock,
+    seller: '',
+  }
+}
 
 export default function CartPage() {
-  const items = useCartStore((state) => state.items)
-  const removeItem = useCartStore((state) => state.removeItem)
-  const updateQuantity = useCartStore((state) => state.updateQuantity)
-  const clearCart = useCartStore((state) => state.clearCart)
-  const getSubtotal = useCartStore((state) => state.getSubtotal)
-  const getShipping = useCartStore((state) => state.getShipping)
-  const getTax = useCartStore((state) => state.getTax)
-  const getTotal = useCartStore((state) => state.getTotal)
-  const getItemCount = useCartStore((state) => state.getItemCount)
+  const { data: cart, isLoading, error } = useCart()
+  const updateCartItem = useUpdateCartItem()
+  const removeCartItem = useRemoveCartItem()
+  const clearCart = useClearCart()
 
-  const subtotal = getSubtotal()
-  const shipping = getShipping()
-  const tax = getTax()
-  const total = getTotal()
-  const itemCount = getItemCount()
+  // --- Derived values from API data (unwrap ApiResponse) ---
+  const cartData = cart?.data
+  const items = cartData?.items ?? []
+  const subtotal = cartData?.subtotal ?? 0
+  const shipping = subtotal >= 50000 ? 0 : 3000
+  const tax = subtotal * 0.05
+  const total = subtotal + shipping + tax
+  const itemCount = cartData?.itemCount ?? 0
 
+  // --- Handlers (wrap mutations to match component callback signatures) ---
+  const handleUpdateQuantity = (id: string, quantity: number) => {
+    if (quantity <= 0) {
+      removeCartItem.mutate(id)
+    } else {
+      updateCartItem.mutate({ itemId: id, quantity })
+    }
+  }
+
+  const handleRemove = (id: string) => {
+    removeCartItem.mutate(id)
+  }
+
+  const handleClearCart = () => {
+    clearCart.mutate()
+  }
+
+  // --- Loading state ---
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center gap-3 mb-8">
+            <ShoppingCart className="h-6 w-6 text-foreground animate-pulse" />
+            <div className="h-8 w-48 bg-muted rounded animate-pulse" />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-24 bg-muted rounded-lg animate-pulse" />
+              ))}
+            </div>
+            <div className="lg:col-span-1">
+              <div className="h-64 bg-muted rounded-lg animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // --- Error state ---
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col items-center justify-center py-16">
+            <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
+            <h2 className="text-xl font-semibold text-foreground mb-2">
+              Failed to load cart
+            </h2>
+            <p className="text-muted-foreground text-center max-w-md">
+              Something went wrong while fetching your cart. Please try again later.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // --- Empty cart ---
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-background">
@@ -35,7 +107,8 @@ export default function CartPage() {
     )
   }
 
-  const outOfStockCount = items.filter((item) => item.quantity > item.stock).length
+  const cartItemViews = items.map(toCartItemView)
+  const outOfStockCount = cartItemViews.filter((item) => item.quantity > item.stock).length
 
   return (
     <div className="min-h-screen bg-background">
@@ -50,7 +123,8 @@ export default function CartPage() {
             variant="ghost"
             size="sm"
             className="text-muted-foreground hover:text-destructive"
-            onClick={clearCart}
+            onClick={handleClearCart}
+            disabled={clearCart.isPending}
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Clear Cart
@@ -71,12 +145,12 @@ export default function CartPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
-            {items.map((item) => (
+            {cartItemViews.map((item) => (
               <CartItem
                 key={item.id}
                 item={item}
-                onUpdateQuantity={updateQuantity}
-                onRemove={removeItem}
+                onUpdateQuantity={handleUpdateQuantity}
+                onRemove={handleRemove}
               />
             ))}
           </div>

@@ -28,7 +28,7 @@ export function ProductRating({ rating, reviewCount, className = '' }: ProductRa
         {/* Half Star */}
         {hasHalfStar && (
           <div className="relative w-5 h-5">
-            <Star className="absolute inset-0 w-5 h-5 text-gray-300" />
+            <Star className="absolute inset-0 w-5 h-5 text-muted-foreground/30" />
             <div className="absolute inset-0 overflow-hidden w-1/2">
               <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
             </div>
@@ -37,12 +37,12 @@ export function ProductRating({ rating, reviewCount, className = '' }: ProductRa
 
         {/* Empty Stars */}
         {Array.from({ length: emptyStars }, (_, i) => (
-          <Star key={`empty-${i}`} className="w-5 h-5 text-gray-300" />
+          <Star key={`empty-${i}`} className="w-5 h-5 text-muted-foreground/30" />
         ))}
       </div>
 
-      <span className="text-lg font-semibold text-gray-900">{rating.toFixed(1)}</span>
-      <span className="text-sm text-gray-500">({reviewCount} reviews)</span>
+      <span className="text-lg font-semibold text-foreground">{rating.toFixed(1)}</span>
+      <span className="text-sm text-muted-foreground">({reviewCount} reviews)</span>
     </div>
   );
 }

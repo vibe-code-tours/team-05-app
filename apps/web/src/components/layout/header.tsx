@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useCartStore } from '@/stores/cart.store';
+import { useCart } from '@/lib/services/cart.service';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -26,7 +26,8 @@ const navLinks = [
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const cartItemCount = useCartStore((state) => state.getItemCount());
+  const { data: cart } = useCart();
+  const cartItemCount = cart?.data?.itemCount ?? 0;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

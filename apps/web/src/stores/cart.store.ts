@@ -1,15 +1,15 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import type { CartItem } from "@/types/cart";
+import type { CartItemView } from "@/types/cart";
 
 const FREE_SHIPPING_THRESHOLD = 50_000;
 const SHIPPING_FEE = 3_000;
 const TAX_RATE = 0.05;
 
 interface CartState {
-  items: CartItem[];
-  addItem: (item: CartItem) => void;
+  items: CartItemView[];
+  addItem: (item: CartItemView) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;

@@ -1,24 +1,9 @@
 import { useAuthStore } from "@/stores/auth.store";
+import type { ApiResponse } from "@/types/api";
+
+export type { ApiResponse, PaginationMeta, ApiError } from "@/types/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
-
-export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-  meta?: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    cursor?: string;
-  };
-  error?: {
-    code: string;
-    message: string;
-    details?: Array<{ field: string; message: string }>;
-  };
-}
 
 async function request<T>(
   endpoint: string,

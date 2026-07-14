@@ -24,9 +24,9 @@ export function ProductInfo({ product }: ProductInfoProps) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
 
   const getStockStatus = (quantity: number) => {
-    if (quantity === 0) return { label: 'Out of Stock', variant: 'destructive' as const, color: 'text-red-500' }
-    if (quantity <= 10) return { label: 'Low Stock', variant: 'warning' as const, color: 'text-yellow-500' }
-    return { label: 'In Stock', variant: 'success' as const, color: 'text-green-500' }
+    if (quantity === 0) return { label: 'Out of Stock', variant: 'destructive' as const, color: 'text-destructive' }
+    if (quantity <= 10) return { label: 'Low Stock', variant: 'warning' as const, color: 'text-muted-foreground' }
+    return { label: 'In Stock', variant: 'success' as const, color: 'text-primary' }
   }
 
   const getProductTypeBadge = (type: string) => {
@@ -64,7 +64,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
         <Star
           key={i}
           className={`w-4 h-4 ${
-            i <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+            i <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'
           }`}
         />
       )

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   CheckCircle,
   Package,
@@ -10,6 +11,7 @@ import {
   ArrowRight,
   Truck,
   ShoppingBag,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,115 +22,82 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useOrder } from '@/lib/services/order.service';
+import { formatPrice } from '@/lib/utils';
 
-interface OrderItem {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  image: string;
-}
-
-const MOCK_ORDER_ITEMS: OrderItem[] = [
-  {
-    id: '1',
-    name: 'Premium Wireless Bluetooth Headphones',
-    price: 79.99,
-    quantity: 1,
-    image: 'https://via.placeholder.com/80?text=Headphones',
-  },
-  {
-    id: '2',
-    name: 'USB-C Fast Charging Cable (2m)',
-    price: 12.99,
-    quantity: 2,
-    image: 'https://via.placeholder.com/80?text=Cable',
-  },
-  {
-    id: '3',
-    name: 'Laptop Stand - Aluminum',
-    price: 45.00,
-    quantity: 1,
-    image: 'https://via.placeholder.com/80?text=Stand',
-  },
+// Confetti colors
+const CONFETTI_COLORS = [
+  '#10B981',
+  '#3B82F6',
+  '#F59E0B',
+  '#EF4444',
+  '#8B5CF6',
+  '#EC4899',
 ];
 
-export default function OrderConfirmationPage() {
-  const [orderNumber, setOrderNumber] = useState('');
-  const [showConfetti, setShowConfetti] = useState(false);
+function OrderConfirmationContent() {
+  const searchParams = useSearchParams();
+  const orderId = searchParams.get('orderId');
 
-  // Generate order number on mount
-  useEffect(() => {
-    const randomDigits = Math.floor(10000000 + Math.random() * 90000000);
-    setOrderNumber(`ORD-${randomDigits}`);
-    // Trigger confetti effect after a short delay
-    const timer = setTimeout(() => setShowConfetti(true), 300);
-    return () => clearTimeout(timer);
-  }, []);
+  const { data: apiResponse, isLoading, error } = useOrder(orderId!);
+  const order = apiResponse?.data;
 
-  const orderItems = MOCK_ORDER_ITEMS;
-  const subtotal = useMemo(
-    () => orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
-    [orderItems],
-  );
-  const shipping = 5.99;
-  const tax = useMemo(() => +(subtotal * 0.05).toFixed(2), [subtotal]);
-  const total = useMemo(() => +(subtotal + shipping + tax).toFixed(2), [subtotal, shipping, tax]);
+  const showConfetti = useConfetti(!!order);
 
-  const shippingAddress = {
-    name: 'Win Naing Soe',
-    line1: '42 Pyay Road, Block 10',
-    line2: 'Sanchaung Township',
-    city: 'Yangon',
-    postalCode: '11111',
-    country: 'Myanmar',
-  };
+  // Estimated delivery: 5 business days (7 calendar days) from order creation
+  const estimatedDelivery = useMemo(() => {
+    if (!order?.createdAt) return null;
+    const created = new Date(order.createdAt);
+    const delivery = new Date(created);
+    let businessDays = 0;
+    while (businessDays < 5) {
+      delivery.setDate(delivery.getDate() + 1);
+      const day = delivery.getDay();
+      if (day !== 0 && day !== 6) businessDays++;
+    }
+    return delivery;
+  }, [order?.createdAt]);
 
-  const paymentMethod = {
-    type: 'Credit Card',
-    last4: '4242',
-    brand: 'Visa',
-  };
+  // Loading skeleton
+  if (isLoading) {
+    return <LoadingSkeleton />;
+  }
 
-  // Confetti particles
-  const confettiParticles = useMemo(
-    () =>
-      Array.from({ length: 30 }, (_, i) => ({
-        id: i,
-        left: Math.random() * 100,
-        delay: Math.random() * 1.5,
-        duration: 1.5 + Math.random() * 2,
-        color: ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'][
-          i % 6
-        ],
-        size: 6 + Math.random() * 6,
-      })),
-    [],
-  );
+  // Error / not found state
+  if (error || !order) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center px-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="p-8 text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-8 h-8 text-red-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground mb-2">
+              Order Not Found
+            </h1>
+            <p className="text-muted-foreground mb-6">
+              {orderId
+                ? `We couldn't find order ${orderId}. It may have been removed or the link is invalid.`
+                : 'No order ID was provided. Please check your link and try again.'}
+            </p>
+            <Link href="/products">
+              <Button className="w-full">
+                <ShoppingBag className="w-5 h-5 mr-2" />
+                Continue Shopping
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 relative overflow-hidden">
       {/* Confetti Animation */}
       {showConfetti && (
-        <div className="fixed inset-0 pointer-events-none z-50">
-          {confettiParticles.map((particle) => (
-            <div
-              key={particle.id}
-              className="absolute opacity-0 animate-[confetti-fall_3s_ease-out_forwards]"
-              style={{
-                left: `${particle.left}%`,
-                top: '-20px',
-                width: `${particle.size}px`,
-                height: `${particle.size}px`,
-                backgroundColor: particle.color,
-                borderRadius: '2px',
-                animationDelay: `${particle.delay}s`,
-                animationDuration: `${particle.duration}s`,
-                transform: `rotate(${Math.random() * 360}deg)`,
-              }}
-            />
-          ))}
-        </div>
+        <ConfettiOverlay />
       )}
 
       <style jsx global>{`
@@ -178,30 +147,29 @@ export default function OrderConfirmationPage() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
         {/* Success Header */}
         <div className="text-center mb-10 animate-fade-in-up">
-          {/* Green Checkmark Circle */}
           <div className="flex justify-center mb-6">
             <div className="relative">
               <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center animate-checkmark">
                 <CheckCircle className="w-14 h-14 text-green-600" strokeWidth={2} />
               </div>
-              {/* Pulse ring */}
               <div className="absolute inset-0 w-24 h-24 bg-green-200 rounded-full animate-ping opacity-20" />
             </div>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-2">
             Order Confirmed!
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-muted-foreground">
             Thank you for your purchase. Your order has been placed successfully.
           </p>
-          {orderNumber && (
-            <div className="mt-4">
-              <Badge variant="secondary" className="text-sm px-4 py-1.5 bg-green-100 text-green-800 border-green-200">
-                {orderNumber}
-              </Badge>
-            </div>
-          )}
+          <div className="mt-4">
+            <Badge
+              variant="secondary"
+              className="text-sm px-4 py-1.5 bg-green-100 text-green-800 border-green-200"
+            >
+              {order.orderNumber}
+            </Badge>
+          </div>
         </div>
 
         {/* Order Summary Card */}
@@ -214,25 +182,31 @@ export default function OrderConfirmationPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Items */}
-            {orderItems.map((item) => (
+            {order.items.map((item) => (
               <div key={item.id} className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="w-full h-full object-cover"
-                  />
+                <div className="w-16 h-16 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+                  {item.product.images[0] ? (
+                    <img
+                      src={item.product.images[0]}
+                      alt={item.product.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Package className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {item.name}
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {item.product.name}
                   </p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-muted-foreground">
                     Qty: {item.quantity}
                   </p>
                 </div>
-                <p className="text-sm font-semibold text-gray-900 flex-shrink-0">
-                  ${(item.price * item.quantity).toFixed(2)}
+                <p className="text-sm font-semibold text-foreground flex-shrink-0">
+                  {formatPrice(item.totalPrice)}
                 </p>
               </div>
             ))}
@@ -241,22 +215,18 @@ export default function OrderConfirmationPage() {
 
             {/* Price Breakdown */}
             <div className="space-y-2">
-              <div className="flex justify-between text-sm text-gray-600">
+              <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>{formatPrice(order.subtotal)}</span>
               </div>
-              <div className="flex justify-between text-sm text-gray-600">
+              <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Shipping</span>
-                <span>${shipping.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>Tax (5%)</span>
-                <span>${tax.toFixed(2)}</span>
+                <span>{formatPrice(order.shippingFee)}</span>
               </div>
               <Separator className="my-2" />
-              <div className="flex justify-between text-base font-bold text-gray-900">
+              <div className="flex justify-between text-base font-bold text-foreground">
                 <span>Total</span>
-                <span>${total.toFixed(2)}</span>
+                <span>{formatPrice(order.total)}</span>
               </div>
             </div>
           </CardContent>
@@ -273,36 +243,53 @@ export default function OrderConfirmationPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-sm text-gray-600 space-y-1">
-                <p className="font-medium text-gray-900">{shippingAddress.name}</p>
-                <p>{shippingAddress.line1}</p>
-                {shippingAddress.line2 && <p>{shippingAddress.line2}</p>}
-                <p>
-                  {shippingAddress.city}, {shippingAddress.postalCode}
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p className="font-medium text-foreground">
+                  {order.shippingAddress.name}
                 </p>
-                <p>{shippingAddress.country}</p>
+                <p>{order.shippingAddress.address}</p>
+                <p>
+                  {order.shippingAddress.city}, {order.shippingAddress.state}{' '}
+                  {order.shippingAddress.zipCode}
+                </p>
+                {order.shippingAddress.phone && (
+                  <p>{order.shippingAddress.phone}</p>
+                )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Payment Method */}
+          {/* Payment Status */}
           <Card className="animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
                 <CreditCard className="w-5 h-5 text-blue-600" />
-                Payment Method
+                Payment
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-7 bg-blue-100 rounded flex items-center justify-center">
-                  <span className="text-xs font-bold text-blue-700">
-                    {paymentMethod.brand}
-                  </span>
+                  <CreditCard className="w-4 h-4 text-blue-700" />
                 </div>
-                <div className="text-sm text-gray-600">
-                  <p className="font-medium text-gray-900">{paymentMethod.type}</p>
-                  <p>**** **** **** {paymentMethod.last4}</p>
+                <div className="text-sm">
+                  <p className="font-medium text-foreground">Payment Status</p>
+                  <Badge
+                    variant={
+                      order.paymentStatus === 'PAID'
+                        ? 'default'
+                        : order.paymentStatus === 'REFUNDED'
+                          ? 'destructive'
+                          : 'secondary'
+                    }
+                    className="mt-1"
+                  >
+                    {order.paymentStatus === 'PAID'
+                      ? 'Paid'
+                      : order.paymentStatus === 'REFUNDED'
+                        ? 'Refunded'
+                        : 'Pending'}
+                  </Badge>
                 </div>
               </div>
             </CardContent>
@@ -310,38 +297,43 @@ export default function OrderConfirmationPage() {
         </div>
 
         {/* Estimated Delivery */}
-        <Card className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <Truck className="w-5 h-5 text-blue-600" />
+        {estimatedDelivery && (
+          <Card className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Truck className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    Estimated Delivery
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {estimatedDelivery.toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">
-                  Estimated Delivery
-                </p>
-                <p className="text-sm text-gray-600">
-                  {new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
+        <div
+          className="flex flex-col sm:flex-row gap-3 animate-fade-in-up"
+          style={{ animationDelay: '0.6s' }}
+        >
           <Link href="/products" className="flex-1">
             <Button variant="outline" className="w-full" size="lg">
               <ShoppingBag className="w-5 h-5 mr-2" />
               Continue Shopping
             </Button>
           </Link>
-          <Link href="/orders" className="flex-1">
-            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white" size="lg">
+          <Link href={`/orders/${order.id}`} className="flex-1">
+            <Button className="w-full" size="lg">
               <Package className="w-5 h-5 mr-2" />
               Track Order
               <ArrowRight className="w-4 h-4 ml-2" />
@@ -350,5 +342,110 @@ export default function OrderConfirmationPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Loading skeleton component
+function LoadingSkeleton() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
+        {/* Header skeleton */}
+        <div className="text-center mb-10">
+          <div className="flex justify-center mb-6">
+            <Skeleton className="w-24 h-24 rounded-full" />
+          </div>
+          <Skeleton className="h-10 w-64 mx-auto mb-2" />
+          <Skeleton className="h-6 w-80 mx-auto" />
+          <div className="mt-4">
+            <Skeleton className="h-7 w-32 mx-auto rounded-full" />
+          </div>
+        </div>
+
+        {/* Order summary skeleton */}
+        <Skeleton className="h-48 w-full rounded-lg mb-6" />
+
+        {/* Shipping & payment skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <Skeleton className="h-36 rounded-lg" />
+          <Skeleton className="h-36 rounded-lg" />
+        </div>
+
+        {/* Delivery skeleton */}
+        <Skeleton className="h-20 w-full rounded-lg mb-8" />
+
+        {/* Buttons skeleton */}
+        <div className="flex gap-3">
+          <Skeleton className="h-12 flex-1 rounded-lg" />
+          <Skeleton className="h-12 flex-1 rounded-lg" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Confetti hook
+function useConfetti(orderLoaded: boolean): boolean {
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  useEffect(() => {
+    if (orderLoaded) {
+      const timer = setTimeout(() => setShowConfetti(true), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [orderLoaded]);
+
+  return showConfetti;
+}
+
+// Confetti overlay
+function ConfettiOverlay() {
+  const particles = useMemo(
+    () =>
+      Array.from({ length: 30 }, (_, i) => ({
+        id: i,
+        left: Math.random() * 100,
+        delay: Math.random() * 1.5,
+        duration: 1.5 + Math.random() * 2,
+        color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+        size: 6 + Math.random() * 6,
+      })),
+    [],
+  );
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-50">
+      {particles.map((p) => (
+        <div
+          key={p.id}
+          className="absolute opacity-0 animate-[confetti-fall_3s_ease-out_forwards]"
+          style={{
+            left: `${p.left}%`,
+            top: '-20px',
+            width: `${p.size}px`,
+            height: `${p.size}px`,
+            backgroundColor: p.color,
+            borderRadius: '2px',
+            animationDelay: `${p.delay}s`,
+            animationDuration: `${p.duration}s`,
+            transform: `rotate(${Math.random() * 360}deg)`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+export default function OrderConfirmationPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-50 via-white to-blue-50">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+        </div>
+      }
+    >
+      <OrderConfirmationContent />
+    </Suspense>
   );
 }

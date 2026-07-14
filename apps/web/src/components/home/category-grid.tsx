@@ -1,63 +1,65 @@
 'use client';
 
 import Link from 'next/link';
-import { Smartphone, Shirt, Sparkles, Home, Utensils, Dumbbell, ArrowRight } from 'lucide-react';
+import {
+  Smartphone,
+  Shirt,
+  Sparkles,
+  Home,
+  Utensils,
+  Dumbbell,
+  ArrowRight,
+  LayoutGrid,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useCategories, type Category } from '@/lib/services/product.service';
 
-interface Category {
-  id: string;
-  name: string;
-  icon: React.ReactNode;
-  productCount: number;
-  href: string;
+const categoryIconMap: Record<string, React.ReactNode> = {
+  electronics: <Smartphone className="h-8 w-8" />,
+  fashion: <Shirt className="h-8 w-8" />,
+  beauty: <Sparkles className="h-8 w-8" />,
+  'home & living': <Home className="h-8 w-8" />,
+  'home-and-living': <Home className="h-8 w-8" />,
+  'food & groceries': <Utensils className="h-8 w-8" />,
+  'food-and-groceries': <Utensils className="h-8 w-8" />,
+  food: <Utensils className="h-8 w-8" />,
+  sports: <Dumbbell className="h-8 w-8" />,
+  health: <Sparkles className="h-8 w-8" />,
+  automotive: <Smartphone className="h-8 w-8" />,
+  books: <LayoutGrid className="h-8 w-8" />,
+};
+
+function getCategoryIcon(category: Category): React.ReactNode {
+  const key = category.name.toLowerCase();
+  if (categoryIconMap[key]) return categoryIconMap[key];
+
+  const slugKey = category.slug?.toLowerCase() ?? '';
+  if (categoryIconMap[slugKey]) return categoryIconMap[slugKey];
+
+  // Fallback: use first letter of category name
+  return (
+    <span className="text-2xl font-bold text-primary">
+      {category.name.charAt(0).toUpperCase()}
+    </span>
+  );
 }
 
-const categories: Category[] = [
-  {
-    id: '1',
-    name: 'Electronics',
-    icon: <Smartphone className="h-8 w-8" />,
-    productCount: 1250,
-    href: '/products?category=electronics',
-  },
-  {
-    id: '2',
-    name: 'Fashion',
-    icon: <Shirt className="h-8 w-8" />,
-    productCount: 890,
-    href: '/products?category=fashion',
-  },
-  {
-    id: '3',
-    name: 'Beauty',
-    icon: <Sparkles className="h-8 w-8" />,
-    productCount: 645,
-    href: '/products?category=beauty',
-  },
-  {
-    id: '4',
-    name: 'Home & Living',
-    icon: <Home className="h-8 w-8" />,
-    productCount: 420,
-    href: '/products?category=home-living',
-  },
-  {
-    id: '5',
-    name: 'Food & Groceries',
-    icon: <Utensils className="h-8 w-8" />,
-    productCount: 780,
-    href: '/products?category=food-groceries',
-  },
-  {
-    id: '6',
-    name: 'Sports',
-    icon: <Dumbbell className="h-8 w-8" />,
-    productCount: 315,
-    href: '/products?category=sports',
-  },
-];
+function CategorySkeleton() {
+  return (
+    <div className="flex flex-col items-center p-6 bg-background rounded-2xl border">
+      <Skeleton className="w-16 h-16 rounded-full mb-4" />
+      <Skeleton className="h-4 w-20 mb-1" />
+      <Skeleton className="h-3 w-16" />
+    </div>
+  );
+}
 
 export function CategoryGrid() {
+  const { data: response, isLoading, isError } = useCategories();
+
+  const categories = (response?.data as Category[] | undefined) ?? [];
+
   return (
     <section className="py-12 bg-muted/30">
       <div className="container mx-auto px-4">
@@ -79,26 +81,57 @@ export function CategoryGrid() {
           </Button>
         </div>
 
+        {/* Loading State */}
+        {isLoading && (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <CategorySkeleton key={i} />
+            ))}
+          </div>
+        )}
+
+        {/* Error State */}
+        {isError && (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <LayoutGrid className="h-12 w-12 text-muted-foreground/40 mb-4" />
+            <p className="text-muted-foreground">
+              Unable to load categories. Please try again later.
+            </p>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && !isError && categories.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <LayoutGrid className="h-12 w-12 text-muted-foreground/40 mb-4" />
+            <p className="text-muted-foreground">
+              No categories available right now.
+            </p>
+          </div>
+        )}
+
         {/* Categories Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {categories.map((category) => (
-            <Link
-              key={category.id}
-              href={category.href}
-              className="group flex flex-col items-center p-6 bg-background rounded-2xl border hover:border-primary hover:shadow-md transition-all duration-300 hover:-translate-y-1"
-            >
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300 mb-4">
-                {category.icon}
-              </div>
-              <h3 className="font-semibold text-foreground text-center mb-1">
-                {category.name}
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                {category.productCount.toLocaleString()} products
-              </p>
-            </Link>
-          ))}
-        </div>
+        {!isLoading && !isError && categories.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {categories.map((category) => (
+              <Link
+                key={category.id}
+                href={`/products?category=${category.slug}`}
+                className="group flex flex-col items-center p-6 bg-background rounded-2xl border hover:border-primary hover:shadow-md transition-all duration-300 hover:-translate-y-1"
+              >
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300 mb-4">
+                  {getCategoryIcon(category)}
+                </div>
+                <h3 className="font-semibold text-foreground text-center mb-1">
+                  {category.name}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {(category._count?.products ?? 0).toLocaleString()} products
+                </p>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
