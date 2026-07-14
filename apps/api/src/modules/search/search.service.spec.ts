@@ -6,7 +6,7 @@ import { PrismaService } from "../../config/prisma.service";
 // Mock meilisearch
 jest.mock("meilisearch", () => {
   return {
-    MeiliSearch: jest.fn().mockImplementation(() => ({
+    Meilisearch: jest.fn().mockImplementation(() => ({
       index: jest.fn().mockReturnValue({
         search: jest.fn().mockResolvedValue({
           hits: [],
