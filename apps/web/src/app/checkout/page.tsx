@@ -8,8 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Header } from '@/components/layout/header'
-import { Footer } from '@/components/layout/footer'
+import { PublicLayout } from '@/components/layout/public-layout'
 import { useCartStore } from '@/stores/cart.store'
 import { AddressForm, type AddressData } from '@/components/checkout/address-form'
 import { PaymentMethod, type PaymentMethodType } from '@/components/checkout/payment-method'
@@ -107,21 +106,19 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-
-      <main className="flex-1 bg-gray-50">
+    <PublicLayout>
+      <div className="bg-background">
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           {/* Page Header */}
           <div className="mb-8">
             <Link
               href="/cart"
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-4"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Cart
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
+            <h1 className="text-3xl font-bold text-foreground">Checkout</h1>
           </div>
 
           {/* Step Indicator */}
@@ -139,7 +136,7 @@ export default function CheckoutPage() {
                           w-10 h-10 rounded-full flex items-center justify-center
                           ${isCompleted ? 'bg-green-500 text-white' : ''}
                           ${isActive ? 'bg-blue-600 text-white' : ''}
-                          ${!isActive && !isCompleted ? 'bg-gray-200 text-gray-500' : ''}
+                          ${!isActive && !isCompleted ? 'bg-muted text-muted-foreground' : ''}
                         `}
                       >
                         {isCompleted ? (
@@ -151,9 +148,9 @@ export default function CheckoutPage() {
                       <span
                         className={`
                           text-sm mt-2 font-medium
-                          ${isActive ? 'text-blue-600' : ''}
+                          ${isActive ? 'text-primary' : ''}
                           ${isCompleted ? 'text-green-600' : ''}
-                          ${!isActive && !isCompleted ? 'text-gray-500' : ''}
+                          ${!isActive && !isCompleted ? 'text-muted-foreground' : ''}
                         `}
                       >
                         {step.label}
@@ -163,7 +160,7 @@ export default function CheckoutPage() {
                       <div
                         className={`
                           flex-1 h-1 mx-4 rounded
-                          ${index < currentStepIndex ? 'bg-green-500' : 'bg-gray-200'}
+                          ${index < currentStepIndex ? 'bg-green-500' : 'bg-muted'}
                         `}
                       />
                     )}
@@ -265,7 +262,7 @@ export default function CheckoutPage() {
                     <div className="space-y-3 max-h-60 overflow-y-auto">
                       {items.map((item) => (
                         <div key={item.id} className="flex gap-3">
-                          <div className="w-12 h-12 rounded bg-gray-100 flex-shrink-0 overflow-hidden">
+                          <div className="w-12 h-12 rounded bg-muted flex-shrink-0 overflow-hidden">
                             <img
                               src={item.image}
                               alt={item.name}
@@ -273,14 +270,14 @@ export default function CheckoutPage() {
                             />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">
+                            <p className="text-sm font-medium text-foreground truncate">
                               {item.name}
                             </p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-muted-foreground">
                               Qty: {item.quantity}
                             </p>
                           </div>
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-sm font-medium text-foreground">
                             {formatPrice(item.price * item.quantity)}
                           </p>
                         </div>
@@ -292,12 +289,12 @@ export default function CheckoutPage() {
                     {/* Price Breakdown */}
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Subtotal</span>
-                        <span className="text-gray-900">{formatPrice(subtotal)}</span>
+                        <span className="text-muted-foreground">Subtotal</span>
+                        <span className="text-foreground">{formatPrice(subtotal)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Shipping</span>
-                        <span className="text-gray-900">
+                        <span className="text-muted-foreground">Shipping</span>
+                        <span className="text-foreground">
                           {shipping === 0 ? (
                             <Badge variant="success" className="text-xs">Free</Badge>
                           ) : (
@@ -306,13 +303,13 @@ export default function CheckoutPage() {
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Tax (5%)</span>
-                        <span className="text-gray-900">{formatPrice(tax)}</span>
+                        <span className="text-muted-foreground">Tax (5%)</span>
+                        <span className="text-foreground">{formatPrice(tax)}</span>
                       </div>
                       <Separator />
                       <div className="flex justify-between">
-                        <span className="font-semibold text-gray-900">Total</span>
-                        <span className="font-bold text-lg text-blue-600">
+                        <span className="font-semibold text-foreground">Total</span>
+                        <span className="font-bold text-lg text-primary">
                           {formatPrice(total)}
                         </span>
                       </div>
@@ -323,9 +320,7 @@ export default function CheckoutPage() {
             </div>
           </div>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </PublicLayout>
   )
 }

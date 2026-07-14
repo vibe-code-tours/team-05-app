@@ -2,6 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
 // Types
+export interface ProductImage {
+  url: string;
+  alt?: string;
+  order?: number;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -9,7 +15,7 @@ export interface Product {
   description: string;
   price: number;
   compareAtPrice?: number;
-  images: string[];
+  images: ProductImage[];
   category: {
     id: string;
     name: string;
@@ -27,7 +33,7 @@ export interface Product {
   stock: number;
   type: "IN_STOCK" | "CARGO" | "PROMOTION";
   status: "ACTIVE" | "INACTIVE" | "PENDING";
-  rating?: number;
+  avgRating?: number | null;
   reviewCount?: number;
   createdAt: string;
   updatedAt: string;
@@ -43,6 +49,33 @@ export interface ProductFilters {
   minPrice?: number;
   maxPrice?: number;
   type?: string;
+}
+
+// Catalog types
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  image?: string;
+  _count?: { products: number };
+  children?: Category[];
+}
+
+export interface Brand {
+  id: string;
+  name: string;
+  slug: string;
+  logo?: string;
+  _count?: { products: number };
+}
+
+export interface Banner {
+  id: string;
+  title: string;
+  subtitle?: string;
+  image?: string;
+  href?: string;
+  variant?: "default" | "discount" | "gift";
 }
 
 // API calls
@@ -70,7 +103,7 @@ export const productApi = {
     api.get<Product[]>("/products/admin"),
 };
 
-// React Query hooks
+// React Query hooks - Products
 export function useProducts(filters?: ProductFilters) {
   return useQuery({
     queryKey: ["products", filters],
@@ -97,5 +130,28 @@ export function useAdminProducts() {
   return useQuery({
     queryKey: ["products", "admin"],
     queryFn: productApi.getAdminProducts,
+  });
+}
+
+// React Query hooks - Catalog
+export function useCategories() {
+  return useQuery({
+    queryKey: ["categories"],
+    queryFn: () => api.get<Category[]>("/catalog/categories"),
+  });
+}
+
+export function useBrands() {
+  return useQuery({
+    queryKey: ["brands"],
+    queryFn: () => api.get<Brand[]>("/catalog/brands"),
+  });
+}
+
+// React Query hooks - Banners
+export function useActiveBanners() {
+  return useQuery({
+    queryKey: ["banners", "active"],
+    queryFn: () => api.get<Banner[]>("/banners/active"),
   });
 }

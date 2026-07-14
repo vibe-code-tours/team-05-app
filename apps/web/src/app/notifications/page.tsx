@@ -18,8 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
+import { PublicLayout } from '@/components/layout/public-layout';
 import { useNotificationStore } from '@/stores/notification.store';
 import { MOCK_NOTIFICATIONS } from '@/lib/mock-notifications';
 import { cn } from '@/lib/utils';
@@ -91,10 +90,8 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Header />
-      <main className="flex-1">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+    <PublicLayout>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
           {/* Back Link */}
           <Link
             href="/"
@@ -223,8 +220,6 @@ export default function NotificationsPage() {
             </div>
           )}
         </div>
-      </main>
-      <Footer />
-    </div>
+    </PublicLayout>
   );
 }

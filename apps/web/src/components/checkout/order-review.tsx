@@ -7,12 +7,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, MapPin, CreditCard, Banknote, Building2, Smartphone } from 'lucide-react'
 import { formatPrice } from '@/lib/utils'
-import type { CartItem } from '@/types/cart'
+import type { CartItemView } from '@/types/cart'
 import type { AddressData } from './address-form'
 import type { PaymentMethodType } from './payment-method'
 
 interface OrderReviewProps {
-  items: CartItem[]
+  items: CartItemView[]
   address: AddressData
   paymentMethod: PaymentMethodType
   subtotal: number
@@ -57,7 +57,7 @@ export function OrderReview({
           <div className="space-y-4">
             {items.map((item) => (
               <div key={item.id} className="flex gap-4">
-                <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                   <Image
                     src={item.image}
                     alt={item.name}
@@ -66,20 +66,20 @@ export function OrderReview({
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-gray-900 truncate">
+                  <h4 className="font-medium text-foreground truncate">
                     {item.name}
                   </h4>
                   {item.variant && (
-                    <p className="text-sm text-gray-500">Variant: {item.variant}</p>
+                    <p className="text-sm text-muted-foreground">Variant: {item.variant}</p>
                   )}
-                  <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                  <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium text-gray-900">
+                  <p className="font-medium text-foreground">
                     {formatPrice(item.price * item.quantity)}
                   </p>
                   {item.quantity > 1 && (
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted-foreground">
                       {formatPrice(item.price)} each
                     </p>
                   )}
@@ -94,19 +94,19 @@ export function OrderReview({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <MapPin className="h-5 w-5 text-blue-600" />
+            <MapPin className="h-5 w-5 text-primary" />
             Delivery Address
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-sm space-y-1">
-            <p className="font-medium text-gray-900">{address.recipientName}</p>
-            <p className="text-gray-600">{address.phone}</p>
-            <p className="text-gray-600">
+            <p className="font-medium text-foreground">{address.recipientName}</p>
+            <p className="text-muted-foreground">{address.phone}</p>
+            <p className="text-muted-foreground">
               {address.addressLine1}
               {address.addressLine2 && `, ${address.addressLine2}`}
             </p>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               {address.city}, {address.state} {address.postalCode}
             </p>
           </div>
@@ -117,31 +117,31 @@ export function OrderReview({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <CreditCard className="h-5 w-5 text-blue-600" />
+            <CreditCard className="h-5 w-5 text-primary" />
             Payment Method
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
               {paymentMethodIcons[paymentMethod]}
             </div>
             <div>
-              <p className="font-medium text-gray-900">
+              <p className="font-medium text-foreground">
                 {paymentMethodLabels[paymentMethod]}
               </p>
               {paymentMethod === 'bank_transfer' && (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   Upload payment slip after placing order
                 </p>
               )}
               {paymentMethod === 'mobile_banking' && (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   KBZ Pay or Wave Money
                 </p>
               )}
               {paymentMethod === 'cash_on_delivery' && (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   Pay when you receive your order
                 </p>
               )}
@@ -158,12 +158,12 @@ export function OrderReview({
         <CardContent>
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Subtotal</span>
-              <span className="text-gray-900">{formatPrice(subtotal)}</span>
+              <span className="text-muted-foreground">Subtotal</span>
+              <span className="text-foreground">{formatPrice(subtotal)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Shipping</span>
-              <span className="text-gray-900">
+              <span className="text-muted-foreground">Shipping</span>
+              <span className="text-foreground">
                 {shipping === 0 ? (
                   <Badge variant="success" className="text-xs">Free</Badge>
                 ) : (
@@ -172,13 +172,13 @@ export function OrderReview({
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Tax (5%)</span>
-              <span className="text-gray-900">{formatPrice(tax)}</span>
+              <span className="text-muted-foreground">Tax (5%)</span>
+              <span className="text-foreground">{formatPrice(tax)}</span>
             </div>
             <Separator />
             <div className="flex justify-between">
-              <span className="font-semibold text-gray-900">Total</span>
-              <span className="font-bold text-lg text-blue-600">
+              <span className="font-semibold text-foreground">Total</span>
+              <span className="font-bold text-lg text-primary">
                 {formatPrice(total)}
               </span>
             </div>

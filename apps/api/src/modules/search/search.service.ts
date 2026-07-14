@@ -1,12 +1,12 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { MeiliSearch } from "meilisearch";
+import { Meilisearch } from "meilisearch";
 import { PrismaService } from "../../config/prisma.service";
 
 @Injectable()
 export class SearchService implements OnModuleInit {
   private readonly logger = new Logger(SearchService.name);
-  private client: MeiliSearch;
+  private client: Meilisearch;
 
   // Index names
   readonly INDEX_PRODUCTS = "products";
@@ -22,7 +22,7 @@ export class SearchService implements OnModuleInit {
     const host = this.config.get("MEILISEARCH_HOST", "http://localhost:7700");
     const apiKey = this.config.get("MEILISEARCH_API_KEY", "");
 
-    this.client = new MeiliSearch({ host, apiKey });
+    this.client = new Meilisearch({ host, apiKey });
     this.logger.log(`Meilisearch client initialized: ${host}`);
   }
 
