@@ -72,7 +72,7 @@ EXPOSE 3001
 
 # Health check using node instead of wget
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3001/api/v1/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1) })"
+  CMD node -e "require('http').get('http://localhost:3001/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1) })"
 
 # Start application
 CMD ["dumb-init", "node", "dist/main.js"]
