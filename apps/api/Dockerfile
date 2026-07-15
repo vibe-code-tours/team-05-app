@@ -21,9 +21,12 @@ COPY packages/shared ./packages/shared
 WORKDIR /app/packages/shared
 RUN npm run build
 
-# Generate Prisma client and build API
+# Generate Prisma client (needs DATABASE_URL at build time)
 WORKDIR /app/apps/api
+ARG DATABASE_URL
 RUN npx prisma generate
+
+# Build the application
 RUN npm run build
 
 # Create non-root user
