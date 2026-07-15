@@ -21,9 +21,8 @@ COPY packages/shared ./packages/shared
 WORKDIR /app/packages/shared
 RUN npm run build
 
-# Generate Prisma client (needs DATABASE_URL at build time)
+# Generate Prisma client
 WORKDIR /app/apps/api
-ARG DATABASE_URL
 RUN npx prisma generate
 
 # Build the application
@@ -43,4 +42,4 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3001/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1) })"
 
-CMD ["dumb-init", "node", "apps/api/dist/main.js"]
+CMD ["dumb-init", "node", "apps/api/dist/src/main.js"]
