@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { ThrottlerModule } from "@nestjs/throttler";
+import { envValidationSchema } from "./config/env.validation";
 import { PrismaModule } from "./config/prisma.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { UserModule } from "./modules/user/user.module";
@@ -20,7 +21,13 @@ import { HealthController } from "./config/health.controller";
 @Module({
   imports: [
     // Config
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validationSchema: envValidationSchema,
+      validationOptions: {
+        abortEarly: true, // Fail on first error
+      },
+    }),
 
     // Rate limiting
     ThrottlerModule.forRoot([
