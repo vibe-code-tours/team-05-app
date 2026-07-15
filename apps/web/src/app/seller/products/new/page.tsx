@@ -15,14 +15,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-
-const categories = [
-  "Fashion Accessories",
-  "Clothing",
-  "Home Decor",
-  "Bags & Accessories",
-  "Beauty & Health",
-];
+import { toast } from "@/components/ui/use-toast";
+import { useCreateProduct } from "@/lib/services/seller.service";
+import { useCategories } from "@/lib/services/product.service";
 
 interface VariantOption {
   type: "size" | "color";
@@ -31,25 +26,29 @@ interface VariantOption {
 
 export default function NewProductPage() {
   const router = useRouter();
+  const createProduct = useCreateProduct();
+  const { data: categoriesResponse } = useCategories();
+  const categories = categoriesResponse?.data ?? [];
 
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     price: "",
-    category: "",
+    categoryId: "",
     stock: "",
-    sku: "",
   });
 
   const [variants, setVariants] = useState<VariantOption[]>([]);
   const [variantType, setVariantType] = useState<"size" | "color">("size");
   const [variantValue, setVariantValue] = useState("");
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [imageUrlInput, setImageUrlInput] = useState("");
   const [isDragging, setIsDragging] = useState(false);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -72,27 +71,38 @@ export default function NewProductPage() {
   };
 
   const addImageFiles = (files: File[]) => {
-    const newFiles = [...imageFiles, ...files].slice(0, 5);
-    setImageFiles(newFiles);
+    // Convert local files to data URLs for preview, but we'll send URLs to the API
+    // In a real app, these would be uploaded to R2 first. For now, we store file names as placeholders.
+    const newUrls = [
+      ...imageUrls,
+      ...files.map((f) => URL.createObjectURL(f)),
+    ].slice(0, 5);
+    setImageUrls(newUrls);
+  };
 
-    const newUrls = newFiles.map((file) => URL.createObjectURL(file));
-    setImagePreviewUrls((prev) => {
-      prev.forEach((url) => URL.revokeObjectURL(url));
-      return newUrls;
-    });
+  const addImageUrl = () => {
+    const url = imageUrlInput.trim();
+    if (!url) return;
+    if (imageUrls.length >= 5) {
+      toast({ title: "Maximum 5 images allowed" });
+      return;
+    }
+    setImageUrls((prev) => [...prev, url]);
+    setImageUrlInput("");
   };
 
   const removeImage = (index: number) => {
-    URL.revokeObjectURL(imagePreviewUrls[index]);
-    const newFiles = imageFiles.filter((_, i) => i !== index);
-    const newUrls = imagePreviewUrls.filter((_, i) => i !== index);
-    setImageFiles(newFiles);
-    setImagePreviewUrls(newUrls);
+    const url = imageUrls[index];
+    if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+    setImageUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
   const addVariant = () => {
     if (!variantValue.trim()) return;
-    setVariants((prev) => [...prev, { type: variantType, value: variantValue.trim() }]);
+    setVariants((prev) => [
+      ...prev,
+      { type: variantType, value: variantValue.trim() },
+    ]);
     setVariantValue("");
   };
 
@@ -102,12 +112,48 @@ export default function NewProductPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would call an API
-    router.push("/seller/products");
+
+    if (!formData.name || !formData.price || !formData.stock || !formData.categoryId) {
+      toast({
+        title: "Missing required fields",
+        description: "Please fill in name, price, stock, and category.",
+      });
+      return;
+    }
+
+    createProduct.mutate(
+      {
+        name: formData.name,
+        description: formData.description,
+        price: Number(formData.price),
+        stock: Number(formData.stock),
+        categoryId: formData.categoryId,
+        type: "IN_STOCK",
+        images: imageUrls.filter((u) => !u.startsWith("blob:")),
+        variants: variants.map((v) => ({ type: v.type, value: v.value })),
+      },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Product created",
+            description: "Your product has been listed successfully.",
+          });
+          router.push("/seller/products");
+        },
+        onError: () => {
+          toast({
+            title: "Creation failed",
+            description: "Something went wrong. Please try again.",
+          });
+        },
+      }
+    );
   };
 
   const handleCancel = () => {
-    imagePreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+    imageUrls.forEach((url) => {
+      if (url.startsWith("blob:")) URL.revokeObjectURL(url);
+    });
     router.push("/seller/products");
   };
 
@@ -158,16 +204,6 @@ export default function NewProductPage() {
                     onChange={handleInputChange}
                     placeholder="Describe your product features, materials, and dimensions..."
                     rows={5}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sku">SKU</Label>
-                  <Input
-                    id="sku"
-                    name="sku"
-                    value={formData.sku}
-                    onChange={handleInputChange}
-                    placeholder="e.g., TSF-001"
                   />
                 </div>
               </CardContent>
@@ -287,6 +323,25 @@ export default function NewProductPage() {
                 <CardTitle>Product Images</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* URL input */}
+                <div className="flex gap-2">
+                  <Input
+                    value={imageUrlInput}
+                    onChange={(e) => setImageUrlInput(e.target.value)}
+                    placeholder="Paste image URL..."
+                    className="flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addImageUrl();
+                      }
+                    }}
+                  />
+                  <Button type="button" variant="outline" onClick={addImageUrl}>
+                    Add
+                  </Button>
+                </div>
+
                 <div
                   className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors ${
                     isDragging
@@ -329,9 +384,9 @@ export default function NewProductPage() {
                 </div>
 
                 {/* Image Previews */}
-                {imagePreviewUrls.length > 0 && (
+                {imageUrls.length > 0 && (
                   <div className="grid grid-cols-3 gap-2">
-                    {imagePreviewUrls.map((url, index) => (
+                    {imageUrls.map((url, index) => (
                       <div key={index} className="relative aspect-square">
                         <img
                           src={url}
@@ -359,16 +414,16 @@ export default function NewProductPage() {
               </CardHeader>
               <CardContent>
                 <select
-                  name="category"
-                  value={formData.category}
+                  name="categoryId"
+                  value={formData.categoryId}
                   onChange={handleInputChange}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   required
                 >
                   <option value="">Select a category</option>
                   {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
                     </option>
                   ))}
                 </select>
@@ -379,15 +434,20 @@ export default function NewProductPage() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex flex-col gap-3">
-                  <Button type="submit" className="w-full">
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={createProduct.isPending}
+                  >
                     <Package className="mr-2 h-4 w-4" />
-                    Save Product
+                    {createProduct.isPending ? "Saving..." : "Save Product"}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     className="w-full"
                     onClick={handleCancel}
+                    disabled={createProduct.isPending}
                   >
                     Cancel
                   </Button>

@@ -16,53 +16,10 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatPrice } from "@/lib/utils";
-import {
-  mockPlatformMetrics,
-  mockAdminUsers,
-  mockPendingProducts,
-} from "@/lib/mock-admin-data";
-
-// ---------------------------------------------------------------------------
-// Derived dashboard data
-// ---------------------------------------------------------------------------
-
-const recentUsers = mockAdminUsers.slice(-5).reverse();
-
-const recentOrders = [
-  { id: "ORD-8234", customer: "May Thida", amount: 85000, status: "delivered", date: "13 Jul" },
-  { id: "ORD-8233", customer: "Htet Aung", amount: 45000, status: "shipping", date: "13 Jul" },
-  { id: "ORD-8232", customer: "Aung Kyaw", amount: 120000, status: "processing", date: "12 Jul" },
-  { id: "ORD-8231", customer: "Thin Zar", amount: 32000, status: "pending", date: "12 Jul" },
-  { id: "ORD-8230", customer: "Nay Chi", amount: 67000, status: "delivered", date: "11 Jul" },
-];
-
-const pendingProducts = mockPendingProducts.filter((p) => p.status === "pending").slice(0, 5);
-
-const salesTrendData = [
-  { label: "Jan", value: 64 },
-  { label: "Feb", value: 70 },
-  { label: "Mar", value: 76 },
-  { label: "Apr", value: 84 },
-  { label: "May", value: 80 },
-  { label: "Jun", value: 90 },
-  { label: "Jul", value: 96 },
-  { label: "Aug", value: 78 },
-  { label: "Sep", value: 72 },
-  { label: "Oct", value: 88 },
-  { label: "Nov", value: 92 },
-  { label: "Dec", value: 100 },
-];
-
-const ordersByStatus = [
-  { label: "Delivered", count: 5240, color: "bg-green-500" },
-  { label: "Shipping", count: 1230, color: "bg-blue-500" },
-  { label: "Processing", count: 890, color: "bg-yellow-500" },
-  { label: "Pending", count: 520, color: "bg-orange-500" },
-  { label: "Cancelled", count: 350, color: "bg-red-500" },
-];
-
-const maxOrderCount = Math.max(...ordersByStatus.map((o) => o.count));
+import { useAdminProducts, useAdminOrders, useAllSellers } from "@/lib/services/admin.service";
+import type { AdminProduct } from "@/lib/services/admin.service";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -70,20 +27,35 @@ const maxOrderCount = Math.max(...ordersByStatus.map((o) => o.count));
 
 function statusBadge(status: string) {
   switch (status) {
+    case "APPROVED":
+      return <Badge variant="success">Approved</Badge>;
+    case "PENDING":
+      return <Badge variant="warning">Pending</Badge>;
+    case "REJECTED":
+      return <Badge variant="destructive">Rejected</Badge>;
+    case "DRAFT":
+      return <Badge variant="secondary">Draft</Badge>;
+    case "ARCHIVED":
+      return <Badge variant="outline">Archived</Badge>;
+    default:
+      return <Badge variant="outline">{status}</Badge>;
+  }
+}
+
+function orderStatusBadge(status: string) {
+  const s = status?.toLowerCase?.() ?? "";
+  switch (s) {
     case "delivered":
       return <Badge variant="success">Delivered</Badge>;
     case "shipping":
+    case "shipped":
       return <Badge variant="default">Shipping</Badge>;
     case "processing":
       return <Badge variant="secondary">Processing</Badge>;
     case "pending":
       return <Badge variant="warning">Pending</Badge>;
-    case "active":
-      return <Badge variant="success">Active</Badge>;
-    case "suspended":
-      return <Badge variant="destructive">Suspended</Badge>;
-    case "pending_approval":
-      return <Badge variant="warning">Pending</Badge>;
+    case "cancelled":
+      return <Badge variant="destructive">Cancelled</Badge>;
     default:
       return <Badge variant="outline">{status}</Badge>;
   }
@@ -94,10 +66,117 @@ function formatNumber(n: number): string {
 }
 
 // ---------------------------------------------------------------------------
+// Skeleton
+// ---------------------------------------------------------------------------
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-72" />
+        </div>
+        <Skeleton className="h-9 w-36" />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i}>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-8 w-20" />
+                  <Skeleton className="h-3 w-32" />
+                </div>
+                <Skeleton className="h-12 w-12 rounded-full" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <Card key={i}>
+            <CardHeader>
+              <Skeleton className="h-5 w-40" />
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {Array.from({ length: 5 }).map((_, j) => (
+                <div key={j} className="flex items-center gap-3">
+                  <Skeleton className="h-4 flex-1" />
+                  <Skeleton className="h-4 w-16" />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
 export default function AdminDashboardPage() {
+  const { data: productsData, isLoading: productsLoading } = useAdminProducts();
+  const { data: ordersData, isLoading: ordersLoading } = useAdminOrders();
+  const { data: sellersData, isLoading: sellersLoading } = useAllSellers();
+
+  const isLoading = productsLoading || ordersLoading || sellersLoading;
+
+  if (isLoading) {
+    return <DashboardSkeleton />;
+  }
+
+  const products: AdminProduct[] = Array.isArray(productsData) ? productsData : [];
+  const orders: any[] = Array.isArray(ordersData) ? ordersData : [];
+  const sellers: any[] = Array.isArray(sellersData) ? sellersData : [];
+
+  // Compute metrics from real data
+  const totalProducts = products.length;
+  const pendingApprovals = products.filter((p) => p.status === "PENDING").length;
+  const approvedProducts = products.filter((p) => p.status === "APPROVED").length;
+  const totalOrders = orders.length;
+  const totalSellers = sellers.length;
+
+  const pendingProducts = products
+    .filter((p) => p.status === "PENDING")
+    .slice(0, 5);
+
+  // Compute orders by status from real data
+  const orderStatusCounts: Record<string, number> = {};
+  orders.forEach((o: any) => {
+    const s = o.status ?? "pending";
+    orderStatusCounts[s] = (orderStatusCounts[s] || 0) + 1;
+  });
+
+  const statusColorMap: Record<string, string> = {
+    delivered: "bg-green-500",
+    shipping: "bg-blue-500",
+    shipped: "bg-blue-500",
+    processing: "bg-yellow-500",
+    pending: "bg-orange-500",
+    cancelled: "bg-red-500",
+  };
+
+  const ordersByStatus = Object.entries(orderStatusCounts)
+    .map(([label, count]) => ({
+      label: label.charAt(0).toUpperCase() + label.slice(1),
+      count,
+      color: statusColorMap[label.toLowerCase()] ?? "bg-muted-foreground",
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const maxOrderCount = Math.max(...ordersByStatus.map((o) => o.count), 1);
+
+  // Build recent orders from real data (last 5)
+  const recentOrders = orders.slice(0, 5);
+
   return (
     <div className="space-y-6">
       {/* Page heading */}
@@ -120,16 +199,15 @@ export default function AdminDashboardPage() {
       {/* Platform Metrics Cards                                           */}
       {/* --------------------------------------------------------------- */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Total Users */}
+        {/* Total Sellers / Users */}
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Users</p>
-                <p className="text-2xl font-bold">{formatNumber(12458)}</p>
-                <p className="mt-1 flex items-center text-xs text-green-600">
-                  <TrendingUp className="mr-1 h-3 w-3" />
-                  +14.2% from last month
+                <p className="text-sm font-medium text-muted-foreground">Total Sellers</p>
+                <p className="text-2xl font-bold">{formatNumber(totalSellers)}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Registered on platform
                 </p>
               </div>
               <div className="rounded-full bg-primary/10 p-3">
@@ -145,35 +223,13 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Orders</p>
-                <p className="text-2xl font-bold">{formatNumber(8234)}</p>
-                <p className="mt-1 flex items-center text-xs text-green-600">
-                  <TrendingUp className="mr-1 h-3 w-3" />
-                  +11.5% from last month
+                <p className="text-2xl font-bold">{formatNumber(totalOrders)}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  All-time orders
                 </p>
               </div>
               <div className="rounded-full bg-blue-500/10 p-3">
                 <ShoppingCart className="h-6 w-6 text-blue-500" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Total Revenue */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                <p className="text-2xl font-bold">
-                  {formatPrice(mockPlatformMetrics.totalRevenue)}
-                </p>
-                <p className="mt-1 flex items-center text-xs text-green-600">
-                  <TrendingUp className="mr-1 h-3 w-3" />
-                  +14.2% from last month
-                </p>
-              </div>
-              <div className="rounded-full bg-green-500/10 p-3">
-                <DollarSign className="h-6 w-6 text-green-500" />
               </div>
             </div>
           </CardContent>
@@ -185,14 +241,33 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Active Products</p>
-                <p className="text-2xl font-bold">{formatNumber(mockPlatformMetrics.totalProducts)}</p>
+                <p className="text-2xl font-bold">{formatNumber(approvedProducts)}</p>
                 <p className="mt-1 flex items-center text-xs text-orange-600">
                   <AlertCircle className="mr-1 h-3 w-3" />
-                  {mockPlatformMetrics.pendingApprovals} pending approval
+                  {pendingApprovals} pending approval
                 </p>
               </div>
               <div className="rounded-full bg-orange-500/10 p-3">
                 <Package className="h-6 w-6 text-orange-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Total Products */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Products</p>
+                <p className="text-2xl font-bold">{formatNumber(totalProducts)}</p>
+                <p className="mt-1 flex items-center text-xs text-green-600">
+                  <TrendingUp className="mr-1 h-3 w-3" />
+                  All statuses
+                </p>
+              </div>
+              <div className="rounded-full bg-green-500/10 p-3">
+                <DollarSign className="h-6 w-6 text-green-500" />
               </div>
             </div>
           </CardContent>
@@ -203,62 +278,69 @@ export default function AdminDashboardPage() {
       {/* Charts Row                                                      */}
       {/* --------------------------------------------------------------- */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* Sales Trend */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Sales Trend (12 Months)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end gap-1.5" style={{ height: 160 }}>
-              {salesTrendData.map((d) => (
-                <div
-                  key={d.label}
-                  className="group flex flex-1 flex-col items-center gap-1"
-                >
-                  <div
-                    className="w-full rounded-t-sm transition-all duration-200 group-hover:opacity-80"
-                    style={{
-                      height: `${d.value}%`,
-                      background: "linear-gradient(to top, var(--primary), hsl(var(--primary) / 0.3))",
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="mt-2 flex gap-1.5">
-              {salesTrendData.map((d) => (
-                <div
-                  key={d.label}
-                  className="flex-1 text-center text-[10px] text-muted-foreground"
-                >
-                  {d.label}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Orders by Status */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Orders by Status</CardTitle>
           </CardHeader>
           <CardContent>
+            {ordersByStatus.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                No order data available
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {ordersByStatus.map((o) => (
+                  <div key={o.label} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">{o.label}</span>
+                      <span className="text-muted-foreground">{formatNumber(o.count)}</span>
+                    </div>
+                    <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={`h-full rounded-full transition-all ${o.color}`}
+                        style={{ width: `${(o.count / maxOrderCount) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Products by Status */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Products by Status</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-3">
-              {ordersByStatus.map((o) => (
-                <div key={o.label} className="space-y-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">{o.label}</span>
-                    <span className="text-muted-foreground">{formatNumber(o.count)}</span>
+              {(["APPROVED", "PENDING", "REJECTED", "DRAFT", "ARCHIVED"] as const).map((status) => {
+                const count = products.filter((p) => p.status === status).length;
+                if (count === 0) return null;
+                const colorMap: Record<string, string> = {
+                  APPROVED: "bg-green-500",
+                  PENDING: "bg-yellow-500",
+                  REJECTED: "bg-red-500",
+                  DRAFT: "bg-blue-500",
+                  ARCHIVED: "bg-muted-foreground",
+                };
+                return (
+                  <div key={status} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">{status.charAt(0) + status.slice(1).toLowerCase()}</span>
+                      <span className="text-muted-foreground">{formatNumber(count)}</span>
+                    </div>
+                    <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={`h-full rounded-full transition-all ${colorMap[status]}`}
+                        style={{ width: `${(count / totalProducts) * 100}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                      className={`h-full rounded-full transition-all ${o.color}`}
-                      style={{ width: `${(o.count / maxOrderCount) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -267,39 +349,7 @@ export default function AdminDashboardPage() {
       {/* --------------------------------------------------------------- */}
       {/* Activity Feed & Quick Actions                                   */}
       {/* --------------------------------------------------------------- */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        {/* Recent User Registrations */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base">Recent Users</CardTitle>
-            <Link
-              href="/admin/users"
-              className="text-xs text-primary hover:underline"
-            >
-              View all
-            </Link>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentUsers.map((user) => (
-                <div key={user.id} className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                    {user.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate text-sm font-medium">{user.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">{user.email}</p>
-                  </div>
-                  {statusBadge(user.status)}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
+      <div className="grid gap-4 lg:grid-cols-2">
         {/* Recent Orders */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -312,25 +362,41 @@ export default function AdminDashboardPage() {
             </Link>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentOrders.map((order) => (
-                <div key={order.id} className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                    <ShoppingCart className="h-3.5 w-3.5 text-muted-foreground" />
+            {recentOrders.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                No recent orders
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {recentOrders.map((order: any) => (
+                  <div key={order.id} className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                      <ShoppingCart className="h-3.5 w-3.5 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate text-sm font-medium">
+                        {order.orderNumber ?? order.id}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {order.customerName ?? order.user?.name ?? "Customer"} &middot;{" "}
+                        {order.createdAt
+                          ? new Date(order.createdAt).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })
+                          : ""}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">
+                        {formatPrice(order.total ?? order.totalAmount ?? 0)}
+                      </p>
+                      {orderStatusBadge(order.status)}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate text-sm font-medium">{order.id}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {order.customer} &middot; {order.date}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">{formatPrice(order.amount)}</p>
-                    {statusBadge(order.status)}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -360,7 +426,7 @@ export default function AdminDashboardPage() {
                     <div className="flex-1 min-w-0">
                       <p className="truncate text-sm font-medium">{product.name}</p>
                       <p className="truncate text-xs text-muted-foreground">
-                        {product.sellerName} &middot; {product.category}
+                        {product.seller?.name} &middot; {product.category?.name}
                       </p>
                     </div>
                     <p className="text-sm font-medium">{formatPrice(product.price)}</p>
@@ -391,7 +457,7 @@ export default function AdminDashboardPage() {
                     Approve Products
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {mockPlatformMetrics.pendingApprovals} pending
+                    {pendingApprovals} pending
                   </p>
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -408,7 +474,7 @@ export default function AdminDashboardPage() {
                     Manage Users
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {formatNumber(mockPlatformMetrics.totalUsers)} total
+                    {formatNumber(totalSellers)} sellers
                   </p>
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />

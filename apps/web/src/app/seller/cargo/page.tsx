@@ -14,8 +14,10 @@ import {
   Clock,
   Ship,
   X,
-  Weight,
   Hash,
+  Loader2,
+  AlertCircle,
+  ChevronDown,
 } from "lucide-react";
 import {
   Card,
@@ -27,6 +29,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -35,12 +46,147 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-// formatPrice available from @/lib/utils if needed
-import { mockCargoShipments } from "@/lib/mock-seller-data";
-import type { CargoShipment } from "@/types/seller";
+import { toast } from "@/components/ui/use-toast";
+import { useSellerShipments, useUpdateMilestone, CARGO_MILESTONES } from "@/lib/services/cargo.service";
+import type { CargoMilestone as ApiCargoMilestone } from "@/lib/services/cargo.service";
+import type { CargoShipment as ApiCargoShipment } from "@/lib/services/cargo.service";
+
+// ── Types ─────────────────────────────────────────────────────────────────
+
+type CargoShipmentStatus = "preparing" | "in_transit" | "customs" | "delivered";
+type CargoMilestoneStatus =
+  | "order_placed"
+  | "payment_confirmed"
+  | "waiting_purchase"
+  | "purchased"
+  | "packed"
+  | "bkk_warehouse"
+  | "export_clearance"
+  | "air_cargo"
+  | "customs"
+  | "ygn_warehouse"
+  | "out_for_delivery"
+  | "delivered";
+
+interface UICargoMilestone {
+  status: CargoMilestoneStatus;
+  label: string;
+  location?: string;
+  completedAt?: string;
+  isCurrent: boolean;
+}
+
+interface UIShipment {
+  id: string;
+  shipmentNumber: string;
+  orderNumber: string;
+  destination: string;
+  status: CargoShipmentStatus;
+  currentMilestone: CargoMilestoneStatus;
+  currentLocation: string;
+  estimatedArrival: string;
+  weight: number;
+  weightUnit: string;
+  itemCount: number;
+  milestones: UICargoMilestone[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── Mapping ───────────────────────────────────────────────────────────────
+
+function normalizeShipmentStatus(raw: string): CargoShipmentStatus {
+  const lower = raw.toLowerCase();
+  if (["preparing", "in_transit", "customs", "delivered"].includes(lower)) {
+    return lower as CargoShipmentStatus;
+  }
+  return "preparing";
+}
+
+function normalizeMilestoneStatus(raw: string): CargoMilestoneStatus {
+  const lower = raw.toLowerCase();
+  if (
+    [
+      "order_placed", "payment_confirmed", "waiting_purchase", "purchased",
+      "packed", "bkk_warehouse", "export_clearance", "air_cargo",
+      "customs", "ygn_warehouse", "out_for_delivery", "delivered",
+    ].includes(lower)
+  ) {
+    return lower as CargoMilestoneStatus;
+  }
+  return "order_placed";
+}
+
+function formatMilestoneLabel(milestone: string): string {
+  return milestone
+    .split("_")
+    .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function deriveLocationFromMilestone(milestone: CargoMilestoneStatus): string {
+  const locationMap: Record<CargoMilestoneStatus, string> = {
+    order_placed: "CrossMart System",
+    payment_confirmed: "CrossMart System",
+    waiting_purchase: "Bangkok Supplier",
+    purchased: "Bangkok Supplier",
+    packed: "Bangkok Warehouse",
+    bkk_warehouse: "Bangkok Warehouse",
+    export_clearance: "Bangkok Export Office",
+    air_cargo: "In Transit",
+    customs: "Yangon Customs Office",
+    ygn_warehouse: "Yangon Warehouse",
+    out_for_delivery: "Distribution Center",
+    delivered: "Destination",
+  };
+  return locationMap[milestone];
+}
+
+function mapApiShipmentToUI(apiShipment: ApiCargoShipment): UIShipment {
+  const currentMilestoneIdx = CARGO_MILESTONES.indexOf(apiShipment.milestone);
+  const completedMilestoneSet = new Set(
+    apiShipment.milestones.map((m) => m.milestone)
+  );
+
+  const uiMilestones: UICargoMilestone[] = CARGO_MILESTONES.map((ms) => {
+    const apiMilestone = apiShipment.milestones.find((m) => m.milestone === ms);
+    const isCurrent = ms === apiShipment.milestone;
+    const isCompleted = completedMilestoneSet.has(ms) && !isCurrent;
+
+    return {
+      status: normalizeMilestoneStatus(ms),
+      label: formatMilestoneLabel(ms),
+      location: apiMilestone?.notes ?? (isCurrent || isCompleted ? deriveLocationFromMilestone(normalizeMilestoneStatus(ms)) : undefined),
+      completedAt: apiMilestone?.timestamp,
+      isCurrent,
+    };
+  });
+
+  const lastMilestone = apiShipment.milestones[apiShipment.milestones.length - 1];
+  const currentLocation = lastMilestone?.notes ?? deriveLocationFromMilestone(normalizeMilestoneStatus(apiShipment.milestone));
+
+  return {
+    id: apiShipment.id,
+    shipmentNumber: apiShipment.trackingNumber,
+    orderNumber: apiShipment.orderId,
+    destination: apiShipment.destination,
+    status: normalizeShipmentStatus(apiShipment.status),
+    currentMilestone: normalizeMilestoneStatus(apiShipment.milestone),
+    currentLocation,
+    estimatedArrival: apiShipment.estimatedArrival,
+    weight: 0,
+    weightUnit: "kg",
+    itemCount: 0,
+    milestones: uiMilestones,
+    createdAt: apiShipment.createdAt,
+    updatedAt: lastMilestone?.timestamp ?? apiShipment.createdAt,
+  };
+}
+
+// ── Config ────────────────────────────────────────────────────────────────
 
 const shipmentStatusConfig: Record<
-  string,
+  CargoShipmentStatus,
   { label: string; variant: "default" | "secondary" | "destructive" | "success" | "warning" | "outline" }
 > = {
   preparing: { label: "Preparing", variant: "warning" },
@@ -56,6 +202,8 @@ const statusTabs = [
   { value: "customs", label: "Customs" },
   { value: "delivered", label: "Delivered" },
 ];
+
+// ── Helpers ───────────────────────────────────────────────────────────────
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
@@ -77,7 +225,9 @@ function formatDateShort(dateString: string): string {
   }).format(date);
 }
 
-function CargoTimeline({ shipment }: { shipment: CargoShipment }) {
+// ── Cargo Timeline ────────────────────────────────────────────────────────
+
+function CargoTimeline({ shipment }: { shipment: UIShipment }) {
   return (
     <div className="relative">
       {shipment.milestones.map((milestone, index) => {
@@ -90,7 +240,7 @@ function CargoTimeline({ shipment }: { shipment: CargoShipment }) {
             {index < shipment.milestones.length - 1 && (
               <div
                 className={`absolute left-[11px] top-6 h-full w-0.5 ${
-                  isCompleted ? "bg-green-500" : "bg-muted"
+                  isCompleted ? "bg-primary" : "bg-muted"
                 }`}
               />
             )}
@@ -99,14 +249,14 @@ function CargoTimeline({ shipment }: { shipment: CargoShipment }) {
             <div
               className={`relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${
                 isCompleted
-                  ? "border-green-500 bg-green-500"
+                  ? "border-primary bg-primary"
                   : isCurrent
                     ? "border-primary bg-primary"
                     : "border-muted-foreground/30 bg-background"
               }`}
             >
               {isCompleted ? (
-                <Check className="h-3 w-3 text-white" />
+                <Check className="h-3 w-3 text-primary-foreground" />
               ) : isCurrent ? (
                 <Clock className="h-3 w-3 text-primary-foreground" />
               ) : (
@@ -155,18 +305,60 @@ function CargoTimeline({ shipment }: { shipment: CargoShipment }) {
   );
 }
 
+// ── Loading Skeleton ──────────────────────────────────────────────────────
+
+function ShipmentCardSkeleton() {
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex-1 space-y-3">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-5 w-36" />
+              <Skeleton className="h-5 w-20" />
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-4 w-32" />
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-8 w-28" />
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Page Component ────────────────────────────────────────────────────────
+
 export default function SellerCargoPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [selectedShipment, setSelectedShipment] = useState<CargoShipment | null>(null);
+  const [selectedShipment, setSelectedShipment] = useState<UIShipment | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [timelineDialogOpen, setTimelineDialogOpen] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [milestoneDialogOpen, setMilestoneDialogOpen] = useState(false);
+  const [milestoneTarget, setMilestoneTarget] = useState<UIShipment | null>(null);
+  const [nextMilestone, setNextMilestone] = useState<ApiCargoMilestone | null>(null);
+
+  const { data: apiShipments, isLoading, isError } = useSellerShipments();
+  const updateMilestoneMutation = useUpdateMilestone();
+
+  const shipments = useMemo(() => {
+    if (!apiShipments?.data) return [];
+    return apiShipments.data.map(mapApiShipmentToUI);
+  }, [apiShipments]);
 
   const filteredShipments = useMemo(() => {
-    return mockCargoShipments.filter((shipment) => {
+    return shipments.filter((shipment) => {
       const matchesSearch =
         shipment.shipmentNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
         shipment.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -189,29 +381,70 @@ export default function SellerCargoPage() {
 
       return matchesSearch && matchesTab && matchesDate;
     });
-  }, [searchQuery, activeTab, dateFrom, dateTo]);
+  }, [shipments, searchQuery, activeTab, dateFrom, dateTo]);
 
   const shipmentCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: mockCargoShipments.length };
-    for (const shipment of mockCargoShipments) {
+    const counts: Record<string, number> = { all: shipments.length };
+    for (const shipment of shipments) {
       counts[shipment.status] = (counts[shipment.status] || 0) + 1;
     }
     return counts;
-  }, []);
+  }, [shipments]);
 
-  const handleViewDetail = (shipment: CargoShipment) => {
+  const getNextMilestone = (currentMilestone: CargoMilestoneStatus): ApiCargoMilestone | null => {
+    const currentIdx = CARGO_MILESTONES.findIndex(
+      (m) => m.toLowerCase() === currentMilestone
+    );
+    if (currentIdx < 0 || currentIdx >= CARGO_MILESTONES.length - 1) return null;
+    return CARGO_MILESTONES[currentIdx + 1];
+  };
+
+  const handleViewDetail = (shipment: UIShipment) => {
     setSelectedShipment(shipment);
     setDetailDialogOpen(true);
   };
 
-  const handleViewTimeline = (shipment: CargoShipment) => {
+  const handleViewTimeline = (shipment: UIShipment) => {
     setSelectedShipment(shipment);
     setTimelineDialogOpen(true);
   };
 
-  const handleContactCustomer = (shipment: CargoShipment) => {
+  const handleContactCustomer = (shipment: UIShipment) => {
     setSelectedShipment(shipment);
     setContactDialogOpen(true);
+  };
+
+  const handleAdvanceMilestone = (shipment: UIShipment) => {
+    const next = getNextMilestone(shipment.currentMilestone);
+    if (!next) return;
+    setMilestoneTarget(shipment);
+    setNextMilestone(next);
+    setMilestoneDialogOpen(true);
+  };
+
+  const handleMilestoneConfirm = async () => {
+    if (!milestoneTarget || !nextMilestone) return;
+
+    try {
+      await updateMilestoneMutation.mutateAsync({
+        id: milestoneTarget.id,
+        milestone: nextMilestone,
+      });
+      toast({
+        title: "Milestone updated",
+        description: `Shipment ${milestoneTarget.shipmentNumber} advanced to ${formatMilestoneLabel(nextMilestone)}.`,
+      });
+    } catch {
+      toast({
+        title: "Failed to update milestone",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setMilestoneDialogOpen(false);
+      setMilestoneTarget(null);
+      setNextMilestone(null);
+    }
   };
 
   return (
@@ -224,6 +457,18 @@ export default function SellerCargoPage() {
         </p>
       </div>
 
+      {/* Error State */}
+      {isError && (
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardContent className="flex items-center gap-3 py-4">
+            <AlertCircle className="h-5 w-5 text-destructive" />
+            <p className="text-sm text-destructive">
+              Failed to load shipments. Please try refreshing the page.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -232,7 +477,7 @@ export default function SellerCargoPage() {
             <Ship className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockCargoShipments.length}</div>
+            <div className="text-2xl font-bold">{isLoading ? "-" : shipments.length}</div>
             <p className="text-xs text-muted-foreground">Active cargo shipments</p>
           </CardContent>
         </Card>
@@ -243,7 +488,7 @@ export default function SellerCargoPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {mockCargoShipments.filter((s) => s.status === "in_transit").length}
+              {isLoading ? "-" : shipments.filter((s) => s.status === "in_transit").length}
             </div>
             <p className="text-xs text-muted-foreground">Currently shipping</p>
           </CardContent>
@@ -255,7 +500,7 @@ export default function SellerCargoPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {mockCargoShipments.filter((s) => s.status === "customs").length}
+              {isLoading ? "-" : shipments.filter((s) => s.status === "customs").length}
             </div>
             <p className="text-xs text-muted-foreground">Pending clearance</p>
           </CardContent>
@@ -267,7 +512,7 @@ export default function SellerCargoPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {mockCargoShipments.filter((s) => s.status === "delivered").length}
+              {isLoading ? "-" : shipments.filter((s) => s.status === "delivered").length}
             </div>
             <p className="text-xs text-muted-foreground">Successfully delivered</p>
           </CardContent>
@@ -357,19 +602,29 @@ export default function SellerCargoPage() {
         <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4">
           <Package className="h-4 w-4" />
           <span>
-            Showing {filteredShipments.length} of {mockCargoShipments.length} shipments
+            {isLoading
+              ? "Loading shipments..."
+              : `Showing ${filteredShipments.length} of ${shipments.length} shipments`}
           </span>
         </div>
 
         {/* Shipment List */}
         <TabsContent value={activeTab} className="mt-4">
-          {filteredShipments.length > 0 ? (
+          {isLoading ? (
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <ShipmentCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : filteredShipments.length > 0 ? (
             <div className="space-y-4">
               {filteredShipments.map((shipment) => {
                 const statusInfo = shipmentStatusConfig[shipment.status];
                 const currentMilestone = shipment.milestones.find(
                   (m) => m.isCurrent
                 );
+                const canAdvance = getNextMilestone(shipment.currentMilestone) !== null;
+
                 return (
                   <Card key={shipment.id}>
                     <CardContent className="pt-6">
@@ -403,16 +658,6 @@ export default function SellerCargoPage() {
                               <Calendar className="h-3 w-3 text-muted-foreground" />
                               <span className="text-muted-foreground">ETA:</span>
                               <span>{formatDateShort(shipment.estimatedArrival)}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Weight className="h-3 w-3 text-muted-foreground" />
-                              <span className="text-muted-foreground">Weight:</span>
-                              <span>{shipment.weight} {shipment.weightUnit}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Package className="h-3 w-3 text-muted-foreground" />
-                              <span className="text-muted-foreground">Items:</span>
-                              <span>{shipment.itemCount}</span>
                             </div>
                           </div>
 
@@ -458,6 +703,16 @@ export default function SellerCargoPage() {
                             <Phone className="mr-1 h-3 w-3" />
                             Contact Customer
                           </Button>
+                          {canAdvance && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleAdvanceMilestone(shipment)}
+                            >
+                              <ChevronDown className="mr-1 h-3 w-3" />
+                              Advance Milestone
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -526,28 +781,6 @@ export default function SellerCargoPage() {
                     <MapPin className="h-3 w-3 text-muted-foreground" />
                     <span className="text-muted-foreground">Current Location:</span>
                     <span className="font-medium">{selectedShipment.currentLocation}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Package Details */}
-              <div className="rounded-lg border p-4">
-                <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-                  <Package className="h-4 w-4" />
-                  Package Details
-                </h4>
-                <div className="grid gap-2 text-sm sm:grid-cols-2">
-                  <div className="flex items-center gap-2">
-                    <Weight className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-muted-foreground">Weight:</span>
-                    <span className="font-medium">
-                      {selectedShipment.weight} {selectedShipment.weightUnit}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Package className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-muted-foreground">Items:</span>
-                    <span className="font-medium">{selectedShipment.itemCount}</span>
                   </div>
                 </div>
               </div>
@@ -647,6 +880,50 @@ export default function SellerCargoPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setContactDialogOpen(false)}>
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Milestone Advance Confirmation Dialog */}
+      <Dialog open={milestoneDialogOpen} onOpenChange={setMilestoneDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Advance Milestone</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to advance shipment{" "}
+              <span className="font-semibold">
+                {milestoneTarget?.shipmentNumber}
+              </span>{" "}
+              to{" "}
+              {nextMilestone && (
+                <Badge variant="default" className="text-[10px]">
+                  {formatMilestoneLabel(nextMilestone)}
+                </Badge>
+              )}
+              ?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setMilestoneDialogOpen(false)}
+              disabled={updateMilestoneMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleMilestoneConfirm}
+              disabled={updateMilestoneMutation.isPending}
+            >
+              {updateMilestoneMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Confirm Advance"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

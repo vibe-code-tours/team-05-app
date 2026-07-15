@@ -15,6 +15,8 @@ import {
   Mail,
   Hash,
   X,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import {
   Card,
@@ -24,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,9 +43,69 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { toast } from "@/components/ui/use-toast";
 import { formatPrice } from "@/lib/utils";
-import { mockSellerOrders } from "@/lib/mock-seller-data";
-import type { SellerOrder, SellerOrderStatus } from "@/types/seller";
+import { useSellerOrders, useUpdateSellerOrderStatus } from "@/lib/services/seller.service";
+import type { SellerOrderStatus } from "@/types/seller";
+import type { SellerOrder as ApiSellerOrder } from "@/lib/services/seller.service";
+
+// ── Types ─────────────────────────────────────────────────────────────────
+
+interface UIOrderItem {
+  id: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+interface UIOrder {
+  id: string;
+  orderNumber: string;
+  customerName: string;
+  customerEmail: string;
+  items: UIOrderItem[];
+  total: number;
+  currency: string;
+  status: SellerOrderStatus;
+  isCargo: boolean;
+  createdAt: string;
+  shippedAt?: string;
+  deliveredAt?: string;
+}
+
+// ── Mapping ───────────────────────────────────────────────────────────────
+
+function normalizeStatus(raw: string): SellerOrderStatus {
+  const lower = raw.toLowerCase();
+  if (["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"].includes(lower)) {
+    return lower as SellerOrderStatus;
+  }
+  return "pending";
+}
+
+function mapApiOrderToUI(apiOrder: ApiSellerOrder): UIOrder {
+  return {
+    id: apiOrder.id,
+    orderNumber: apiOrder.orderNumber,
+    customerName: apiOrder.shippingAddress?.name ?? "Unknown Customer",
+    customerEmail: "",
+    items: apiOrder.items.map((item) => ({
+      id: item.id,
+      productName: item.product.name,
+      quantity: item.quantity,
+      unitPrice: item.product.price,
+      totalPrice: item.totalPrice,
+    })),
+    total: apiOrder.total,
+    currency: "MMK",
+    status: normalizeStatus(apiOrder.status),
+    isCargo: false,
+    createdAt: apiOrder.createdAt,
+  };
+}
+
+// ── Config ────────────────────────────────────────────────────────────────
 
 const statusConfig: Record<
   SellerOrderStatus,
@@ -73,6 +136,8 @@ const nextStatusMap: Partial<Record<SellerOrderStatus, SellerOrderStatus[]>> = {
   shipped: ["delivered"],
 };
 
+// ── Helpers ───────────────────────────────────────────────────────────────
+
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
   return new Intl.DateTimeFormat("en-US", {
@@ -93,19 +158,47 @@ function formatDateShort(dateString: string): string {
   }).format(date);
 }
 
+// ── Loading Skeleton ──────────────────────────────────────────────────────
+
+function OrderRowSkeleton() {
+  return (
+    <div className="flex flex-col gap-3 p-4 lg:grid lg:grid-cols-12 lg:items-center lg:gap-4">
+      <div className="lg:col-span-2"><Skeleton className="h-4 w-28" /></div>
+      <div className="lg:col-span-2"><Skeleton className="h-4 w-24" /></div>
+      <div className="lg:col-span-2"><Skeleton className="h-4 w-20" /></div>
+      <div className="lg:col-span-2 lg:text-right"><Skeleton className="h-4 w-16 ml-auto" /></div>
+      <div className="lg:col-span-2 lg:text-center"><Skeleton className="h-5 w-16 mx-auto" /></div>
+      <div className="flex items-center justify-end gap-2 lg:col-span-2">
+        <Skeleton className="h-8 w-8" />
+        <Skeleton className="h-8 w-24" />
+      </div>
+    </div>
+  );
+}
+
+// ── Page Component ────────────────────────────────────────────────────────
+
 export default function SellerOrdersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [selectedOrder, setSelectedOrder] = useState<SellerOrder | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<UIOrder | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
-  const [statusTargetOrder, setStatusTargetOrder] = useState<SellerOrder | null>(null);
+  const [statusTargetOrder, setStatusTargetOrder] = useState<UIOrder | null>(null);
   const [newStatus, setNewStatus] = useState<SellerOrderStatus | null>(null);
 
+  const { data: apiOrders, isLoading, isError } = useSellerOrders();
+  const updateStatusMutation = useUpdateSellerOrderStatus();
+
+  const orders = useMemo(() => {
+    if (!apiOrders?.data) return [];
+    return apiOrders.data.map(mapApiOrderToUI);
+  }, [apiOrders]);
+
   const filteredOrders = useMemo(() => {
-    return mockSellerOrders.filter((order) => {
+    return orders.filter((order) => {
       const matchesSearch =
         order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
         order.customerName.toLowerCase().includes(searchQuery.toLowerCase());
@@ -127,32 +220,50 @@ export default function SellerOrdersPage() {
 
       return matchesSearch && matchesTab && matchesDate;
     });
-  }, [searchQuery, activeTab, dateFrom, dateTo]);
+  }, [orders, searchQuery, activeTab, dateFrom, dateTo]);
 
   const orderCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: mockSellerOrders.length };
-    for (const order of mockSellerOrders) {
+    const counts: Record<string, number> = { all: orders.length };
+    for (const order of orders) {
       counts[order.status] = (counts[order.status] || 0) + 1;
     }
     return counts;
-  }, []);
+  }, [orders]);
 
-  const handleViewDetail = (order: SellerOrder) => {
+  const handleViewDetail = (order: UIOrder) => {
     setSelectedOrder(order);
     setDetailDialogOpen(true);
   };
 
-  const handleStatusChangeClick = (order: SellerOrder, targetStatus: SellerOrderStatus) => {
+  const handleStatusChangeClick = (order: UIOrder, targetStatus: SellerOrderStatus) => {
     setStatusTargetOrder(order);
     setNewStatus(targetStatus);
     setStatusDialogOpen(true);
   };
 
-  const handleStatusConfirm = () => {
-    // In a real app, this would call an API to update the order status
-    setStatusDialogOpen(false);
-    setStatusTargetOrder(null);
-    setNewStatus(null);
+  const handleStatusConfirm = async () => {
+    if (!statusTargetOrder || !newStatus) return;
+
+    try {
+      await updateStatusMutation.mutateAsync({
+        id: statusTargetOrder.id,
+        status: newStatus.toUpperCase(),
+      });
+      toast({
+        title: "Status updated",
+        description: `Order ${statusTargetOrder.orderNumber} status changed to ${statusConfig[newStatus].label}.`,
+      });
+    } catch {
+      toast({
+        title: "Failed to update status",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setStatusDialogOpen(false);
+      setStatusTargetOrder(null);
+      setNewStatus(null);
+    }
   };
 
   return (
@@ -164,6 +275,18 @@ export default function SellerOrdersPage() {
           Manage customer orders, update status, and track shipments.
         </p>
       </div>
+
+      {/* Error State */}
+      {isError && (
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardContent className="flex items-center gap-3 py-4">
+            <AlertCircle className="h-5 w-5 text-destructive" />
+            <p className="text-sm text-destructive">
+              Failed to load orders. Please try refreshing the page.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filters */}
       <Card>
@@ -248,13 +371,23 @@ export default function SellerOrdersPage() {
         <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4">
           <Package className="h-4 w-4" />
           <span>
-            Showing {filteredOrders.length} of {mockSellerOrders.length} orders
+            {isLoading
+              ? "Loading orders..."
+              : `Showing ${filteredOrders.length} of ${orders.length} orders`}
           </span>
         </div>
 
         {/* Order List */}
         <TabsContent value={activeTab} className="mt-4">
-          {filteredOrders.length > 0 ? (
+          {isLoading ? (
+            <Card>
+              <CardContent className="p-0 divide-y">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <OrderRowSkeleton key={i} />
+                ))}
+              </CardContent>
+            </Card>
+          ) : filteredOrders.length > 0 ? (
             <Card>
               <CardContent className="p-0">
                 {/* Table Header */}
@@ -423,22 +556,24 @@ export default function SellerOrdersPage() {
                       {selectedOrder.customerName}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-muted-foreground">Email:</span>
-                    <span>{selectedOrder.customerEmail}</span>
-                  </div>
+                  {selectedOrder.customerEmail && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-muted-foreground">Email:</span>
+                      <span>{selectedOrder.customerEmail}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Shipping Address (mock) */}
+              {/* Shipping Address */}
               <div className="rounded-lg border p-4">
                 <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
                   <MapPin className="h-4 w-4" />
                   Shipping Address
                 </h4>
                 <p className="text-sm text-muted-foreground">
-                  123 Main Street, Yangon, Myanmar
+                  {selectedOrder.customerName}
                 </p>
               </div>
 
@@ -501,11 +636,6 @@ export default function SellerOrdersPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-muted-foreground">Shipped on:</span>
-                      <span>{formatDate(selectedOrder.shippedAt!)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
                       <Truck className="h-3 w-3 text-muted-foreground" />
                       <span className="text-muted-foreground">Status:</span>
                       <Badge variant="default">In Transit</Badge>
@@ -515,18 +645,13 @@ export default function SellerOrdersPage() {
               )}
 
               {/* Delivered Info */}
-              {selectedOrder.status === "delivered" && selectedOrder.deliveredAt && (
+              {selectedOrder.status === "delivered" && (
                 <div className="rounded-lg border p-4">
                   <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
                     <Truck className="h-4 w-4" />
                     Delivery Information
                   </h4>
                   <div className="grid gap-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-muted-foreground">Delivered on:</span>
-                      <span>{formatDate(selectedOrder.deliveredAt)}</span>
-                    </div>
                     <Badge variant="success">Delivered</Badge>
                   </div>
                 </div>
@@ -580,10 +705,23 @@ export default function SellerOrdersPage() {
             <Button
               variant="outline"
               onClick={() => setStatusDialogOpen(false)}
+              disabled={updateStatusMutation.isPending}
             >
               Cancel
             </Button>
-            <Button onClick={handleStatusConfirm}>Confirm Change</Button>
+            <Button
+              onClick={handleStatusConfirm}
+              disabled={updateStatusMutation.isPending}
+            >
+              {updateStatusMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Confirm Change"
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

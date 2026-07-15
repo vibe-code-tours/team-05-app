@@ -12,14 +12,12 @@ import {
   Package,
   SlidersHorizontal,
 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -28,48 +26,94 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { toast } from "@/components/ui/use-toast";
 import { formatPrice } from "@/lib/utils";
-import { mockSellerProducts } from "@/lib/mock-seller-data";
-import type { SellerProduct } from "@/types/seller";
+import {
+  useMyProducts,
+  useDeleteProduct,
+  type SellerProduct,
+} from "@/lib/services/seller.service";
 
 const statusConfig: Record<
   SellerProduct["status"],
-  { label: string; variant: "default" | "secondary" | "destructive" | "success" | "warning" | "outline" }
+  {
+    label: string;
+    variant: "default" | "secondary" | "destructive" | "success" | "warning" | "outline";
+  }
 > = {
-  active: { label: "Active", variant: "success" },
-  inactive: { label: "Inactive", variant: "secondary" },
-  out_of_stock: { label: "Out of Stock", variant: "destructive" },
+  DRAFT: { label: "Draft", variant: "secondary" },
+  PENDING: { label: "Pending", variant: "warning" },
+  APPROVED: { label: "Active", variant: "success" },
+  REJECTED: { label: "Rejected", variant: "destructive" },
+  ARCHIVED: { label: "Archived", variant: "outline" },
 };
 
-const categories = [
-  "All Categories",
-  "Fashion Accessories",
-  "Clothing",
-  "Home Decor",
-  "Bags & Accessories",
-  "Beauty & Health",
-];
+function ProductsSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <Skeleton className="h-8 w-36" />
+          <Skeleton className="mt-2 h-4 w-64" />
+        </div>
+        <Skeleton className="h-10 w-36" />
+      </div>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="space-y-2 lg:w-48">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="space-y-2 lg:w-40">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Card key={i}>
+            <Skeleton className="aspect-square w-full" />
+            <div className="p-4 space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-6 w-1/3" />
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function SellerProductsPage() {
+  const { data: productsResponse, isLoading } = useMyProducts();
+  const deleteProduct = useDeleteProduct();
+
+  const allProducts = productsResponse?.data ?? [];
+
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<SellerProduct | null>(null);
 
   const filteredProducts = useMemo(() => {
-    return mockSellerProducts.filter((product) => {
+    return allProducts.filter((product) => {
       const matchesSearch =
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.sku.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory =
-        selectedCategory === "All Categories" || product.category === selectedCategory;
+        product.slug.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus =
         selectedStatus === "all" || product.status === selectedStatus;
-      return matchesSearch && matchesCategory && matchesStatus;
+      return matchesSearch && matchesStatus;
     });
-  }, [searchQuery, selectedCategory, selectedStatus]);
+  }, [allProducts, searchQuery, selectedStatus]);
 
   const handleDeleteClick = (product: SellerProduct) => {
     setProductToDelete(product);
@@ -77,10 +121,28 @@ export default function SellerProductsPage() {
   };
 
   const handleDeleteConfirm = () => {
-    // In a real app, this would call an API
-    setDeleteDialogOpen(false);
-    setProductToDelete(null);
+    if (!productToDelete) return;
+    deleteProduct.mutate(productToDelete.id, {
+      onSuccess: () => {
+        toast({
+          title: "Product deleted",
+          description: `"${productToDelete.name}" has been removed.`,
+        });
+        setDeleteDialogOpen(false);
+        setProductToDelete(null);
+      },
+      onError: () => {
+        toast({
+          title: "Delete failed",
+          description: "Something went wrong. Please try again.",
+        });
+      },
+    });
   };
+
+  if (isLoading) {
+    return <ProductsSkeleton />;
+  }
 
   return (
     <div className="space-y-6">
@@ -113,28 +175,12 @@ export default function SellerProductsPage() {
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="search"
-                  placeholder="Search by name or SKU..."
+                  placeholder="Search by name..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9"
                 />
               </div>
-            </div>
-
-            {/* Category Filter */}
-            <div className="space-y-2 lg:w-48">
-              <Label className="text-sm font-medium">Category</Label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
             </div>
 
             {/* Status Filter */}
@@ -146,9 +192,11 @@ export default function SellerProductsPage() {
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="out_of_stock">Out of Stock</option>
+                <option value="DRAFT">Draft</option>
+                <option value="PENDING">Pending</option>
+                <option value="APPROVED">Active</option>
+                <option value="REJECTED">Rejected</option>
+                <option value="ARCHIVED">Archived</option>
               </select>
             </div>
 
@@ -179,23 +227,32 @@ export default function SellerProductsPage() {
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <SlidersHorizontal className="h-4 w-4" />
         <span>
-          Showing {filteredProducts.length} of {mockSellerProducts.length} products
+          Showing {filteredProducts.length} of {allProducts.length} products
         </span>
       </div>
 
       {/* Products Grid */}
-      {viewMode === "grid" ? (
+      {filteredProducts.length > 0 && viewMode === "grid" && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredProducts.map((product) => {
-            const statusInfo = statusConfig[product.status];
+            const statusInfo = statusConfig[product.status] ?? {
+              label: product.status,
+              variant: "secondary" as const,
+            };
             return (
               <Card key={product.id} className="group overflow-hidden">
                 <div className="relative aspect-square overflow-hidden bg-muted">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                  />
+                  {product.images?.[0] ? (
+                    <img
+                      src={product.images[0]}
+                      alt={product.name}
+                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <Package className="h-12 w-12 text-muted-foreground/50" />
+                    </div>
+                  )}
                   <Badge
                     variant={statusInfo.variant}
                     className="absolute left-2 top-2 text-[10px]"
@@ -210,20 +267,19 @@ export default function SellerProductsPage() {
                         {product.name}
                       </h3>
                       <p className="text-xs text-muted-foreground">
-                        SKU: {product.sku}
+                        {product.category?.name ?? "Uncategorized"}
                       </p>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-lg font-bold">
                         {formatPrice(product.price)}
                       </span>
-                      <Badge variant="secondary" className="text-[10px]">
-                        {product.category}
-                      </Badge>
                     </div>
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>Stock: {product.stock}</span>
-                      <span>{product.sold} sold</span>
+                      <span>
+                        {new Date(product.createdAt).toLocaleDateString()}
+                      </span>
                     </div>
                     <div className="flex gap-2 pt-2">
                       <Button
@@ -241,6 +297,7 @@ export default function SellerProductsPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleDeleteClick(product)}
+                        disabled={deleteProduct.isPending}
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
@@ -251,24 +308,35 @@ export default function SellerProductsPage() {
             );
           })}
         </div>
-      ) : (
-        /* Products List */
+      )}
+
+      {/* Products List */}
+      {filteredProducts.length > 0 && viewMode === "list" && (
         <Card>
           <CardContent className="p-0">
             <div className="divide-y">
               {filteredProducts.map((product) => {
-                const statusInfo = statusConfig[product.status];
+                const statusInfo = statusConfig[product.status] ?? {
+                  label: product.status,
+                  variant: "secondary" as const,
+                };
                 return (
                   <div
                     key={product.id}
                     className="flex items-center gap-4 p-4 transition-colors hover:bg-muted/50"
                   >
                     <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="h-full w-full object-cover"
-                      />
+                      {product.images?.[0] ? (
+                        <img
+                          src={product.images[0]}
+                          alt={product.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+                          <Package className="h-6 w-6 text-muted-foreground/50" />
+                        </div>
+                      )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -283,7 +351,7 @@ export default function SellerProductsPage() {
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        SKU: {product.sku} | {product.category}
+                        {product.category?.name ?? "Uncategorized"}
                       </p>
                     </div>
                     <div className="hidden text-right sm:block">
@@ -293,9 +361,6 @@ export default function SellerProductsPage() {
                       <p className="text-xs text-muted-foreground">
                         Stock: {product.stock}
                       </p>
-                    </div>
-                    <div className="hidden text-right text-xs text-muted-foreground md:block">
-                      <p>{product.sold} sold</p>
                     </div>
                     <div className="flex shrink-0 gap-2">
                       <Button variant="outline" size="sm" asChild>
@@ -308,6 +373,7 @@ export default function SellerProductsPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleDeleteClick(product)}
+                        disabled={deleteProduct.isPending}
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
@@ -327,8 +393,18 @@ export default function SellerProductsPage() {
             <Package className="h-12 w-12 text-muted-foreground/50" />
             <h3 className="mt-4 text-lg font-semibold">No products found</h3>
             <p className="text-sm text-muted-foreground">
-              Try adjusting your search or filter criteria.
+              {allProducts.length === 0
+                ? "Get started by adding your first product."
+                : "Try adjusting your search or filter criteria."}
             </p>
+            {allProducts.length === 0 && (
+              <Button className="mt-4" asChild>
+                <Link href="/seller/products/new">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add New Product
+                </Link>
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
@@ -347,11 +423,16 @@ export default function SellerProductsPage() {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
+              disabled={deleteProduct.isPending}
             >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm}>
-              Delete
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={deleteProduct.isPending}
+            >
+              {deleteProduct.isPending ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>
