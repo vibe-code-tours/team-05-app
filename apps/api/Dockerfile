@@ -5,24 +5,20 @@ WORKDIR /app
 # Install dependencies needed for native modules
 RUN apk add --no-cache libc6-compat
 
-# Copy workspace root package files
+# Copy all package files first for better caching
 COPY package.json package-lock.json ./
-
-# Copy api workspace package files
 COPY apps/api/package.json ./apps/api/
 COPY packages/shared/package.json ./packages/shared/
 
-# Install all workspace dependencies
-RUN npm ci
+# Install all dependencies (including devDependencies for build)
+RUN npm install
 
 # ─── Stage 2: Build ───────────────────────────────────
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-# Copy dependencies from deps stage
+# Copy entire node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 
 # Copy source code
 COPY apps/api ./apps/api
