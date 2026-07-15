@@ -2,6 +2,8 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ServiceUnavailableException,
+  Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../config/prisma.service";
 import {
@@ -13,11 +15,18 @@ import {
 
 @Injectable()
 export class CatalogService {
+  private readonly logger = new Logger(CatalogService.name);
+
   constructor(private prisma: PrismaService) {}
 
   // ─── Categories ──────────────────────────────────────
 
   async findAllCategories() {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      return { success: true, data: [] };
+    }
+
     const categories = await this.prisma.category.findMany({
       include: {
         _count: { select: { products: true } },
@@ -33,6 +42,11 @@ export class CatalogService {
   }
 
   async findCategoryBySlug(slug: string) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const category = await this.prisma.category.findUnique({
       where: { slug },
       include: {
@@ -127,6 +141,11 @@ export class CatalogService {
   // ─── Brands ──────────────────────────────────────────
 
   async findAllBrands() {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      return { success: true, data: [] };
+    }
+
     const brands = await this.prisma.brand.findMany({
       include: { _count: { select: { products: true } } },
       orderBy: { name: "asc" },
@@ -136,6 +155,11 @@ export class CatalogService {
   }
 
   async findBrandBySlug(slug: string) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const brand = await this.prisma.brand.findUnique({
       where: { slug },
       include: {

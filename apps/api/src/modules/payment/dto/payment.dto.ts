@@ -1,5 +1,6 @@
 import { IsString, IsOptional, IsIn } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { PaymentMethod } from "@prisma/client";
 
 const PAYMENT_METHODS = [
   "KBZ_PAY",
@@ -20,9 +21,9 @@ export class CreatePaymentDto {
   @IsString()
   orderId: string;
 
-  @ApiProperty({ enum: PAYMENT_METHODS })
+  @ApiProperty({ enum: PaymentMethod })
   @IsIn(PAYMENT_METHODS)
-  method: string;
+  method: PaymentMethod;
 
   @ApiProperty({ example: "https://example.com/slip.jpg" })
   @IsString()

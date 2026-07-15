@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   ConflictException,
 } from "@nestjs/common";
+import { OrderStatus } from "@prisma/client";
 import { PrismaService } from "../../config/prisma.service";
 import { CreateOrderDto, UpdateOrderStatusDto, CancelOrderDto } from "./dto/order.dto";
 
@@ -323,7 +324,7 @@ export class OrderService {
     const updated = await this.prisma.order.update({
       where: { id: orderId, version: dto.version },
       data: {
-        status: dto.status as any,
+        status: dto.status,
         version: { increment: 1 },
       },
       include: { items: true },
@@ -397,9 +398,9 @@ export class OrderService {
   /**
    * Admin: Get all orders with optional status filter
    */
-  async getAllOrders(page = 1, limit = 20, status?: string) {
+  async getAllOrders(page = 1, limit = 20, status?: OrderStatus) {
     const skip = (page - 1) * limit;
-    const where = status ? { status: status as any } : {};
+    const where = status ? { status } : {};
 
     const [orders, total] = await Promise.all([
       this.prisma.order.findMany({

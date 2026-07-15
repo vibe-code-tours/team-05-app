@@ -170,6 +170,11 @@ export class ProductService {
   }
 
   async create(sellerId: string, dto: CreateProductDto) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     // Resolve category
     const category = await this.prisma.category.findUnique({
       where: { slug: dto.categorySlug },
@@ -210,7 +215,7 @@ export class ProductService {
         name: dto.name,
         description: dto.description,
         price: dto.price,
-        type: dto.type as any,
+        type: dto.type,
         status: "PENDING",
         categoryId: category.id,
         brandId,
@@ -235,6 +240,11 @@ export class ProductService {
   }
 
   async update(sellerId: string, productId: string, dto: UpdateProductDto) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
@@ -281,7 +291,7 @@ export class ProductService {
         ...(dto.name && { name: dto.name }),
         ...(dto.description && { description: dto.description }),
         ...(dto.price !== undefined && { price: dto.price }),
-        ...(dto.type && { type: dto.type as any }),
+        ...(dto.type && { type: dto.type }),
         ...(dto.stock !== undefined && { stock: dto.stock }),
         ...(categoryId && { categoryId }),
         ...(brandId && { brandId }),
@@ -299,6 +309,11 @@ export class ProductService {
   }
 
   async delete(sellerId: string, productId: string) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
@@ -323,6 +338,15 @@ export class ProductService {
     limit?: number;
     status?: string;
   }) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      return {
+        success: true,
+        data: [],
+        meta: { page: params.page || 1, limit: params.limit || 20, total: 0, totalPages: 0 },
+      };
+    }
+
     const { page = 1, limit = 20, status } = params;
     const skip = (page - 1) * limit;
 
@@ -353,6 +377,11 @@ export class ProductService {
   }
 
   async approveOrReject(productId: string, dto: ApproveProductDto) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
@@ -367,7 +396,7 @@ export class ProductService {
 
     const updated = await this.prisma.product.update({
       where: { id: productId },
-      data: { status: dto.status as any },
+      data: { status: dto.status },
       include: {
         category: true,
         brand: true,

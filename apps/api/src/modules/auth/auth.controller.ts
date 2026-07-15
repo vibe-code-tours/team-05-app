@@ -2,6 +2,7 @@ import { Controller, Post, Body, HttpCode, HttpStatus } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
 import { AuthService } from "./auth.service";
 import { RegisterDto, LoginDto, VerifyOtpDto } from "./dto/auth.dto";
+import { ResendOtpDto } from "./dto/resend-otp.dto";
 
 @ApiTags("Auth")
 @Controller("auth")
@@ -38,7 +39,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Resend OTP code to email" })
   @ApiResponse({ status: 200, description: "OTP resent (if user exists)" })
-  resendOtp(@Body() body: { email: string }) {
-    return this.authService.resendOtp(body.email);
+  resendOtp(@Body() dto: ResendOtpDto) {
+    return this.authService.resendOtp(dto.email);
   }
 }

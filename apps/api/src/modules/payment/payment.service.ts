@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ForbiddenException,
 } from "@nestjs/common";
+import { OrderStatus } from "@prisma/client";
 import { PrismaService } from "../../config/prisma.service";
 import {
   CreatePaymentDto,
@@ -58,7 +59,7 @@ export class PaymentService {
       ? await this.prisma.payment.update({
           where: { orderId: dto.orderId },
           data: {
-            method: dto.method as any,
+            method: dto.method,
             slipUrl: dto.slipUrl,
             transactionId: dto.transactionId,
             status: "PENDING",
@@ -67,7 +68,7 @@ export class PaymentService {
       : await this.prisma.payment.create({
           data: {
             orderId: dto.orderId,
-            method: dto.method as any,
+            method: dto.method,
             amount: order.total,
             slipUrl: dto.slipUrl,
             transactionId: dto.transactionId,
@@ -141,7 +142,7 @@ export class PaymentService {
       throw new BadRequestException("Payment already confirmed");
     }
 
-    const newOrderStatus = dto.status === "CONFIRMED" ? "PAYMENT_CONFIRMED" : "PAYMENT_REJECTED";
+    const newOrderStatus: OrderStatus = dto.status === "CONFIRMED" ? "PAYMENT_CONFIRMED" : "PAYMENT_REJECTED";
 
     await this.prisma.$transaction(async (tx) => {
       await tx.payment.update({
@@ -155,7 +156,7 @@ export class PaymentService {
 
       await tx.order.update({
         where: { id: orderId },
-        data: { status: newOrderStatus as any },
+        data: { status: newOrderStatus },
       });
 
       // Restore stock if rejected

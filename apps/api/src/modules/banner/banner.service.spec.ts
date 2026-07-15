@@ -24,6 +24,7 @@ describe("BannerService", () => {
 
   beforeEach(async () => {
     prisma = {
+    dbConnected: true,
       banner: {
         findUnique: jest.fn(),
         findMany: jest.fn(),

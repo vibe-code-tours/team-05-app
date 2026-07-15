@@ -1,14 +1,21 @@
-import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
+import { Injectable, NotFoundException, ForbiddenException, ServiceUnavailableException, Logger } from "@nestjs/common";
 import { PrismaService } from "../../config/prisma.service";
 import { UpdateProfileDto, CreateAddressDto, UpdateAddressDto } from "./dto/user.dto";
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(private prisma: PrismaService) {}
 
   // ─── Profile ──────────────────────────────────────────
 
   async findById(id: string) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id },
       select: {
@@ -36,6 +43,11 @@ export class UserService {
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
 
     if (!user) {
@@ -73,6 +85,11 @@ export class UserService {
   // ─── Addresses ────────────────────────────────────────
 
   async getAddresses(userId: string) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      return { success: true, data: [] };
+    }
+
     const addresses = await this.prisma.address.findMany({
       where: { userId },
       orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],

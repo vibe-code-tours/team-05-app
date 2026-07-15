@@ -10,6 +10,7 @@ import {
 } from "class-validator";
 import { Type } from "class-transformer";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { ProductType, ProductStatus } from "@prisma/client";
 
 export class CreateProductDto {
   @ApiProperty({ example: "Sony Alpha A7 IV" })
@@ -27,9 +28,9 @@ export class CreateProductDto {
   @Min(0)
   price: number;
 
-  @ApiProperty({ enum: ["IN_STOCK", "CARGO", "PROMOTION", "PREORDER", "LOCAL", "USED"] })
-  @IsEnum(["IN_STOCK", "CARGO", "PROMOTION", "PREORDER", "LOCAL", "USED"] as const)
-  type: string;
+  @ApiProperty({ enum: ProductType })
+  @IsEnum(ProductType)
+  type: ProductType;
 
   @ApiProperty({ example: "camera" })
   @IsString()
@@ -116,10 +117,10 @@ export class UpdateProductDto {
   @IsNumber()
   price?: number;
 
-  @ApiPropertyOptional({ enum: ["IN_STOCK", "CARGO", "PROMOTION", "PREORDER", "LOCAL", "USED"] })
+  @ApiPropertyOptional({ enum: ProductType })
   @IsOptional()
-  @IsEnum(["IN_STOCK", "CARGO", "PROMOTION", "PREORDER", "LOCAL", "USED"] as const)
-  type?: string;
+  @IsEnum(ProductType)
+  type?: ProductType;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -138,9 +139,9 @@ export class UpdateProductDto {
 }
 
 export class ApproveProductDto {
-  @ApiProperty({ enum: ["APPROVED", "REJECTED"] })
-  @IsEnum(["APPROVED", "REJECTED"] as const)
-  status: string;
+  @ApiProperty({ enum: ProductStatus })
+  @IsEnum(ProductStatus)
+  status: ProductStatus;
 
   @ApiPropertyOptional()
   @IsOptional()

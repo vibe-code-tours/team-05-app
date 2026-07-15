@@ -2,16 +2,27 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ServiceUnavailableException,
+  Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../config/prisma.service";
+import { CreateCouponDto } from "./dto/coupon.dto";
+import { UpdateCouponDto } from "./dto/coupon.dto";
 
 @Injectable()
 export class CouponService {
+  private readonly logger = new Logger(CouponService.name);
+
   constructor(private prisma: PrismaService) {}
 
   // ── Public: Validate coupon ─────────────────────────────────────────────
 
   async validateCoupon(code: string, orderTotal: number) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const coupon = await this.prisma.coupon.findUnique({
       where: { code: code.toUpperCase() },
     });
@@ -103,15 +114,7 @@ export class CouponService {
     };
   }
 
-  async adminCreateCoupon(dto: {
-    code: string;
-    discountType: string;
-    value: number;
-    usageLimit?: number;
-    minOrder?: number;
-    expiresAt?: string;
-    active?: boolean;
-  }) {
+  async adminCreateCoupon(dto: CreateCouponDto) {
     // Check if code already exists
     const existing = await this.prisma.coupon.findUnique({
       where: { code: dto.code.toUpperCase() },
@@ -145,14 +148,7 @@ export class CouponService {
 
   async adminUpdateCoupon(
     id: string,
-    dto: {
-      discountType?: string;
-      value?: number;
-      usageLimit?: number;
-      minOrder?: number;
-      expiresAt?: string;
-      active?: boolean;
-    },
+    dto: UpdateCouponDto,
   ) {
     const coupon = await this.prisma.coupon.findUnique({ where: { id } });
 

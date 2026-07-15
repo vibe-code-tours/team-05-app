@@ -3,6 +3,8 @@ import {
   UnauthorizedException,
   ConflictException,
   BadRequestException,
+  ServiceUnavailableException,
+  Logger,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
@@ -12,6 +14,8 @@ import { RegisterDto, LoginDto, VerifyOtpDto } from "./dto/auth.dto";
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
@@ -19,6 +23,11 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const existing = await this.prisma.user.findFirst({
       where: { OR: [{ email: dto.email }, { phone: dto.phone }] },
     });
@@ -59,6 +68,11 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -92,6 +106,11 @@ export class AuthService {
   }
 
   async verifyOtp(dto: VerifyOtpDto) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     // Find user by the token (JWT payload contains userId)
     let userId: string;
     try {
@@ -121,6 +140,11 @@ export class AuthService {
   }
 
   async resendOtp(email: string) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { email },
     });

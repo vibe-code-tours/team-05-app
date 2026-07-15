@@ -1,13 +1,22 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, ServiceUnavailableException, Logger } from "@nestjs/common";
 import { PrismaService } from "../../config/prisma.service";
+import { CreateBannerDto } from "./dto/banner.dto";
+import { UpdateBannerDto } from "./dto/banner.dto";
 
 @Injectable()
 export class BannerService {
+  private readonly logger = new Logger(BannerService.name);
+
   constructor(private prisma: PrismaService) {}
 
   // ── Public Endpoints ────────────────────────────────────────────────────
 
   async getActiveBanners() {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      return { success: true, data: [] };
+    }
+
     const now = new Date();
 
     const banners = await this.prisma.banner.findMany({
@@ -53,15 +62,7 @@ export class BannerService {
     return { success: true, data: banner };
   }
 
-  async adminCreateBanner(dto: {
-    title: string;
-    image: string;
-    link?: string;
-    startDate: string;
-    endDate: string;
-    active?: boolean;
-    order?: number;
-  }) {
+  async adminCreateBanner(dto: CreateBannerDto) {
     const banner = await this.prisma.banner.create({
       data: {
         title: dto.title,
@@ -79,15 +80,7 @@ export class BannerService {
 
   async adminUpdateBanner(
     id: string,
-    dto: {
-      title?: string;
-      image?: string;
-      link?: string;
-      startDate?: string;
-      endDate?: string;
-      active?: boolean;
-      order?: number;
-    },
+    dto: UpdateBannerDto,
   ) {
     const banner = await this.prisma.banner.findUnique({ where: { id } });
 

@@ -3,19 +3,30 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  ServiceUnavailableException,
+  Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../config/prisma.service";
+import { CreateReviewDto } from "./dto/review.dto";
+import { UpdateReviewDto } from "./dto/review.dto";
 
 @Injectable()
 export class ReviewService {
+  private readonly logger = new Logger(ReviewService.name);
+
   constructor(private prisma: PrismaService) {}
 
   // ── User Endpoints ──────────────────────────────────────────────────────
 
   async createReview(
     userId: string,
-    dto: { productId: string; rating: number; text?: string; images?: string[] },
+    dto: CreateReviewDto,
   ) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     // Check product exists
     const product = await this.prisma.product.findUnique({
       where: { id: dto.productId },
@@ -54,6 +65,22 @@ export class ReviewService {
     limit = 20,
     rating?: number,
   ) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      return {
+        success: true,
+        data: [],
+        meta: {
+          page,
+          limit,
+          total: 0,
+          totalPages: 0,
+          avgRating: 0,
+          ratingBreakdown: [1, 2, 3, 4, 5].map((r) => ({ rating: r, count: 0 })),
+        },
+      };
+    }
+
     // Check product exists
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
@@ -130,7 +157,7 @@ export class ReviewService {
   async updateReview(
     userId: string,
     reviewId: string,
-    dto: { rating?: number; text?: string; images?: string[] },
+    dto: UpdateReviewDto,
   ) {
     const review = await this.prisma.review.findUnique({
       where: { id: reviewId },
