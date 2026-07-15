@@ -29,3 +29,5 @@ docker-compose.override.yml
 
 # TypeScript build info
 *.tsbuildinfo
+.vercel
+.env*
