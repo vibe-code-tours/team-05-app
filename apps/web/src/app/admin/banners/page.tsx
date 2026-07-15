@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   XCircle,
   Upload,
+  Loader2,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,33 +35,44 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { mockBanners } from "@/lib/mock-admin-data";
-import type { AdminBanner, BannerStatus } from "@/types/admin";
+import { toast } from "@/components/ui/use-toast";
+import {
+  useAdminBanners,
+  useCreateBanner,
+  useUpdateBanner,
+  useDeleteBanner,
+} from "@/lib/services/banner.service";
+import type {
+  Banner as ApiBanner,
+  CreateBannerInput,
+} from "@/lib/services/banner.service";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
+type BannerStatus = "active" | "inactive" | "scheduled";
+
 interface BannerFormData {
   title: string;
-  subtitle: string;
   imageUrl: string;
   href: string;
   position: "hero" | "promo" | "sidebar";
-  status: BannerStatus;
+  active: boolean;
   startDate: string;
   endDate: string;
+  order: number;
 }
 
 const emptyForm: BannerFormData = {
   title: "",
-  subtitle: "",
   imageUrl: "",
   href: "",
   position: "hero",
-  status: "active",
+  active: true,
   startDate: "",
   endDate: "",
+  order: 0,
 };
 
 // ---------------------------------------------------------------------------
@@ -74,6 +86,16 @@ function formatDate(dateStr: string): string {
     month: "short",
     day: "numeric",
   });
+}
+
+function deriveStatus(banner: ApiBanner): BannerStatus {
+  if (!banner.active) return "inactive";
+  const now = new Date();
+  const start = new Date(banner.startDate);
+  const end = new Date(banner.endDate);
+  if (now < start) return "scheduled";
+  if (now > end) return "inactive";
+  return "active";
 }
 
 function statusBadge(status: BannerStatus) {
@@ -139,11 +161,6 @@ function BannerPreview({
         <p className={`font-bold text-white ${isMobile ? "text-xs" : "text-sm"}`}>
           {banner.title || "Banner Title"}
         </p>
-        {banner.subtitle && !isMobile && (
-          <p className="mt-0.5 text-xs text-white/80">
-            {banner.subtitle}
-          </p>
-        )}
       </div>
     </div>
   );
@@ -154,147 +171,184 @@ function BannerPreview({
 // ---------------------------------------------------------------------------
 
 export default function AdminBannersPage() {
+  // ---- data ----
+  const { data: apiResponse, isLoading } = useAdminBanners();
+  const banners: ApiBanner[] = useMemo(() => apiResponse?.data ?? [], [apiResponse]);
+  const createBanner = useCreateBanner();
+  const updateBanner = useUpdateBanner();
+  const deleteBanner = useDeleteBanner();
+
+  const isMutating = createBanner.isPending || updateBanner.isPending || deleteBanner.isPending;
+
   // ---- state ----
-  const [banners, setBanners] = useState<AdminBanner[]>(mockBanners);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | BannerStatus>("all");
   const [positionFilter, setPositionFilter] = useState("all");
 
   // dialogs
   const [formOpen, setFormOpen] = useState(false);
-  const [editingBanner, setEditingBanner] = useState<AdminBanner | null>(null);
+  const [editingBanner, setEditingBanner] = useState<ApiBanner | null>(null);
   const [formData, setFormData] = useState<BannerFormData>(emptyForm);
 
-  const [deleteDialogBanner, setDeleteDialogBanner] =
-    useState<AdminBanner | null>(null);
-  const [previewBanner, setPreviewBanner] = useState<AdminBanner | null>(null);
-  const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">(
-    "desktop"
-  );
-
-  // toast
-  const [toast, setToast] = useState<{
-    message: string;
-    type: "success" | "error";
-  } | null>(null);
+  const [deleteDialogBanner, setDeleteDialogBanner] = useState<ApiBanner | null>(null);
+  const [previewBanner, setPreviewBanner] = useState<ApiBanner | null>(null);
+  const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
 
   // ---- derived ----
   const filteredBanners = useMemo(() => {
     return banners.filter((b) => {
       if (
         searchQuery &&
-        !b.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
-        !b.subtitle.toLowerCase().includes(searchQuery.toLowerCase())
+        !b.title.toLowerCase().includes(searchQuery.toLowerCase())
       ) {
         return false;
       }
-      if (statusFilter !== "all" && b.status !== statusFilter) return false;
-      if (positionFilter !== "all" && b.position !== positionFilter)
-        return false;
+      const status = deriveStatus(b);
+      if (statusFilter !== "all" && status !== statusFilter) return false;
+      if (positionFilter !== "all" && b.position !== positionFilter) return false;
       return true;
     });
   }, [banners, searchQuery, statusFilter, positionFilter]);
 
-  const counts = useMemo(
-    () => ({
-      all: banners.length,
-      active: banners.filter((b) => b.status === "active").length,
-      inactive: banners.filter((b) => b.status === "inactive").length,
-      scheduled: banners.filter((b) => b.status === "scheduled").length,
-    }),
-    [banners]
-  );
+  const counts = useMemo(() => {
+    const all = banners.length;
+    let active = 0;
+    let inactive = 0;
+    let scheduled = 0;
+    for (const b of banners) {
+      const s = deriveStatus(b);
+      if (s === "active") active++;
+      else if (s === "inactive") inactive++;
+      else scheduled++;
+    }
+    return { all, active, inactive, scheduled };
+  }, [banners]);
 
   // ---- helpers ----
-  function showToast(
-    message: string,
-    type: "success" | "error" = "success"
-  ) {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  }
-
   function openCreateForm() {
     setEditingBanner(null);
     setFormData({ ...emptyForm });
     setFormOpen(true);
   }
 
-  function openEditForm(banner: AdminBanner) {
+  function openEditForm(banner: ApiBanner) {
     setEditingBanner(banner);
     setFormData({
       title: banner.title,
-      subtitle: banner.subtitle,
-      imageUrl: banner.imageUrl,
-      href: banner.href,
+      imageUrl: banner.image,
+      href: banner.link ?? "",
       position: banner.position,
-      status: banner.status,
+      active: banner.active,
       startDate: banner.startDate,
       endDate: banner.endDate,
+      order: banner.order,
     });
     setFormOpen(true);
+  }
+
+  function closeForm() {
+    setFormOpen(false);
+    setEditingBanner(null);
+    setFormData(emptyForm);
   }
 
   function handleFormSubmit() {
     if (!formData.title.trim()) return;
 
-    if (editingBanner) {
-      setBanners((prev) =>
-        prev.map((b) =>
-          b.id === editingBanner.id
-            ? { ...b, ...formData }
-            : b
-        )
-      );
-      showToast(`"${formData.title}" updated successfully`);
-    } else {
-      const newBanner: AdminBanner = {
-        id: `banner-${Date.now()}`,
-        ...formData,
-      };
-      setBanners((prev) => [...prev, newBanner]);
-      showToast(`"${formData.title}" created successfully`);
-    }
+    const payload: CreateBannerInput = {
+      title: formData.title.trim(),
+      image: formData.imageUrl,
+      link: formData.href || undefined,
+      position: formData.position,
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      active: formData.active,
+      order: formData.order,
+    };
 
-    setFormOpen(false);
-    setFormData(emptyForm);
-    setEditingBanner(null);
+    if (editingBanner) {
+      updateBanner.mutate(
+        { id: editingBanner.id, data: payload },
+        {
+          onSuccess: () => {
+            toast({ title: "Banner updated", description: `"${formData.title}" has been updated.` });
+            closeForm();
+          },
+          onError: (err) => {
+            toast({ title: "Update failed", description: err.message ?? "Something went wrong.", variant: "destructive" });
+          },
+        }
+      );
+    } else {
+      createBanner.mutate(payload, {
+        onSuccess: () => {
+          toast({ title: "Banner created", description: `"${formData.title}" has been created.` });
+          closeForm();
+        },
+        onError: (err) => {
+          toast({ title: "Creation failed", description: err.message ?? "Something went wrong.", variant: "destructive" });
+        },
+      });
+    }
   }
 
-  function deleteBanner(banner: AdminBanner) {
-    setBanners((prev) => prev.filter((b) => b.id !== banner.id));
-    showToast(`"${banner.title}" deleted`, "error");
-    setDeleteDialogBanner(null);
+  function handleDeleteBanner() {
+    if (!deleteDialogBanner) return;
+    const id = deleteDialogBanner.id;
+    const title = deleteDialogBanner.title;
+    deleteBanner.mutate(id, {
+      onSuccess: () => {
+        toast({ title: "Banner deleted", description: `"${title}" has been removed.` });
+        setDeleteDialogBanner(null);
+      },
+      onError: (err) => {
+        toast({ title: "Delete failed", description: err.message ?? "Something went wrong.", variant: "destructive" });
+        setDeleteDialogBanner(null);
+      },
+    });
   }
 
   const toggleStatus = useCallback(
-    (banner: AdminBanner) => {
-      const newStatus: BannerStatus =
-        banner.status === "active" ? "inactive" : "active";
-      setBanners((prev) =>
-        prev.map((b) =>
-          b.id === banner.id ? { ...b, status: newStatus } : b
-        )
+    (banner: ApiBanner) => {
+      updateBanner.mutate(
+        { id: banner.id, data: { active: !banner.active } },
+        {
+          onSuccess: () => {
+            const newStatus = !banner.active ? "active" : "inactive";
+            toast({ title: "Status updated", description: `"${banner.title}" set to ${newStatus}.` });
+          },
+          onError: (err) => {
+            toast({ title: "Update failed", description: err.message ?? "Something went wrong.", variant: "destructive" });
+          },
+        }
       );
-      showToast(`"${banner.title}" set to ${newStatus}`);
     },
-    [showToast]
+    [updateBanner]
   );
 
   const moveBanner = useCallback(
     (bannerId: string, direction: "up" | "down") => {
-      setBanners((prev) => {
-        const idx = prev.findIndex((b) => b.id === bannerId);
-        if (idx === -1) return prev;
-        const newIdx = direction === "up" ? idx - 1 : idx + 1;
-        if (newIdx < 0 || newIdx >= prev.length) return prev;
-        const next = [...prev];
-        [next[idx], next[newIdx]] = [next[newIdx], next[idx]];
-        return next;
-      });
+      const idx = filteredBanners.findIndex((b) => b.id === bannerId);
+      if (idx === -1) return;
+      const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= filteredBanners.length) return;
+      const a = filteredBanners[idx];
+      const b = filteredBanners[swapIdx];
+      // Swap order values and persist both
+      updateBanner.mutate({ id: a.id, data: { order: b.order } });
+      updateBanner.mutate({ id: b.id, data: { order: a.order } });
     },
-    []
+    [filteredBanners, updateBanner]
   );
+
+  // ---- loading state ----
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   // ---- render ----
   return (
@@ -307,7 +361,7 @@ export default function AdminBannersPage() {
             Create, edit, and manage promotional banners for the storefront.
           </p>
         </div>
-        <Button onClick={openCreateForm}>
+        <Button onClick={openCreateForm} disabled={isMutating}>
           <Plus className="mr-1 h-4 w-4" />
           Create Banner
         </Button>
@@ -397,20 +451,20 @@ export default function AdminBannersPage() {
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6"
-                      disabled={index === 0}
+                      disabled={index === 0 || isMutating}
                       onClick={() => moveBanner(banner.id, "up")}
                       title="Move up"
                     >
                       <ArrowUp className="h-3 w-3" />
                     </Button>
                     <span className="text-xs font-bold text-muted-foreground">
-                      #{index + 1}
+                      #{banner.order ?? index + 1}
                     </span>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6"
-                      disabled={index === filteredBanners.length - 1}
+                      disabled={index === filteredBanners.length - 1 || isMutating}
                       onClick={() => moveBanner(banner.id, "down")}
                       title="Move down"
                     >
@@ -420,24 +474,21 @@ export default function AdminBannersPage() {
 
                   {/* Banner image preview */}
                   <div className="relative h-24 w-40 flex-shrink-0 overflow-hidden rounded-md bg-muted">
-                    <img
-                      src={banner.imageUrl}
-                      alt={banner.title}
-                      className="h-full w-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = "none";
-                        const parent = target.parentElement;
-                        if (parent && !parent.querySelector(".fallback-icon")) {
-                          const icon = document.createElement("div");
-                          icon.className =
-                            "fallback-icon absolute inset-0 flex items-center justify-center";
-                          icon.innerHTML =
-                            '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 text-muted-foreground/50"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
-                          parent.appendChild(icon);
-                        }
-                      }}
-                    />
+                    {banner.image ? (
+                      <img
+                        src={banner.image}
+                        alt={banner.title}
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <Image className="h-6 w-6 text-muted-foreground/50" />
+                      </div>
+                    )}
                   </div>
 
                   {/* Banner info */}
@@ -447,12 +498,9 @@ export default function AdminBannersPage() {
                         <h3 className="truncate text-base font-semibold">
                           {banner.title}
                         </h3>
-                        <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">
-                          {banner.subtitle}
-                        </p>
                       </div>
                       <div className="flex flex-col items-end gap-1.5">
-                        {statusBadge(banner.status)}
+                        {statusBadge(deriveStatus(banner))}
                         <span className="text-xs text-muted-foreground">
                           {positionLabel(banner.position)}
                         </span>
@@ -464,9 +512,9 @@ export default function AdminBannersPage() {
                       <span>
                         {formatDate(banner.startDate)} - {formatDate(banner.endDate)}
                       </span>
-                      {banner.href && (
+                      {banner.link && (
                         <span className="truncate max-w-[200px]">
-                          Link: {banner.href}
+                          Link: {banner.link}
                         </span>
                       )}
                     </div>
@@ -477,6 +525,7 @@ export default function AdminBannersPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => openEditForm(banner)}
+                        disabled={isMutating}
                       >
                         <Pencil className="mr-1 h-3.5 w-3.5" />
                         Edit
@@ -485,8 +534,9 @@ export default function AdminBannersPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => toggleStatus(banner)}
+                        disabled={isMutating}
                       >
-                        {banner.status === "active" ? (
+                        {banner.active ? (
                           <>
                             <XCircle className="mr-1 h-3.5 w-3.5" />
                             Deactivate
@@ -502,6 +552,7 @@ export default function AdminBannersPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => setPreviewBanner(banner)}
+                        disabled={isMutating}
                       >
                         <Eye className="mr-1 h-3.5 w-3.5" />
                         Preview
@@ -510,6 +561,7 @@ export default function AdminBannersPage() {
                         size="sm"
                         variant="destructive"
                         onClick={() => setDeleteDialogBanner(banner)}
+                        disabled={isMutating}
                       >
                         <Trash2 className="mr-1 h-3.5 w-3.5" />
                         Delete
@@ -526,16 +578,7 @@ export default function AdminBannersPage() {
       {/* ================================================================
           Create / Edit Banner Dialog
           ================================================================ */}
-      <Dialog
-        open={formOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            setFormOpen(false);
-            setEditingBanner(null);
-            setFormData(emptyForm);
-          }
-        }}
-      >
+      <Dialog open={formOpen} onOpenChange={(open) => { if (!open) closeForm(); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="pr-8">
@@ -561,23 +604,6 @@ export default function AdminBannersPage() {
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, title: e.target.value }))
                 }
-              />
-            </div>
-
-            {/* Description */}
-            <div className="space-y-2">
-              <Label htmlFor="banner-subtitle">Description</Label>
-              <Textarea
-                id="banner-subtitle"
-                placeholder="e.g. Up to 50% off on all cargo items"
-                value={formData.subtitle}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    subtitle: e.target.value,
-                  }))
-                }
-                rows={2}
               />
             </div>
 
@@ -669,16 +695,13 @@ export default function AdminBannersPage() {
                 <Label>Status</Label>
                 <div className="flex items-center gap-3 pt-2">
                   <Switch
-                    checked={formData.status === "active"}
+                    checked={formData.active}
                     onCheckedChange={(checked) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        status: checked ? "active" : "inactive",
-                      }))
+                      setFormData((prev) => ({ ...prev, active: checked }))
                     }
                   />
                   <span className="text-sm font-medium">
-                    {formData.status === "active" ? "Active" : "Inactive"}
+                    {formData.active ? "Active" : "Inactive"}
                   </span>
                 </div>
               </div>
@@ -718,20 +741,16 @@ export default function AdminBannersPage() {
           </div>
 
           <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setFormOpen(false);
-                setEditingBanner(null);
-                setFormData(emptyForm);
-              }}
-            >
+            <Button variant="ghost" onClick={closeForm} disabled={isMutating}>
               Cancel
             </Button>
             <Button
               onClick={handleFormSubmit}
-              disabled={!formData.title.trim()}
+              disabled={!formData.title.trim() || isMutating}
             >
+              {createBanner.isPending || updateBanner.isPending ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : null}
               {editingBanner ? "Save Changes" : "Create Banner"}
             </Button>
           </DialogFooter>
@@ -743,9 +762,7 @@ export default function AdminBannersPage() {
           ================================================================ */}
       <Dialog
         open={!!previewBanner}
-        onOpenChange={(open) => {
-          if (!open) setPreviewBanner(null);
-        }}
+        onOpenChange={(open) => { if (!open) setPreviewBanner(null); }}
       >
         <DialogContent className="max-w-3xl">
           <DialogHeader>
@@ -782,13 +799,13 @@ export default function AdminBannersPage() {
                 <BannerPreview
                   banner={{
                     title: previewBanner.title,
-                    subtitle: previewBanner.subtitle,
-                    imageUrl: previewBanner.imageUrl,
-                    href: previewBanner.href,
+                    imageUrl: previewBanner.image,
+                    href: previewBanner.link ?? "",
                     position: previewBanner.position,
-                    status: previewBanner.status,
+                    active: previewBanner.active,
                     startDate: previewBanner.startDate,
                     endDate: previewBanner.endDate,
+                    order: previewBanner.order,
                   }}
                   mode={previewMode}
                 />
@@ -798,7 +815,7 @@ export default function AdminBannersPage() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="font-medium text-muted-foreground">Status: </span>
-                  {statusBadge(previewBanner.status)}
+                  {statusBadge(deriveStatus(previewBanner))}
                 </div>
                 <div>
                   <span className="font-medium text-muted-foreground">Position: </span>
@@ -810,7 +827,7 @@ export default function AdminBannersPage() {
                 </div>
                 <div>
                   <span className="font-medium text-muted-foreground">Link: </span>
-                  <span className="truncate">{previewBanner.href || "None"}</span>
+                  <span className="truncate">{previewBanner.link || "None"}</span>
                 </div>
               </div>
             </div>
@@ -823,9 +840,7 @@ export default function AdminBannersPage() {
           ================================================================ */}
       <Dialog
         open={!!deleteDialogBanner}
-        onOpenChange={(open) => {
-          if (!open) setDeleteDialogBanner(null);
-        }}
+        onOpenChange={(open) => { if (!open) setDeleteDialogBanner(null); }}
       >
         <DialogContent className="max-w-md">
           {deleteDialogBanner && (
@@ -842,14 +857,20 @@ export default function AdminBannersPage() {
                 <Button
                   variant="ghost"
                   onClick={() => setDeleteDialogBanner(null)}
+                  disabled={deleteBanner.isPending}
                 >
                   Cancel
                 </Button>
                 <Button
                   variant="destructive"
-                  onClick={() => deleteBanner(deleteDialogBanner)}
+                  onClick={handleDeleteBanner}
+                  disabled={deleteBanner.isPending}
                 >
-                  <Trash2 className="mr-1 h-4 w-4" />
+                  {deleteBanner.isPending ? (
+                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="mr-1 h-4 w-4" />
+                  )}
                   Delete Banner
                 </Button>
               </DialogFooter>
@@ -857,26 +878,6 @@ export default function AdminBannersPage() {
           )}
         </DialogContent>
       </Dialog>
-
-      {/* ================================================================
-          Toast
-          ================================================================ */}
-      {toast && (
-        <div
-          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium shadow-lg transition-all ${
-            toast.type === "success"
-              ? "border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200"
-              : "border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200"
-          }`}
-        >
-          {toast.type === "success" ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : (
-            <XCircle className="h-4 w-4" />
-          )}
-          {toast.message}
-        </div>
-      )}
     </div>
   );
 }

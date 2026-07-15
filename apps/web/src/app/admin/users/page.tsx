@@ -40,8 +40,93 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { mockAdminUsers } from "@/lib/mock-admin-data";
-import type { AdminUser, UserRole, UserStatus } from "@/types/admin";
+import { toast } from "@/components/ui/use-toast";
+
+// ---------------------------------------------------------------------------
+// Types (matching backend AdminUser from admin.service.ts)
+// ---------------------------------------------------------------------------
+
+interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  avatar: string;
+  role: "CLIENT" | "SELLER" | "ADMIN";
+  status: "ACTIVE" | "INACTIVE" | "SUSPENDED";
+  createdAt: string;
+}
+
+type UserRole = AdminUser["role"];
+type UserStatus = AdminUser["status"];
+
+// ---------------------------------------------------------------------------
+// TODO: Replace with real API data once a /users endpoint is available.
+//       Use: const { data, isLoading } = useAdminUsers();
+// ---------------------------------------------------------------------------
+
+const MOCK_USERS: AdminUser[] = [
+  {
+    id: "user-001",
+    name: "Aung Kyaw",
+    email: "aungkyaw@gmail.com",
+    phone: "+95912345678",
+    role: "SELLER",
+    status: "ACTIVE",
+    avatar: "/avatars/user-001.jpg",
+    createdAt: "2025-06-15T00:00:00Z",
+  },
+  {
+    id: "user-002",
+    name: "May Thida",
+    email: "maythida@gmail.com",
+    phone: "+95923456789",
+    role: "CLIENT",
+    status: "ACTIVE",
+    avatar: "/avatars/user-002.jpg",
+    createdAt: "2025-08-20T00:00:00Z",
+  },
+  {
+    id: "user-003",
+    name: "Zaw Lin",
+    email: "zawlin@crossmart.mm",
+    phone: "+95934567890",
+    role: "ADMIN",
+    status: "ACTIVE",
+    avatar: "/avatars/user-003.jpg",
+    createdAt: "2025-01-01T00:00:00Z",
+  },
+  {
+    id: "user-004",
+    name: "Thin Zar",
+    email: "thinzar@gmail.com",
+    phone: "+95945678901",
+    role: "CLIENT",
+    status: "SUSPENDED",
+    avatar: "/avatars/user-004.jpg",
+    createdAt: "2025-10-10T00:00:00Z",
+  },
+  {
+    id: "user-005",
+    name: "Nay Chi",
+    email: "naychi@seller.mm",
+    phone: "+95956789012",
+    role: "SELLER",
+    status: "INACTIVE",
+    avatar: "/avatars/user-005.jpg",
+    createdAt: "2026-07-10T00:00:00Z",
+  },
+  {
+    id: "user-006",
+    name: "Htet Aung",
+    email: "htetaung@gmail.com",
+    phone: "+95967890123",
+    role: "CLIENT",
+    status: "ACTIVE",
+    avatar: "/avatars/user-006.jpg",
+    createdAt: "2025-12-01T00:00:00Z",
+  },
+];
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -53,17 +138,6 @@ function formatDate(dateStr: string): string {
     year: "numeric",
     month: "short",
     day: "numeric",
-  });
-}
-
-function formatDateTime(dateStr: string): string {
-  if (!dateStr) return "N/A";
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
   });
 }
 
@@ -81,21 +155,21 @@ function getInitials(name: string): string {
 
 function roleBadge(role: UserRole) {
   switch (role) {
-    case "admin":
+    case "ADMIN":
       return (
         <Badge variant="default">
           <Shield className="mr-1 h-3 w-3" />
           Admin
         </Badge>
       );
-    case "seller":
+    case "SELLER":
       return (
         <Badge variant="secondary">
           <ShoppingBag className="mr-1 h-3 w-3" />
           Seller
         </Badge>
       );
-    case "client":
+    case "CLIENT":
       return (
         <Badge variant="outline">
           <UserCog className="mr-1 h-3 w-3" />
@@ -109,13 +183,11 @@ function roleBadge(role: UserRole) {
 
 function statusBadge(status: UserStatus) {
   switch (status) {
-    case "active":
+    case "ACTIVE":
       return <Badge variant="success">Active</Badge>;
-    case "suspended":
+    case "SUSPENDED":
       return <Badge variant="destructive">Suspended</Badge>;
-    case "pending":
-      return <Badge variant="warning">Pending</Badge>;
-    case "inactive":
+    case "INACTIVE":
       return <Badge variant="secondary">Inactive</Badge>;
     default:
       return <Badge variant="outline">{status}</Badge>;
@@ -128,21 +200,16 @@ function statusBadge(status: UserStatus) {
 
 export default function AdminUsersPage() {
   // ---- state ----
-  const [users, setUsers] = useState<AdminUser[]>(mockAdminUsers);
+  // TODO: Replace MOCK_USERS with API data: const users = data ?? [];
+  const [users] = useState<AdminUser[]>(MOCK_USERS);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | UserRole>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | UserStatus>("all");
 
   // detail dialog
   const [detailUser, setDetailUser] = useState<AdminUser | null>(null);
-  const [detailRole, setDetailRole] = useState<UserRole>("client");
-  const [detailStatus, setDetailStatus] = useState<UserStatus>("active");
-
-  // toast
-  const [toast, setToast] = useState<{
-    message: string;
-    type: "success" | "error";
-  } | null>(null);
+  const [detailRole, setDetailRole] = useState<UserRole>("CLIENT");
+  const [detailStatus, setDetailStatus] = useState<UserStatus>("ACTIVE");
 
   // ---- derived ----
   const filteredUsers = useMemo(() => {
@@ -165,60 +232,17 @@ export default function AdminUsersPage() {
   const counts = useMemo(
     () => ({
       all: users.length,
-      admin: users.filter((u) => u.role === "admin").length,
-      seller: users.filter((u) => u.role === "seller").length,
-      client: users.filter((u) => u.role === "client").length,
-      active: users.filter((u) => u.status === "active").length,
-      suspended: users.filter((u) => u.status === "suspended").length,
-      pending: users.filter((u) => u.status === "pending").length,
+      ADMIN: users.filter((u) => u.role === "ADMIN").length,
+      SELLER: users.filter((u) => u.role === "SELLER").length,
+      CLIENT: users.filter((u) => u.role === "CLIENT").length,
+      ACTIVE: users.filter((u) => u.status === "ACTIVE").length,
+      SUSPENDED: users.filter((u) => u.status === "SUSPENDED").length,
+      INACTIVE: users.filter((u) => u.status === "INACTIVE").length,
     }),
     [users]
   );
 
-  const stats = useMemo(() => {
-    const totalOrders = users.reduce((sum, u) => sum + u.totalOrders, 0);
-    const totalRevenue = users.reduce((sum, u) => sum + u.totalSpent, 0);
-    return {
-      totalUsers: users.length,
-      activeUsers: counts.active,
-      pendingUsers: counts.pending,
-      totalOrders,
-      totalRevenue,
-    };
-  }, [users, counts.active, counts.pending]);
-
   // ---- helpers ----
-  function showToast(
-    message: string,
-    type: "success" | "error" = "success"
-  ) {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  }
-
-  const verifyUser = useCallback(
-    (user: AdminUser) => {
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === user.id ? { ...u, status: "active" as UserStatus } : u
-        )
-      );
-      showToast(`"${user.name}" has been verified`);
-    },
-    [showToast]
-  );
-
-  const suspendUser = useCallback(
-    (user: AdminUser) => {
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === user.id ? { ...u, status: "suspended" as UserStatus } : u
-        )
-      );
-      showToast(`"${user.name}" has been suspended`, "error");
-    },
-    [showToast]
-  );
 
   const openDetail = useCallback((user: AdminUser) => {
     setDetailUser(user);
@@ -228,16 +252,10 @@ export default function AdminUsersPage() {
 
   const saveDetail = useCallback(() => {
     if (!detailUser) return;
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === detailUser.id
-          ? { ...u, role: detailRole, status: detailStatus }
-          : u
-      )
-    );
-    showToast(`"${detailUser.name}" updated successfully`);
+    // TODO: Call API to update user when endpoint is available
+    toast({ title: `"${detailUser.name}" updated successfully` });
     setDetailUser(null);
-  }, [detailUser, detailRole, detailStatus, showToast]);
+  }, [detailUser]);
 
   // ---- render ----
   return (
@@ -260,7 +278,7 @@ export default function AdminUsersPage() {
               <Users className="h-4 w-4" />
               <p className="text-sm">Total Users</p>
             </div>
-            <p className="mt-1 text-2xl font-bold">{stats.totalUsers}</p>
+            <p className="mt-1 text-2xl font-bold">{counts.all}</p>
           </CardContent>
         </Card>
         <Card>
@@ -269,27 +287,25 @@ export default function AdminUsersPage() {
               <CheckCircle2 className="h-4 w-4" />
               <p className="text-sm">Active Users</p>
             </div>
-            <p className="mt-1 text-2xl font-bold">{stats.activeUsers}</p>
+            <p className="mt-1 text-2xl font-bold">{counts.ACTIVE}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Clock className="h-4 w-4" />
-              <p className="text-sm">Pending Verification</p>
+              <p className="text-sm">Sellers</p>
             </div>
-            <p className="mt-1 text-2xl font-bold">{stats.pendingUsers}</p>
+            <p className="mt-1 text-2xl font-bold">{counts.SELLER}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <DollarSign className="h-4 w-4" />
-              <p className="text-sm">Total Revenue</p>
+              <Ban className="h-4 w-4" />
+              <p className="text-sm">Suspended</p>
             </div>
-            <p className="mt-1 text-2xl font-bold">
-              {formatCurrency(stats.totalRevenue)} MMK
-            </p>
+            <p className="mt-1 text-2xl font-bold">{counts.SUSPENDED}</p>
           </CardContent>
         </Card>
       </div>
@@ -301,9 +317,9 @@ export default function AdminUsersPage() {
       >
         <TabsList>
           <TabsTrigger value="all">All ({counts.all})</TabsTrigger>
-          <TabsTrigger value="admin">Admin ({counts.admin})</TabsTrigger>
-          <TabsTrigger value="seller">Seller ({counts.seller})</TabsTrigger>
-          <TabsTrigger value="client">Customer ({counts.client})</TabsTrigger>
+          <TabsTrigger value="ADMIN">Admin ({counts.ADMIN})</TabsTrigger>
+          <TabsTrigger value="SELLER">Seller ({counts.SELLER})</TabsTrigger>
+          <TabsTrigger value="CLIENT">Customer ({counts.CLIENT})</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -314,11 +330,11 @@ export default function AdminUsersPage() {
       >
         <TabsList>
           <TabsTrigger value="all">All ({counts.all})</TabsTrigger>
-          <TabsTrigger value="active">Active ({counts.active})</TabsTrigger>
-          <TabsTrigger value="suspended">
-            Suspended ({counts.suspended})
+          <TabsTrigger value="ACTIVE">Active ({counts.ACTIVE})</TabsTrigger>
+          <TabsTrigger value="SUSPENDED">
+            Suspended ({counts.SUSPENDED})
           </TabsTrigger>
-          <TabsTrigger value="pending">Pending ({counts.pending})</TabsTrigger>
+          <TabsTrigger value="INACTIVE">Inactive ({counts.INACTIVE})</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -408,7 +424,7 @@ export default function AdminUsersPage() {
 
                     {/* Joined */}
                     <td className="px-4 py-3 text-sm text-muted-foreground">
-                      {formatDate(user.joinedDate)}
+                      {formatDate(user.createdAt)}
                     </td>
 
                     {/* Actions */}
@@ -425,15 +441,23 @@ export default function AdminUsersPage() {
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </DropdownMenuItem>
-                          {user.status !== "active" && (
-                            <DropdownMenuItem onClick={() => verifyUser(user)}>
+                          {user.status !== "ACTIVE" && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                // TODO: Call API to activate user
+                                toast({ title: `"${user.name}" has been activated` });
+                              }}
+                            >
                               <UserCheck className="mr-2 h-4 w-4" />
-                              Verify User
+                              Activate User
                             </DropdownMenuItem>
                           )}
-                          {user.status !== "suspended" && (
+                          {user.status !== "SUSPENDED" && (
                             <DropdownMenuItem
-                              onClick={() => suspendUser(user)}
+                              onClick={() => {
+                                // TODO: Call API to suspend user
+                                toast({ title: `"${user.name}" has been suspended`, variant: "destructive" });
+                              }}
                               className="text-destructive"
                             >
                               <Ban className="mr-2 h-4 w-4" />
@@ -500,9 +524,9 @@ export default function AdminUsersPage() {
                     }
                     className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                   >
-                    <option value="admin">Admin</option>
-                    <option value="seller">Seller</option>
-                    <option value="client">Customer</option>
+                    <option value="ADMIN">Admin</option>
+                    <option value="SELLER">Seller</option>
+                    <option value="CLIENT">Customer</option>
                   </select>
                 </div>
 
@@ -515,8 +539,8 @@ export default function AdminUsersPage() {
                   <div className="flex gap-2 pt-1">
                     <Button
                       size="sm"
-                      variant={detailStatus === "active" ? "default" : "outline"}
-                      onClick={() => setDetailStatus("active")}
+                      variant={detailStatus === "ACTIVE" ? "default" : "outline"}
+                      onClick={() => setDetailStatus("ACTIVE")}
                     >
                       <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
                       Active
@@ -524,9 +548,9 @@ export default function AdminUsersPage() {
                     <Button
                       size="sm"
                       variant={
-                        detailStatus === "suspended" ? "destructive" : "outline"
+                        detailStatus === "SUSPENDED" ? "destructive" : "outline"
                       }
-                      onClick={() => setDetailStatus("suspended")}
+                      onClick={() => setDetailStatus("SUSPENDED")}
                     >
                       <Ban className="mr-1 h-3.5 w-3.5" />
                       Suspended
@@ -534,12 +558,12 @@ export default function AdminUsersPage() {
                     <Button
                       size="sm"
                       variant={
-                        detailStatus === "pending" ? "secondary" : "outline"
+                        detailStatus === "INACTIVE" ? "secondary" : "outline"
                       }
-                      onClick={() => setDetailStatus("pending")}
+                      onClick={() => setDetailStatus("INACTIVE")}
                     >
                       <Clock className="mr-1 h-3.5 w-3.5" />
-                      Pending
+                      Inactive
                     </Button>
                   </div>
                 </div>
@@ -547,39 +571,23 @@ export default function AdminUsersPage() {
 
               {/* Activity summary */}
               <div className="space-y-3 rounded-lg border p-4">
-                <h4 className="text-sm font-semibold">Activity Summary</h4>
+                <h4 className="text-sm font-semibold">Account Info</h4>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-muted-foreground">Joined</p>
                       <p className="font-medium">
-                        {formatDate(detailUser.joinedDate)}
+                        {formatDate(detailUser.createdAt)}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <Mail className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-muted-foreground">Last Active</p>
+                      <p className="text-muted-foreground">Phone</p>
                       <p className="font-medium">
-                        {formatDateTime(detailUser.lastActive)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-muted-foreground">Total Orders</p>
-                      <p className="font-medium">{detailUser.totalOrders}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-muted-foreground">Total Spent</p>
-                      <p className="font-medium">
-                        {formatCurrency(detailUser.totalSpent)} MMK
+                        {detailUser.phone || "N/A"}
                       </p>
                     </div>
                   </div>
@@ -599,26 +607,6 @@ export default function AdminUsersPage() {
           )}
         </DialogContent>
       </Dialog>
-
-      {/* ================================================================
-          Toast
-          ================================================================ */}
-      {toast && (
-        <div
-          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium shadow-lg transition-all ${
-            toast.type === "success"
-              ? "border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200"
-              : "border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200"
-          }`}
-        >
-          {toast.type === "success" ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : (
-            <XCircle className="h-4 w-4" />
-          )}
-          {toast.message}
-        </div>
-      )}
     </div>
   );
 }

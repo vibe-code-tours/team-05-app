@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -27,39 +28,86 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { mockPendingProducts } from "@/lib/mock-admin-data";
+import { toast } from "@/components/ui/use-toast";
 import { formatPrice } from "@/lib/utils";
-import type { AdminProduct, ProductApprovalStatus } from "@/types/admin";
+import {
+  useAdminProducts,
+  useApproveProduct,
+} from "@/lib/services/admin.service";
+import type { AdminProduct } from "@/lib/services/admin.service";
 
 // ---------------------------------------------------------------------------
-// Derived data helpers
+// Types (local filter types aligned with API status values)
+// ---------------------------------------------------------------------------
+
+type StatusFilter = "all" | AdminProduct["status"];
+
+// ---------------------------------------------------------------------------
+// Helpers
 // ---------------------------------------------------------------------------
 
 function getAllCategories(products: AdminProduct[]): string[] {
-  const set = new Set(products.map((p) => p.category));
-  return Array.from(set).sort();
+  const set = new Set(products.map((p) => p.category?.name).filter(Boolean));
+  return Array.from(set).sort() as string[];
 }
 
 function getAllSellers(products: AdminProduct[]): string[] {
-  const set = new Set(products.map((p) => p.sellerName));
-  return Array.from(set).sort();
+  const set = new Set(products.map((p) => p.seller?.name).filter(Boolean));
+  return Array.from(set).sort() as string[];
+}
+
+function statusBadge(status: AdminProduct["status"]) {
+  switch (status) {
+    case "PENDING":
+      return <Badge variant="warning">Pending</Badge>;
+    case "APPROVED":
+      return <Badge variant="success">Approved</Badge>;
+    case "REJECTED":
+      return <Badge variant="destructive">Rejected</Badge>;
+    case "DRAFT":
+      return <Badge variant="secondary">Draft</Badge>;
+    case "ARCHIVED":
+      return <Badge variant="outline">Archived</Badge>;
+    default:
+      return <Badge variant="outline">{status}</Badge>;
+  }
 }
 
 // ---------------------------------------------------------------------------
-// Status badge configuration
+// Skeleton
 // ---------------------------------------------------------------------------
 
-function statusBadge(status: ProductApprovalStatus) {
-  switch (status) {
-    case "pending":
-      return <Badge variant="warning">Pending</Badge>;
-    case "approved":
-      return <Badge variant="success">Approved</Badge>;
-    case "rejected":
-      return <Badge variant="destructive">Rejected</Badge>;
-    default:
-      return <Badge variant="secondary">{status}</Badge>;
-  }
+function ProductsSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <Skeleton className="h-8 w-56" />
+        <Skeleton className="h-4 w-72" />
+      </div>
+      <Skeleton className="h-10 w-80" />
+      <Card>
+        <CardContent className="p-4">
+          <Skeleton className="h-10 w-full" />
+        </CardContent>
+      </Card>
+      {Array.from({ length: 3 }).map((_, i) => (
+        <Card key={i}>
+          <CardContent className="p-4">
+            <div className="flex items-start gap-4">
+              <Skeleton className="h-6 w-6" />
+              <Skeleton className="h-24 w-24 rounded-md" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-40" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -67,12 +115,15 @@ function statusBadge(status: ProductApprovalStatus) {
 // ---------------------------------------------------------------------------
 
 export default function AdminProductsPage() {
+  // ---- data ----
+  const { data, isLoading } = useAdminProducts();
+  const approveMutation = useApproveProduct();
+
+  const products: AdminProduct[] = Array.isArray(data) ? data : [];
+
   // ---- state ----
-  const [products, setProducts] = useState<AdminProduct[]>(mockPendingProducts);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | ProductApprovalStatus
-  >("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [sellerFilter, setSellerFilter] = useState("all");
 
@@ -92,32 +143,25 @@ export default function AdminProductsPage() {
   const [bulkApproveNote, setBulkApproveNote] = useState("");
   const [bulkRejectReason, setBulkRejectReason] = useState("");
 
-  // toast / feedback
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
-
   // ---- derived ----
   const categories = useMemo(() => getAllCategories(products), [products]);
   const sellers = useMemo(() => getAllSellers(products), [products]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
-      // search
       if (
         searchQuery &&
         !p.name.toLowerCase().includes(searchQuery.toLowerCase())
       ) {
         return false;
       }
-      // status
       if (statusFilter !== "all" && p.status !== statusFilter) {
         return false;
       }
-      // category
-      if (categoryFilter !== "all" && p.category !== categoryFilter) {
+      if (categoryFilter !== "all" && p.category?.name !== categoryFilter) {
         return false;
       }
-      // seller
-      if (sellerFilter !== "all" && p.sellerName !== sellerFilter) {
+      if (sellerFilter !== "all" && p.seller?.name !== sellerFilter) {
         return false;
       }
       return true;
@@ -127,9 +171,10 @@ export default function AdminProductsPage() {
   const counts = useMemo(() => {
     return {
       all: products.length,
-      pending: products.filter((p) => p.status === "pending").length,
-      approved: products.filter((p) => p.status === "approved").length,
-      rejected: products.filter((p) => p.status === "rejected").length,
+      PENDING: products.filter((p) => p.status === "PENDING").length,
+      APPROVED: products.filter((p) => p.status === "APPROVED").length,
+      REJECTED: products.filter((p) => p.status === "REJECTED").length,
+      DRAFT: products.filter((p) => p.status === "DRAFT").length,
     };
   }, [products]);
 
@@ -138,11 +183,6 @@ export default function AdminProductsPage() {
     filteredProducts.every((p) => selectedIds.has(p.id));
 
   // ---- helpers ----
-
-  function showToast(message: string, type: "success" | "error" = "success") {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  }
 
   const toggleSelectAll = useCallback(() => {
     if (allVisibleSelected) {
@@ -166,83 +206,106 @@ export default function AdminProductsPage() {
 
   const approveProduct = useCallback(
     (product: AdminProduct, note: string) => {
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id === product.id ? { ...p, status: "approved" as const } : p
-        )
+      approveMutation.mutate(
+        { id: product.id, data: { status: "APPROVED", reason: note || undefined } },
+        {
+          onSuccess: () => {
+            toast({ title: `"${product.name}" approved` });
+            setReviewProduct(null);
+            setApproveNote("");
+            setSelectedIds((prev) => {
+              const next = new Set(prev);
+              next.delete(product.id);
+              return next;
+            });
+          },
+          onError: () => {
+            toast({ title: "Failed to approve product", variant: "destructive" });
+          },
+        }
       );
-      showToast(`"${product.name}" approved${note ? " with notes" : ""}`);
-      setReviewProduct(null);
-      setApproveNote("");
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        next.delete(product.id);
-        return next;
-      });
     },
-    [showToast]
+    [approveMutation]
   );
 
   const rejectProduct = useCallback(
     (product: AdminProduct, reason: string) => {
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id === product.id ? { ...p, status: "rejected" as const } : p
-        )
+      approveMutation.mutate(
+        { id: product.id, data: { status: "REJECTED", reason } },
+        {
+          onSuccess: () => {
+            toast({ title: `"${product.name}" rejected` });
+            setRejectDialogProduct(null);
+            setRejectReason("");
+            setSelectedIds((prev) => {
+              const next = new Set(prev);
+              next.delete(product.id);
+              return next;
+            });
+          },
+          onError: () => {
+            toast({ title: "Failed to reject product", variant: "destructive" });
+          },
+        }
       );
-      showToast(
-        `"${product.name}" rejected${reason ? `: ${reason}` : ""}`,
-        "error"
-      );
-      setRejectDialogProduct(null);
-      setRejectReason("");
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        next.delete(product.id);
-        return next;
-      });
     },
-    [showToast]
+    [approveMutation]
   );
 
   const bulkApprove = useCallback(
     (note: string) => {
-      const idsToApprove = new Set(selectedIds);
-      setProducts((prev) =>
-        prev.map((p) =>
-          idsToApprove.has(p.id)
-            ? { ...p, status: "approved" as const }
-            : p
-        )
-      );
-      showToast(`${idsToApprove.size} product(s) approved${note ? ` with note: ${note}` : ''}`);
-      setSelectedIds(new Set());
-      setBulkApproveDialogOpen(false);
-      setBulkApproveNote("");
+      const idsToApprove = Array.from(selectedIds);
+      let completed = 0;
+      idsToApprove.forEach((id) => {
+        approveMutation.mutate(
+          { id, data: { status: "APPROVED", reason: note || undefined } },
+          {
+            onSettled: () => {
+              completed++;
+              if (completed === idsToApprove.length) {
+                toast({ title: `${idsToApprove.length} product(s) approved` });
+                setSelectedIds(new Set());
+                setBulkApproveDialogOpen(false);
+                setBulkApproveNote("");
+              }
+            },
+          }
+        );
+      });
     },
-    [selectedIds, showToast]
+    [selectedIds, approveMutation]
   );
 
   const bulkReject = useCallback(
     (reason: string) => {
-      const idsToReject = new Set(selectedIds);
-      setProducts((prev) =>
-        prev.map((p) =>
-          idsToReject.has(p.id)
-            ? { ...p, status: "rejected" as const }
-            : p
-        )
-      );
-      showToast(`${idsToReject.size} product(s) rejected${reason ? `: ${reason}` : ''}`, "error");
-      setSelectedIds(new Set());
-      setBulkRejectDialogOpen(false);
-      setBulkRejectReason("");
+      const idsToReject = Array.from(selectedIds);
+      let completed = 0;
+      idsToReject.forEach((id) => {
+        approveMutation.mutate(
+          { id, data: { status: "REJECTED", reason } },
+          {
+            onSettled: () => {
+              completed++;
+              if (completed === idsToReject.length) {
+                toast({ title: `${idsToReject.length} product(s) rejected` });
+                setSelectedIds(new Set());
+                setBulkRejectDialogOpen(false);
+                setBulkRejectReason("");
+              }
+            },
+          }
+        );
+      });
     },
-    [selectedIds, showToast]
+    [selectedIds, approveMutation]
   );
 
-  // ---- render ----
+  // ---- loading ----
+  if (isLoading) {
+    return <ProductsSkeleton />;
+  }
 
+  // ---- render ----
   return (
     <div className="space-y-6">
       {/* Page header */}
@@ -260,22 +323,20 @@ export default function AdminProductsPage() {
       {/* Tabs for status */}
       <Tabs
         value={statusFilter}
-        onValueChange={(v) =>
-          setStatusFilter(v as "all" | ProductApprovalStatus)
-        }
+        onValueChange={(v) => setStatusFilter(v as StatusFilter)}
       >
         <TabsList>
           <TabsTrigger value="all">
             All ({counts.all})
           </TabsTrigger>
-          <TabsTrigger value="pending">
-            Pending ({counts.pending})
+          <TabsTrigger value="PENDING">
+            Pending ({counts.PENDING})
           </TabsTrigger>
-          <TabsTrigger value="approved">
-            Approved ({counts.approved})
+          <TabsTrigger value="APPROVED">
+            Approved ({counts.APPROVED})
           </TabsTrigger>
-          <TabsTrigger value="rejected">
-            Rejected ({counts.rejected})
+          <TabsTrigger value="REJECTED">
+            Rejected ({counts.REJECTED})
           </TabsTrigger>
         </TabsList>
       </Tabs>
@@ -410,24 +471,20 @@ export default function AdminProductsPage() {
 
                   {/* Product image */}
                   <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-md bg-muted">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="h-full w-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = "none";
-                        const parent = target.parentElement;
-                        if (parent && !parent.querySelector(".fallback-icon")) {
-                          const icon = document.createElement("div");
-                          icon.className =
-                            "fallback-icon absolute inset-0 flex items-center justify-center";
-                          icon.innerHTML =
-                            '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-muted-foreground/50"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
-                          parent.appendChild(icon);
-                        }
-                      }}
-                    />
+                    {product.images?.[0] ? (
+                      <img
+                        src={product.images[0]}
+                        alt={product.name}
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <Package className="h-8 w-8 text-muted-foreground/50" />
+                      </div>
+                    )}
                   </div>
 
                   {/* Product info */}
@@ -438,20 +495,20 @@ export default function AdminProductsPage() {
                           {product.name}
                         </h3>
                         <p className="mt-0.5 text-sm text-muted-foreground">
-                          Seller: {product.sellerName}
+                          Seller: {product.seller?.name ?? "Unknown"}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          Category: {product.category}
+                          Category: {product.category?.name ?? "Uncategorized"}
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-2">
                         {statusBadge(product.status)}
                         <span className="text-sm font-semibold text-primary">
-                          {formatPrice(product.price, product.currency)}
+                          {formatPrice(product.price)}
                         </span>
                         <span className="text-xs text-muted-foreground">
                           Submitted{" "}
-                          {new Date(product.submittedAt).toLocaleDateString(
+                          {new Date(product.createdAt).toLocaleDateString(
                             "en-US",
                             {
                               year: "numeric",
@@ -462,9 +519,6 @@ export default function AdminProductsPage() {
                         </span>
                       </div>
                     </div>
-                    <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">
-                      {product.description}
-                    </p>
 
                     {/* Action buttons */}
                     <div className="mt-3 flex items-center gap-2">
@@ -476,11 +530,12 @@ export default function AdminProductsPage() {
                         <Eye className="mr-1 h-3.5 w-3.5" />
                         Review
                       </Button>
-                      {product.status === "pending" && (
+                      {product.status === "PENDING" && (
                         <>
                           <Button
                             size="sm"
                             variant="default"
+                            disabled={approveMutation.isPending}
                             onClick={() => {
                               approveProduct(product, "");
                             }}
@@ -491,6 +546,7 @@ export default function AdminProductsPage() {
                           <Button
                             size="sm"
                             variant="destructive"
+                            disabled={approveMutation.isPending}
                             onClick={() => setRejectDialogProduct(product)}
                           >
                             <XCircle className="mr-1 h-3.5 w-3.5" />
@@ -526,7 +582,7 @@ export default function AdminProductsPage() {
                 <DialogTitle className="pr-8">{reviewProduct.name}</DialogTitle>
                 <DialogDescription>
                   Product ID: {reviewProduct.id} &middot; Submitted{" "}
-                  {new Date(reviewProduct.submittedAt).toLocaleDateString(
+                  {new Date(reviewProduct.createdAt).toLocaleDateString(
                     "en-US",
                     { year: "numeric", month: "long", day: "numeric" }
                   )}
@@ -536,15 +592,18 @@ export default function AdminProductsPage() {
               <div className="space-y-4">
                 {/* Image gallery area */}
                 <div className="flex items-center justify-center rounded-lg border bg-muted p-2">
-                  <img
-                    src={reviewProduct.image}
-                    alt={reviewProduct.name}
-                    className="max-h-64 rounded object-contain"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = "none";
-                    }}
-                  />
+                  {reviewProduct.images?.[0] ? (
+                    <img
+                      src={reviewProduct.images[0]}
+                      alt={reviewProduct.name}
+                      className="max-h-64 rounded object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <Package className="h-16 w-16 text-muted-foreground/50" />
+                  )}
                 </div>
 
                 {/* Details grid */}
@@ -554,7 +613,7 @@ export default function AdminProductsPage() {
                       Seller
                     </p>
                     <p className="text-sm font-medium">
-                      {reviewProduct.sellerName}
+                      {reviewProduct.seller?.name ?? "Unknown"}
                     </p>
                   </div>
                   <div className="space-y-1">
@@ -562,7 +621,7 @@ export default function AdminProductsPage() {
                       Category
                     </p>
                     <p className="text-sm font-medium">
-                      {reviewProduct.category}
+                      {reviewProduct.category?.name ?? "Uncategorized"}
                     </p>
                   </div>
                   <div className="space-y-1">
@@ -570,10 +629,7 @@ export default function AdminProductsPage() {
                       Price
                     </p>
                     <p className="text-sm font-semibold text-primary">
-                      {formatPrice(
-                        reviewProduct.price,
-                        reviewProduct.currency
-                      )}
+                      {formatPrice(reviewProduct.price)}
                     </p>
                   </div>
                   <div className="space-y-1">
@@ -584,38 +640,27 @@ export default function AdminProductsPage() {
                   </div>
                 </div>
 
-                {/* Description */}
-                <div className="space-y-1">
-                  <p className="text-xs font-medium uppercase text-muted-foreground">
-                    Description
-                  </p>
-                  <p className="text-sm leading-relaxed text-foreground">
-                    {reviewProduct.description}
-                  </p>
-                </div>
-
                 {/* Approve with notes */}
-                {reviewProduct.status === "pending" && (
-                  <>
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium uppercase text-muted-foreground">
-                        Approve Notes (optional)
-                      </p>
-                      <Textarea
-                        placeholder="Add notes for the seller (optional)..."
-                        value={approveNote}
-                        onChange={(e) => setApproveNote(e.target.value)}
-                        rows={3}
-                      />
-                    </div>
-                  </>
+                {reviewProduct.status === "PENDING" && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium uppercase text-muted-foreground">
+                      Approve Notes (optional)
+                    </p>
+                    <Textarea
+                      placeholder="Add notes for the seller (optional)..."
+                      value={approveNote}
+                      onChange={(e) => setApproveNote(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
                 )}
               </div>
 
-              {reviewProduct.status === "pending" && (
+              {reviewProduct.status === "PENDING" && (
                 <DialogFooter>
                   <Button
                     variant="destructive"
+                    disabled={approveMutation.isPending}
                     onClick={() => {
                       setReviewProduct(null);
                       setRejectDialogProduct(reviewProduct);
@@ -625,6 +670,7 @@ export default function AdminProductsPage() {
                     Reject
                   </Button>
                   <Button
+                    disabled={approveMutation.isPending}
                     onClick={() =>
                       approveProduct(reviewProduct, approveNote)
                     }
@@ -689,7 +735,7 @@ export default function AdminProductsPage() {
                 </Button>
                 <Button
                   variant="destructive"
-                  disabled={!rejectReason.trim()}
+                  disabled={!rejectReason.trim() || approveMutation.isPending}
                   onClick={() =>
                     rejectProduct(rejectDialogProduct, rejectReason)
                   }
@@ -746,7 +792,10 @@ export default function AdminProductsPage() {
             >
               Cancel
             </Button>
-            <Button onClick={() => bulkApprove(bulkApproveNote)}>
+            <Button
+              disabled={approveMutation.isPending}
+              onClick={() => bulkApprove(bulkApproveNote)}
+            >
               <CheckCircle2 className="mr-1 h-4 w-4" />
               Approve {selectedIds.size} Product(s)
             </Button>
@@ -805,7 +854,7 @@ export default function AdminProductsPage() {
             </Button>
             <Button
               variant="destructive"
-              disabled={!bulkRejectReason.trim()}
+              disabled={!bulkRejectReason.trim() || approveMutation.isPending}
               onClick={() => bulkReject(bulkRejectReason)}
             >
               <XCircle className="mr-1 h-4 w-4" />
@@ -814,26 +863,6 @@ export default function AdminProductsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* ================================================================
-          Toast
-          ================================================================ */}
-      {toast && (
-        <div
-          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium shadow-lg transition-all ${
-            toast.type === "success"
-              ? "border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200"
-              : "border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200"
-          }`}
-        >
-          {toast.type === "success" ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : (
-            <XCircle className="h-4 w-4" />
-          )}
-          {toast.message}
-        </div>
-      )}
     </div>
   );
 }
