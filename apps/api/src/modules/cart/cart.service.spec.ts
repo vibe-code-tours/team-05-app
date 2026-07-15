@@ -34,6 +34,7 @@ describe("CartService", () => {
 
   beforeEach(async () => {
     prisma = {
+    dbConnected: true,
       cart: {
         findUnique: jest.fn(),
         create: jest.fn(),

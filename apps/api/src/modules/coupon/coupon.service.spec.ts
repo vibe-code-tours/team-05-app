@@ -25,6 +25,7 @@ describe("CouponService", () => {
 
   beforeEach(async () => {
     prisma = {
+    dbConnected: true,
       coupon: {
         findUnique: jest.fn(),
         findMany: jest.fn(),

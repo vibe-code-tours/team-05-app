@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { Injectable, Logger, OnModuleInit, ServiceUnavailableException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Meilisearch } from "meilisearch";
 import { PrismaService } from "../../config/prisma.service";
@@ -39,6 +39,21 @@ export class SearchService implements OnModuleInit {
     minPrice?: number;
     maxPrice?: number;
   }) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      return {
+        success: true,
+        data: [],
+        meta: {
+          page: query.page || 1,
+          limit: query.limit || 20,
+          total: 0,
+          totalPages: 0,
+          processingTimeMs: 0,
+        },
+      };
+    }
+
     const { q, page = 1, limit = 20, categoryId, brandId, type, sort, minPrice, maxPrice } = query;
 
     const index = this.client.index(this.INDEX_PRODUCTS);
@@ -93,6 +108,17 @@ export class SearchService implements OnModuleInit {
   }
 
   async autocomplete(query: { q: string; limit?: number }) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      return {
+        success: true,
+        data: [],
+        meta: {
+          processingTimeMs: 0,
+        },
+      };
+    }
+
     const { q, limit = 5 } = query;
 
     const index = this.client.index(this.INDEX_PRODUCTS);
