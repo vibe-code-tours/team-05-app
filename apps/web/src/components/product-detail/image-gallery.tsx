@@ -97,7 +97,7 @@ export function ImageGallery({
         <div
           ref={imageContainerRef}
           className={cn(
-            'relative w-full aspect-square bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden',
+            'relative w-full aspect-square bg-gradient-to-br from-muted to-muted/80 overflow-hidden',
             'group'
           )}
           onMouseMove={handleImageHover}
@@ -126,10 +126,10 @@ export function ImageGallery({
               />
             </div>
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200">
-              <div className="text-center text-blue-500">
-                <div className="w-16 h-16 mx-auto bg-blue-300 rounded-lg mb-2 flex items-center justify-center">
-                  <ZoomIn className="w-8 h-8 text-blue-600" />
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/20">
+              <div className="text-center text-primary">
+                <div className="w-16 h-16 mx-auto bg-primary/30 rounded-lg mb-2 flex items-center justify-center">
+                  <ZoomIn className="w-8 h-8 text-primary" />
                 </div>
                 <p className="text-sm font-medium">{productName}</p>
               </div>
@@ -147,7 +147,7 @@ export function ImageGallery({
           {selectedIndex > 0 && (
             <button
               onClick={handlePrevious}
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 rounded-full p-2 shadow-md transition-all opacity-0 group-hover:opacity-100"
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-card/80 hover:bg-card text-foreground rounded-full p-2 shadow-md transition-all opacity-0 group-hover:opacity-100"
               aria-label="Previous image"
             >
               <ChevronLeft className="w-5 h-5" />
@@ -157,7 +157,7 @@ export function ImageGallery({
           {selectedIndex < displayImages.length - 1 && (
             <button
               onClick={handleNext}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 rounded-full p-2 shadow-md transition-all opacity-0 group-hover:opacity-100"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-card/80 hover:bg-card text-foreground rounded-full p-2 shadow-md transition-all opacity-0 group-hover:opacity-100"
               aria-label="Next image"
             >
               <ChevronRight className="w-5 h-5" />
@@ -167,7 +167,7 @@ export function ImageGallery({
           {/* Fullscreen button */}
           <button
             onClick={handleOpenModal}
-            className="absolute top-2 right-2 bg-white/80 hover:bg-white text-gray-800 rounded-full p-2 shadow-md transition-all opacity-0 group-hover:opacity-100"
+            className="absolute top-2 right-2 bg-card/80 hover:bg-card text-foreground rounded-full p-2 shadow-md transition-all opacity-0 group-hover:opacity-100"
             aria-label="Open fullscreen view"
           >
             <Maximize2 className="w-5 h-5" />
@@ -182,7 +182,7 @@ export function ImageGallery({
 
       {/* Thumbnail Carousel */}
       {displayImages.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-muted/50">
           {displayImages.map((image, index) => (
             <button
               key={index}
@@ -190,8 +190,8 @@ export function ImageGallery({
               className={cn(
                 'flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all',
                 index === selectedIndex
-                  ? 'border-blue-500 ring-2 ring-blue-200'
-                  : 'border-gray-200 hover:border-gray-300'
+                  ? 'border-primary ring-2 ring-primary/30'
+                  : 'border-border hover:border-border'
               )}
               aria-label={`View image ${index + 1}`}
             >
@@ -203,8 +203,8 @@ export function ImageGallery({
                   draggable={false}
                 />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                  <div className="w-8 h-8 bg-gray-400 rounded" />
+                <div className="w-full h-full bg-gradient-to-br from-muted to-muted/80 flex items-center justify-center">
+                  <div className="w-8 h-8 bg-muted-foreground/50 rounded" />
                 </div>
               )}
             </button>

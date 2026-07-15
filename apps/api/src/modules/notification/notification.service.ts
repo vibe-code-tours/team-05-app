@@ -1,13 +1,25 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, ServiceUnavailableException, Logger } from "@nestjs/common";
 import { PrismaService } from "../../config/prisma.service";
+import { CreateNotificationDto } from "./dto/notification.dto";
 
 @Injectable()
 export class NotificationService {
+  private readonly logger = new Logger(NotificationService.name);
+
   constructor(private prisma: PrismaService) {}
 
   // ── User Endpoints ──────────────────────────────────────────────────────
 
   async getNotifications(userId: string, page = 1, limit = 20) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      return {
+        success: true,
+        data: [],
+        meta: { page, limit, total: 0, totalPages: 0, unreadCount: 0 },
+      };
+    }
+
     const skip = (page - 1) * limit;
 
     const [notifications, total, unreadCount] = await Promise.all([
@@ -29,6 +41,11 @@ export class NotificationService {
   }
 
   async markAsRead(userId: string, notificationId: string) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const notification = await this.prisma.notification.findUnique({
       where: { id: notificationId },
     });
@@ -50,6 +67,11 @@ export class NotificationService {
   }
 
   async markAllAsRead(userId: string) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     await this.prisma.notification.updateMany({
       where: { userId, read: false },
       data: { read: true },
@@ -59,6 +81,11 @@ export class NotificationService {
   }
 
   async getUnreadCount(userId: string) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      return { success: true, data: { count: 0 } };
+    }
+
     const count = await this.prisma.notification.count({
       where: { userId, read: false },
     });
@@ -90,13 +117,7 @@ export class NotificationService {
 
   // ── Admin Endpoints ─────────────────────────────────────────────────────
 
-  async adminCreateNotification(dto: {
-    userId: string;
-    title: string;
-    message: string;
-    type: string;
-    data?: any;
-  }) {
+  async adminCreateNotification(dto: CreateNotificationDto) {
     // Verify user exists
     const user = await this.prisma.user.findUnique({ where: { id: dto.userId } });
     if (!user) {

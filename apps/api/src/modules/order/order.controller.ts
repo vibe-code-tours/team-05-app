@@ -10,9 +10,11 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from "@nestjs/swagger";
+import { OrderStatus } from "@prisma/client";
 import { OrderService } from "./order.service";
 import { CreateOrderDto, UpdateOrderStatusDto, CancelOrderDto } from "./dto/order.dto";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
@@ -106,10 +108,14 @@ export class OrderController {
     @Query("limit") limit?: string,
     @Query("status") status?: string,
   ) {
+    const validStatuses = Object.values(OrderStatus);
+    const orderStatus = status && validStatuses.includes(status as OrderStatus)
+      ? (status as OrderStatus)
+      : undefined;
     return this.orderService.getAllOrders(
       page ? parseInt(page) : 1,
       limit ? parseInt(limit) : 20,
-      status,
+      orderStatus,
     );
   }
 

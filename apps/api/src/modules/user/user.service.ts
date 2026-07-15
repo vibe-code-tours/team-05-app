@@ -1,14 +1,21 @@
-import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
+import { Injectable, NotFoundException, ForbiddenException, ServiceUnavailableException, Logger } from "@nestjs/common";
 import { PrismaService } from "../../config/prisma.service";
 import { UpdateProfileDto, CreateAddressDto, UpdateAddressDto } from "./dto/user.dto";
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(private prisma: PrismaService) {}
 
   // ─── Profile ──────────────────────────────────────────
 
   async findById(id: string) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id },
       select: {
@@ -28,7 +35,7 @@ export class UserService {
       throw new NotFoundException("User not found");
     }
 
-    return user;
+    return { success: true, data: user };
   }
 
   async findByEmail(email: string) {
@@ -36,6 +43,11 @@ export class UserService {
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
 
     if (!user) {
@@ -52,7 +64,7 @@ export class UserService {
       }
     }
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: dto,
       select: {
@@ -66,15 +78,24 @@ export class UserService {
         updatedAt: true,
       },
     });
+
+    return { success: true, data: updated };
   }
 
   // ─── Addresses ────────────────────────────────────────
 
   async getAddresses(userId: string) {
-    return this.prisma.address.findMany({
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      return { success: true, data: [] };
+    }
+
+    const addresses = await this.prisma.address.findMany({
       where: { userId },
       orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
     });
+
+    return { success: true, data: addresses };
   }
 
   async getAddress(userId: string, addressId: string) {
@@ -86,7 +107,7 @@ export class UserService {
       throw new NotFoundException("Address not found");
     }
 
-    return address;
+    return { success: true, data: address };
   }
 
   async createAddress(userId: string, dto: CreateAddressDto) {
@@ -98,9 +119,11 @@ export class UserService {
       });
     }
 
-    return this.prisma.address.create({
+    const address = await this.prisma.address.create({
       data: { userId, ...dto },
     });
+
+    return { success: true, data: address };
   }
 
   async updateAddress(userId: string, addressId: string, dto: UpdateAddressDto) {
@@ -120,10 +143,12 @@ export class UserService {
       });
     }
 
-    return this.prisma.address.update({
+    const updated = await this.prisma.address.update({
       where: { id: addressId },
       data: dto,
     });
+
+    return { success: true, data: updated };
   }
 
   async deleteAddress(userId: string, addressId: string) {
@@ -137,7 +162,7 @@ export class UserService {
 
     await this.prisma.address.delete({ where: { id: addressId } });
 
-    return { success: true, message: "Address deleted" };
+    return { success: true, data: null, message: "Address deleted" };
   }
 
   async setDefaultAddress(userId: string, addressId: string) {
@@ -156,9 +181,11 @@ export class UserService {
     });
 
     // Set this one as default
-    return this.prisma.address.update({
+    const updated = await this.prisma.address.update({
       where: { id: addressId },
       data: { isDefault: true },
     });
+
+    return { success: true, data: updated };
   }
 }

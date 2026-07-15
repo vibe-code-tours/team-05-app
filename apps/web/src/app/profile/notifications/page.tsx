@@ -13,8 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
+import { PublicLayout } from '@/components/layout/public-layout';
 import { useNotificationStore } from '@/stores/notification.store';
 import { cn } from '@/lib/utils';
 import type { NotificationChannel } from '@/types/notification';
@@ -88,10 +87,8 @@ export default function NotificationPreferencesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Header />
-      <main className="flex-1">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+    <PublicLayout>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
           {/* Back Link */}
           <Link
             href="/profile"
@@ -226,8 +223,6 @@ export default function NotificationPreferencesPage() {
             </p>
           </div>
         </div>
-      </main>
-      <Footer />
-    </div>
+    </PublicLayout>
   );
 }

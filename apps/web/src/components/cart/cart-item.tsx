@@ -5,10 +5,10 @@ import { Trash2, Plus, Minus, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { formatPrice, cn } from '@/lib/utils'
-import type { CartItem as CartItemType } from '@/types/cart'
+import type { CartItemView } from '@/types/cart'
 
 export interface CartItemProps {
-  item: CartItemType
+  item: CartItemView
   onUpdateQuantity: (id: string, quantity: number) => void
   onRemove: (id: string) => void
 }

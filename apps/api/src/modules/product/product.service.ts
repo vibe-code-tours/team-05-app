@@ -3,6 +3,8 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  ServiceUnavailableException,
+  Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../config/prisma.service";
 import {
@@ -13,6 +15,8 @@ import {
 
 @Injectable()
 export class ProductService {
+  private readonly logger = new Logger(ProductService.name);
+
   constructor(private prisma: PrismaService) {}
 
   // ─── Public ──────────────────────────────────────────
@@ -24,103 +28,153 @@ export class ProductService {
     type?: string;
     search?: string;
   }) {
-    const { page = 1, limit = 20, category, type, search } = params;
-    const skip = (page - 1) * limit;
-
-    const where: any = { status: "APPROVED" };
-    if (category) where.category = { slug: category };
-    if (type) where.type = type;
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
-      ];
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      return {
+        success: true,
+        data: [],
+        meta: { page: params.page || 1, limit: params.limit || 20, total: 0, totalPages: 0 },
+      };
     }
 
-    const [products, total] = await Promise.all([
-      this.prisma.product.findMany({
-        where,
-        include: {
-          images: { take: 1, orderBy: { order: "asc" } },
-          category: true,
-          brand: true,
-          seller: { select: { id: true, name: true } },
-          reviews: { select: { rating: true } },
-        },
-        skip,
-        take: limit,
-        orderBy: { createdAt: "desc" },
-      }),
-      this.prisma.product.count({ where }),
-    ]);
+    try {
+      const { page = 1, limit = 20, category, type, search } = params;
+      const skip = (page - 1) * limit;
 
-    return {
-      success: true,
-      data: products.map((p) => ({
-        ...p,
-        avgRating:
-          p.reviews.length > 0
-            ? p.reviews.reduce((sum, r) => sum + r.rating, 0) / p.reviews.length
-            : null,
-        reviewCount: p.reviews.length,
-        reviews: undefined,
-      })),
-      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
-    };
+      const where: any = { status: "APPROVED" };
+      if (category) where.category = { slug: category };
+      if (type) where.type = type;
+      if (search) {
+        where.OR = [
+          { name: { contains: search, mode: "insensitive" } },
+          { description: { contains: search, mode: "insensitive" } },
+        ];
+      }
+
+      const [products, total] = await Promise.all([
+        this.prisma.product.findMany({
+          where,
+          include: {
+            images: { take: 1, orderBy: { order: "asc" } },
+            category: true,
+            brand: true,
+            seller: { select: { id: true, name: true } },
+            reviews: { select: { rating: true } },
+          },
+          skip,
+          take: limit,
+          orderBy: { createdAt: "desc" },
+        }),
+        this.prisma.product.count({ where }),
+      ]);
+
+      return {
+        success: true,
+        data: products.map((p) => ({
+          ...p,
+          avgRating:
+            p.reviews.length > 0
+              ? p.reviews.reduce((sum, r) => sum + r.rating, 0) / p.reviews.length
+              : null,
+          reviewCount: p.reviews.length,
+          reviews: undefined,
+        })),
+        meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      };
+    } catch (error) {
+      this.logger.error(`Failed to fetch products: ${error.message}`);
+      if (error.message?.includes("Can't reach database")) {
+        throw new ServiceUnavailableException("Database temporarily unavailable");
+      }
+      throw error;
+    }
   }
 
   async findBySlug(slug: string) {
-    const product = await this.prisma.product.findUnique({
-      where: { slug },
-      include: {
-        images: { orderBy: { order: "asc" } },
-        variants: true,
-        category: true,
-        brand: true,
-        seller: { select: { id: true, name: true, avatar: true } },
-        reviews: {
-          include: { user: { select: { id: true, name: true, avatar: true } } },
-          orderBy: { createdAt: "desc" },
-          take: 10,
-        },
-      },
-    });
-
-    if (!product) {
-      throw new NotFoundException("Product not found");
+    if (!this.prisma.dbConnected) {
+      throw new ServiceUnavailableException("Database temporarily unavailable");
     }
 
-    return { success: true, data: product };
+    try {
+      const product = await this.prisma.product.findUnique({
+        where: { slug },
+        include: {
+          images: { orderBy: { order: "asc" } },
+          variants: true,
+          category: true,
+          brand: true,
+          seller: { select: { id: true, name: true, avatar: true } },
+          reviews: {
+            include: { user: { select: { id: true, name: true, avatar: true } } },
+            orderBy: { createdAt: "desc" },
+            take: 10,
+          },
+        },
+      });
+
+      if (!product) {
+        throw new NotFoundException("Product not found");
+      }
+
+      return { success: true, data: product };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ServiceUnavailableException) {
+        throw error;
+      }
+      this.logger.error(`Failed to fetch product: ${error.message}`);
+      if (error.message?.includes("Can't reach database")) {
+        throw new ServiceUnavailableException("Database temporarily unavailable");
+      }
+      throw error;
+    }
   }
 
   // ─── Seller ──────────────────────────────────────────
 
   async findMyProducts(sellerId: string, page = 1, limit = 20) {
-    const skip = (page - 1) * limit;
+    if (!this.prisma.dbConnected) {
+      throw new ServiceUnavailableException("Database temporarily unavailable");
+    }
 
-    const [products, total] = await Promise.all([
-      this.prisma.product.findMany({
-        where: { sellerId },
-        include: {
-          images: { take: 1, orderBy: { order: "asc" } },
-          category: true,
-          brand: true,
-        },
-        skip,
-        take: limit,
-        orderBy: { createdAt: "desc" },
-      }),
-      this.prisma.product.count({ where: { sellerId } }),
-    ]);
+    try {
+      const skip = (page - 1) * limit;
 
-    return {
-      success: true,
-      data: products,
-      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
-    };
+      const [products, total] = await Promise.all([
+        this.prisma.product.findMany({
+          where: { sellerId },
+          include: {
+            images: { take: 1, orderBy: { order: "asc" } },
+            category: true,
+            brand: true,
+          },
+          skip,
+          take: limit,
+          orderBy: { createdAt: "desc" },
+        }),
+        this.prisma.product.count({ where: { sellerId } }),
+      ]);
+
+      return {
+        success: true,
+        data: products,
+        meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      };
+    } catch (error) {
+      if (error instanceof ServiceUnavailableException) throw error;
+      this.logger.error(`Failed to fetch seller products: ${error.message}`);
+      if (error.message?.includes("Can't reach database")) {
+        throw new ServiceUnavailableException("Database temporarily unavailable");
+      }
+      throw error;
+    }
   }
 
   async create(sellerId: string, dto: CreateProductDto) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     // Resolve category
     const category = await this.prisma.category.findUnique({
       where: { slug: dto.categorySlug },
@@ -161,7 +215,7 @@ export class ProductService {
         name: dto.name,
         description: dto.description,
         price: dto.price,
-        type: dto.type as any,
+        type: dto.type,
         status: "PENDING",
         categoryId: category.id,
         brandId,
@@ -186,6 +240,11 @@ export class ProductService {
   }
 
   async update(sellerId: string, productId: string, dto: UpdateProductDto) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
@@ -232,7 +291,7 @@ export class ProductService {
         ...(dto.name && { name: dto.name }),
         ...(dto.description && { description: dto.description }),
         ...(dto.price !== undefined && { price: dto.price }),
-        ...(dto.type && { type: dto.type as any }),
+        ...(dto.type && { type: dto.type }),
         ...(dto.stock !== undefined && { stock: dto.stock }),
         ...(categoryId && { categoryId }),
         ...(brandId && { brandId }),
@@ -250,6 +309,11 @@ export class ProductService {
   }
 
   async delete(sellerId: string, productId: string) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
@@ -274,6 +338,15 @@ export class ProductService {
     limit?: number;
     status?: string;
   }) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      return {
+        success: true,
+        data: [],
+        meta: { page: params.page || 1, limit: params.limit || 20, total: 0, totalPages: 0 },
+      };
+    }
+
     const { page = 1, limit = 20, status } = params;
     const skip = (page - 1) * limit;
 
@@ -304,6 +377,11 @@ export class ProductService {
   }
 
   async approveOrReject(productId: string, dto: ApproveProductDto) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
@@ -318,7 +396,7 @@ export class ProductService {
 
     const updated = await this.prisma.product.update({
       where: { id: productId },
-      data: { status: dto.status as any },
+      data: { status: dto.status },
       include: {
         category: true,
         brand: true,

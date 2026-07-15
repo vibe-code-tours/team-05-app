@@ -42,6 +42,7 @@ describe("ReviewService", () => {
 
   beforeEach(async () => {
     prisma = {
+    dbConnected: true,
       review: {
         findUnique: jest.fn(),
         findMany: jest.fn(),

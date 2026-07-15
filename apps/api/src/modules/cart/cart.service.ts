@@ -2,6 +2,8 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ServiceUnavailableException,
+  Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../config/prisma.service";
 import { AddToCartDto, UpdateCartItemDto } from "./dto/cart.dto";
@@ -12,6 +14,8 @@ const MAX_ORDER_AMOUNT = 10_000_000;
 
 @Injectable()
 export class CartService {
+  private readonly logger = new Logger(CartService.name);
+
   constructor(private prisma: PrismaService) {}
 
   /**
@@ -45,6 +49,22 @@ export class CartService {
   }
 
   async getCart(userId: string) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      return {
+        success: true,
+        data: {
+          id: null,
+          userId,
+          items: [],
+          subtotal: 0,
+          itemCount: 0,
+          hasOutOfStockItems: false,
+          expired: false,
+        },
+      };
+    }
+
     let cart = await this.prisma.cart.findUnique({
       where: { userId },
       include: {
@@ -152,6 +172,11 @@ export class CartService {
   }
 
   async addItem(userId: string, dto: AddToCartDto) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     // Verify product exists and is available
     const product = await this.prisma.product.findUnique({
       where: { id: dto.productId },
@@ -233,6 +258,11 @@ export class CartService {
   }
 
   async updateItem(userId: string, itemId: string, dto: UpdateCartItemDto) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const cart = await this.prisma.cart.findUnique({ where: { userId } });
     if (!cart) {
       throw new NotFoundException("Cart not found");
@@ -270,6 +300,11 @@ export class CartService {
   }
 
   async removeItem(userId: string, itemId: string) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const cart = await this.prisma.cart.findUnique({ where: { userId } });
     if (!cart) {
       throw new NotFoundException("Cart not found");
@@ -292,6 +327,11 @@ export class CartService {
   }
 
   async clearCart(userId: string) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const cart = await this.prisma.cart.findUnique({ where: { userId } });
     if (!cart) {
       throw new NotFoundException("Cart not found");

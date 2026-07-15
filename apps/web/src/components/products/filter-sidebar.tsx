@@ -22,6 +22,8 @@ export interface FilterSidebarProps {
   filters: Filters;
   onFilterChange: (filters: Filters) => void;
   onClearAll: () => void;
+  categories?: Array<{ name: string; slug: string; count?: number }>;
+  brands?: Array<{ name: string; slug: string; count?: number }>;
 }
 
 interface FilterSectionProps {
@@ -31,22 +33,22 @@ interface FilterSectionProps {
   defaultOpen?: boolean;
 }
 
-const CATEGORIES = [
-  'Electronics',
-  'Fashion',
-  'Beauty',
-  'Home & Living',
-  'Food & Groceries',
-  'Sports',
+const FALLBACK_CATEGORIES = [
+  { name: 'Electronics', slug: 'electronics', count: 0 },
+  { name: 'Fashion', slug: 'fashion', count: 0 },
+  { name: 'Beauty', slug: 'beauty', count: 0 },
+  { name: 'Home & Living', slug: 'home-living', count: 0 },
+  { name: 'Food & Groceries', slug: 'food-groceries', count: 0 },
+  { name: 'Sports', slug: 'sports', count: 0 },
 ];
 
-const BRANDS = [
-  { name: 'Apple', count: 45 },
-  { name: 'Samsung', count: 38 },
-  { name: 'Nike', count: 27 },
-  { name: 'Sony', count: 22 },
-  { name: 'Xiaomi', count: 35 },
-  { name: "L'Oreal", count: 19 },
+const FALLBACK_BRANDS = [
+  { name: 'Apple', slug: 'apple', count: 45 },
+  { name: 'Samsung', slug: 'samsung', count: 38 },
+  { name: 'Nike', slug: 'nike', count: 27 },
+  { name: 'Sony', slug: 'sony', count: 22 },
+  { name: 'Xiaomi', slug: 'xiaomi', count: 35 },
+  { name: "L'Oreal", slug: 'loreal', count: 19 },
 ];
 
 const PRODUCT_TYPES: { value: 'all' | 'in-stock' | 'cargo'; label: string }[] = [
@@ -86,7 +88,15 @@ function FilterSection({ title, activeCount, children, defaultOpen = true }: Fil
   );
 }
 
-export function FilterSidebar({ filters, onFilterChange, onClearAll }: FilterSidebarProps) {
+export function FilterSidebar({
+  filters,
+  onFilterChange,
+  onClearAll,
+  categories,
+  brands,
+}: FilterSidebarProps) {
+  const displayCategories = categories ?? FALLBACK_CATEGORIES;
+  const displayBrands = brands ?? FALLBACK_BRANDS;
   const activeFiltersCount =
     filters.categories.length +
     filters.brands.length +
@@ -159,17 +169,20 @@ export function FilterSidebar({ filters, onFilterChange, onClearAll }: FilterSid
       {/* Category Section */}
       <FilterSection title="Category" activeCount={filters.categories.length}>
         <div className="space-y-2">
-          {CATEGORIES.map((category) => (
-            <label key={category} className="flex items-center gap-2 cursor-pointer group">
+          {displayCategories.map((category) => (
+            <label key={category.slug} className="flex items-center gap-2 cursor-pointer group">
               <input
                 type="checkbox"
-                checked={filters.categories.includes(category)}
-                onChange={() => handleCategoryChange(category)}
+                checked={filters.categories.includes(category.slug)}
+                onChange={() => handleCategoryChange(category.slug)}
                 className="h-4 w-4 rounded border-border text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer"
               />
-              <span className="text-sm text-foreground group-hover:text-primary transition-colors">
-                {category}
+              <span className="text-sm text-foreground group-hover:text-primary transition-colors flex-1">
+                {category.name}
               </span>
+              {category.count !== undefined && category.count > 0 && (
+                <span className="text-xs text-muted-foreground">({category.count})</span>
+              )}
             </label>
           ))}
         </div>
@@ -178,20 +191,22 @@ export function FilterSidebar({ filters, onFilterChange, onClearAll }: FilterSid
       {/* Brand Section */}
       <FilterSection title="Brand" activeCount={filters.brands.length}>
         <div className="space-y-2">
-          {BRANDS.map((brand) => (
-            <label key={brand.name} className="flex items-center justify-between cursor-pointer group">
+          {displayBrands.map((brand) => (
+            <label key={brand.slug} className="flex items-center justify-between cursor-pointer group">
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  checked={filters.brands.includes(brand.name)}
-                  onChange={() => handleBrandChange(brand.name)}
+                  checked={filters.brands.includes(brand.slug)}
+                  onChange={() => handleBrandChange(brand.slug)}
                   className="h-4 w-4 rounded border-border text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer"
                 />
                 <span className="text-sm text-foreground group-hover:text-primary transition-colors">
                   {brand.name}
                 </span>
               </div>
-              <span className="text-xs text-muted-foreground">({brand.count})</span>
+              {brand.count !== undefined && (
+                <span className="text-xs text-muted-foreground">({brand.count})</span>
+              )}
             </label>
           ))}
         </div>

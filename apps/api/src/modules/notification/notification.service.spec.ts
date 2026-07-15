@@ -30,6 +30,7 @@ describe("NotificationService", () => {
 
   beforeEach(async () => {
     prisma = {
+    dbConnected: true,
       notification: {
         findUnique: jest.fn(),
         findMany: jest.fn(),

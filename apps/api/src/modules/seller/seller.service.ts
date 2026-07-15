@@ -3,18 +3,27 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  ServiceUnavailableException,
+  Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../config/prisma.service";
 import { RegisterSellerDto, ApproveSellerDto } from "./dto/seller.dto";
 
 @Injectable()
 export class SellerService {
+  private readonly logger = new Logger(SellerService.name);
+
   constructor(private prisma: PrismaService) {}
 
   /**
    * CLIENT applies to become a SELLER
    */
   async registerAsSeller(userId: string, dto: RegisterSellerDto) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
 
     if (!user) {
@@ -148,6 +157,11 @@ export class SellerService {
    * Get seller public profile
    */
   async getSellerProfile(sellerId: string) {
+    if (!this.prisma.dbConnected) {
+      this.logger.warn("Database not connected, returning empty results");
+      throw new ServiceUnavailableException("Database not available");
+    }
+
     const seller = await this.prisma.user.findFirst({
       where: { id: sellerId, role: "SELLER", status: "ACTIVE" },
       select: {

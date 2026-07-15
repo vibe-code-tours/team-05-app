@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   DollarSign,
@@ -13,23 +15,23 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatPrice } from "@/lib/utils";
-import {
-  mockSalesMetrics,
-  mockSellerOrders,
-  mockSellerProducts,
-} from "@/lib/mock-seller-data";
+import { useMyProducts, useSellerOrders } from "@/lib/services/seller.service";
 
 const orderStatusConfig: Record<
   string,
-  { label: string; variant: "default" | "secondary" | "destructive" | "success" | "warning" | "outline" }
+  {
+    label: string;
+    variant: "default" | "secondary" | "destructive" | "success" | "warning" | "outline";
+  }
 > = {
-  pending: { label: "Pending", variant: "warning" },
-  confirmed: { label: "Confirmed", variant: "secondary" },
-  processing: { label: "Processing", variant: "default" },
-  shipped: { label: "Shipped", variant: "default" },
-  delivered: { label: "Delivered", variant: "success" },
-  cancelled: { label: "Cancelled", variant: "destructive" },
+  PENDING: { label: "Pending", variant: "warning" },
+  CONFIRMED: { label: "Confirmed", variant: "secondary" },
+  PROCESSING: { label: "Processing", variant: "default" },
+  SHIPPED: { label: "Shipped", variant: "default" },
+  DELIVERED: { label: "Delivered", variant: "success" },
+  CANCELLED: { label: "Cancelled", variant: "destructive" },
 };
 
 function formatDate(dateString: string): string {
@@ -42,46 +44,109 @@ function formatDate(dateString: string): string {
   }).format(date);
 }
 
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="mt-2 h-4 w-80" />
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-24" />
+              <Skeleton className="mt-2 h-3 w-32" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <Skeleton className="h-5 w-32" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-20 w-full rounded-lg" />
+            ))}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-32" />
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 export default function SellerDashboardPage() {
-  const metrics = mockSalesMetrics;
-  const recentOrders = mockSellerOrders;
-  const topProducts = [...mockSellerProducts]
-    .sort((a, b) => b.sold - a.sold)
-    .slice(0, 5);
-  const pendingShipments = metrics.totalOrders - mockSellerOrders.filter(
-    (o) => o.status === "delivered" || o.status === "cancelled"
+  const { data: productsResponse, isLoading: productsLoading } = useMyProducts();
+  const { data: ordersResponse, isLoading: ordersLoading } = useSellerOrders();
+
+  const products = productsResponse?.data ?? [];
+  const orders = ordersResponse?.data ?? [];
+
+  const isLoading = productsLoading || ordersLoading;
+
+  // Compute metrics from real data
+  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+  const totalOrders = orders.length;
+  const totalProducts = products.length;
+  const deliveredOrCancelled = orders.filter(
+    (o) => o.status === "DELIVERED" || o.status === "CANCELLED"
   ).length;
+  const pendingShipments = totalOrders - deliveredOrCancelled;
+
+  const recentOrders = [...orders]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5);
+
+  const topProducts = [...products]
+    .sort((a, b) => b.stock - a.stock)
+    .slice(0, 5);
 
   const statsCards = [
     {
       title: "Total Revenue",
-      value: formatPrice(metrics.totalRevenue),
+      value: formatPrice(totalRevenue),
       icon: DollarSign,
-      change: `+${metrics.monthlyGrowth}%`,
       changeType: "positive" as const,
     },
     {
       title: "Total Orders",
-      value: metrics.totalOrders.toLocaleString(),
+      value: totalOrders.toLocaleString(),
       icon: ShoppingCart,
-      change: "+8.2%",
       changeType: "positive" as const,
     },
     {
       title: "Active Products",
-      value: metrics.totalProducts.toLocaleString(),
+      value: totalProducts.toLocaleString(),
       icon: Package,
-      change: "+3",
       changeType: "positive" as const,
     },
     {
       title: "Pending Shipments",
       value: pendingShipments.toLocaleString(),
       icon: Truck,
-      change: "-2",
-      changeType: "negative" as const,
+      changeType: pendingShipments > 0 ? "negative" : "positive" as const,
     },
   ];
+
+  if (isLoading) {
+    return <DashboardSkeleton />;
+  }
 
   return (
     <div className="space-y-6">
@@ -104,11 +169,21 @@ export default function SellerDashboardPage() {
             <CardContent>
               <div className="text-2xl font-bold">{stat.value}</div>
               <p className="flex items-center text-xs text-muted-foreground">
-                <TrendingUp className={`mr-1 h-3 w-3 ${stat.changeType === "negative" ? "rotate-180" : ""}`} />
-                <span className={stat.changeType === "positive" ? "text-green-600" : "text-red-600"}>
-                  {stat.change}
+                <TrendingUp
+                  className={`mr-1 h-3 w-3 ${
+                    stat.changeType === "negative" ? "rotate-180" : ""
+                  }`}
+                />
+                <span
+                  className={
+                    stat.changeType === "positive"
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-destructive"
+                  }
+                >
+                  {stat.changeType === "positive" ? "Active" : "Needs attention"}
                 </span>
-                <span className="ml-1">from last month</span>
+                <span className="ml-1">right now</span>
               </p>
             </CardContent>
           </Card>
@@ -129,8 +204,16 @@ export default function SellerDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {recentOrders.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  No orders yet.
+                </p>
+              )}
               {recentOrders.map((order) => {
-                const statusInfo = orderStatusConfig[order.status];
+                const statusInfo = orderStatusConfig[order.status] ?? {
+                  label: order.status,
+                  variant: "secondary" as const,
+                };
                 return (
                   <div
                     key={order.id}
@@ -143,14 +226,10 @@ export default function SellerDashboardPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{order.orderNumber}</span>
-                          {order.isCargo && (
-                            <Badge variant="outline" className="text-[10px]">
-                              Cargo
-                            </Badge>
-                          )}
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          {order.customerName} - {order.items.length} item
+                          {order.shippingAddress?.name ?? "Customer"} -{" "}
+                          {order.items.length} item
                           {order.items.length > 1 ? "s" : ""}
                         </p>
                         <p className="text-xs text-muted-foreground">
@@ -202,7 +281,7 @@ export default function SellerDashboardPage() {
       {/* Top Selling Products */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Top Selling Products</CardTitle>
+          <CardTitle>Top Products</CardTitle>
           <Button variant="ghost" size="sm" asChild>
             <Link href="/seller/products">
               View All Products
@@ -212,34 +291,48 @@ export default function SellerDashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            {topProducts.length === 0 && (
+              <p className="col-span-full text-sm text-muted-foreground text-center py-8">
+                No products yet.
+              </p>
+            )}
             {topProducts.map((product) => (
               <div
                 key={product.id}
                 className="group rounded-lg border p-4 transition-colors hover:bg-muted/50"
               >
                 <div className="aspect-square overflow-hidden rounded-md bg-muted">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                  />
+                  {product.images?.[0] ? (
+                    <img
+                      src={product.images[0]}
+                      alt={product.name}
+                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <Package className="h-8 w-8 text-muted-foreground/50" />
+                    </div>
+                  )}
                 </div>
                 <div className="mt-3 space-y-1">
-                  <h4 className="line-clamp-2 text-sm font-medium">{product.name}</h4>
-                  <p className="text-xs text-muted-foreground">{product.category}</p>
+                  <h4 className="line-clamp-2 text-sm font-medium">
+                    {product.name}
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    {product.category?.name ?? "Uncategorized"}
+                  </p>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold">
                       {formatPrice(product.price)}
                     </span>
-                    <Badge variant="secondary" className="text-[10px]">
-                      {product.sold} sold
-                    </Badge>
                   </div>
                   <Badge
-                    variant={product.stock > 0 ? "success" : "destructive"}
+                    variant={product.stock > 0 ? "secondary" : "destructive"}
                     className="text-[10px]"
                   >
-                    {product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}
+                    {product.stock > 0
+                      ? `${product.stock} in stock`
+                      : "Out of stock"}
                   </Badge>
                 </div>
               </div>

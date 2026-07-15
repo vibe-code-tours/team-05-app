@@ -15,20 +15,62 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-// formatPrice available from @/lib/utils if needed
-import { mockSellerProducts } from "@/lib/mock-seller-data";
-
-const categories = [
-  "Fashion Accessories",
-  "Clothing",
-  "Home Decor",
-  "Bags & Accessories",
-  "Beauty & Health",
-];
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/components/ui/use-toast";
+import { useUpdateProduct, useMyProducts } from "@/lib/services/seller.service";
+import { useCategories } from "@/lib/services/product.service";
 
 interface VariantOption {
   type: "size" | "color";
   value: string;
+}
+
+function EditProductSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-10 w-10" />
+        <div>
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="mt-2 h-4 w-64" />
+        </div>
+      </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-5 w-40" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-24 w-full" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-5 w-48" />
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-5 w-36" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-48 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function EditProductPage() {
@@ -36,42 +78,51 @@ export default function EditProductPage() {
   const params = useParams();
   const productId = params.id as string;
 
-  const product = mockSellerProducts.find((p) => p.id === productId);
+  const { data: productsResponse, isLoading: productsLoading } = useMyProducts();
+  const { data: categoriesResponse } = useCategories();
+  const updateProduct = useUpdateProduct();
+
+  const allProducts = productsResponse?.data ?? [];
+  const categories = categoriesResponse?.data ?? [];
+  const product = allProducts.find((p) => p.id === productId);
 
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     price: "",
-    category: "",
+    categoryId: "",
     stock: "",
-    sku: "",
   });
 
   const [variants, setVariants] = useState<VariantOption[]>([]);
   const [variantType, setVariantType] = useState<"size" | "color">("size");
   const [variantValue, setVariantValue] = useState("");
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [imageUrlInput, setImageUrlInput] = useState("");
   const [isDragging, setIsDragging] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
+  // Pre-populate form when product loads
   useEffect(() => {
-    if (product) {
+    if (product && !initialized) {
       setFormData({
         name: product.name,
         description: "",
         price: product.price.toString(),
-        category: product.category,
+        categoryId: product.category?.id ?? "",
         stock: product.stock.toString(),
-        sku: product.sku,
       });
-      if (product.image) {
-        setImagePreviewUrls([product.image]);
+      if (product.images?.length) {
+        setImageUrls([...product.images]);
       }
+      setInitialized(true);
     }
-  }, [product]);
+  }, [product, initialized]);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -94,26 +145,36 @@ export default function EditProductPage() {
   };
 
   const addImageFiles = (files: File[]) => {
-    const newFiles = [...imageFiles, ...files].slice(0, 5);
-    setImageFiles(newFiles);
-
     const newUrls = [
-      ...imagePreviewUrls.filter((url) => !url.startsWith("blob:")),
-      ...newFiles.map((file) => URL.createObjectURL(file)),
+      ...imageUrls,
+      ...files.map((file) => URL.createObjectURL(file)),
     ].slice(0, 5);
-    setImagePreviewUrls(newUrls);
+    setImageUrls(newUrls);
+  };
+
+  const addImageUrl = () => {
+    const url = imageUrlInput.trim();
+    if (!url) return;
+    if (imageUrls.length >= 5) {
+      toast({ title: "Maximum 5 images allowed" });
+      return;
+    }
+    setImageUrls((prev) => [...prev, url]);
+    setImageUrlInput("");
   };
 
   const removeImage = (index: number) => {
-    if (imagePreviewUrls[index]?.startsWith("blob:")) {
-      URL.revokeObjectURL(imagePreviewUrls[index]);
-    }
-    setImagePreviewUrls((prev) => prev.filter((_, i) => i !== index));
+    const url = imageUrls[index];
+    if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+    setImageUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
   const addVariant = () => {
     if (!variantValue.trim()) return;
-    setVariants((prev) => [...prev, { type: variantType, value: variantValue.trim() }]);
+    setVariants((prev) => [
+      ...prev,
+      { type: variantType, value: variantValue.trim() },
+    ]);
     setVariantValue("");
   };
 
@@ -123,17 +184,52 @@ export default function EditProductPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would call an API
-    router.push("/seller/products");
+    if (!productId) return;
+
+    updateProduct.mutate(
+      {
+        id: productId,
+        data: {
+          name: formData.name,
+          description: formData.description,
+          price: Number(formData.price),
+          stock: Number(formData.stock),
+          categoryId: formData.categoryId,
+          images: imageUrls.filter((u) => !u.startsWith("blob:")),
+          variants: variants.map((v) => ({ type: v.type, value: v.value })),
+        },
+      },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Product updated",
+            description: "Your changes have been saved.",
+          });
+          router.push("/seller/products");
+        },
+        onError: () => {
+          toast({
+            title: "Update failed",
+            description: "Something went wrong. Please try again.",
+          });
+        },
+      }
+    );
   };
 
   const handleCancel = () => {
-    imagePreviewUrls.forEach((url) => {
+    imageUrls.forEach((url) => {
       if (url.startsWith("blob:")) URL.revokeObjectURL(url);
     });
     router.push("/seller/products");
   };
 
+  // Loading state
+  if (productsLoading) {
+    return <EditProductSkeleton />;
+  }
+
+  // Not found state
   if (!product) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
@@ -196,16 +292,6 @@ export default function EditProductPage() {
                     onChange={handleInputChange}
                     placeholder="Describe your product features, materials, and dimensions..."
                     rows={5}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sku">SKU</Label>
-                  <Input
-                    id="sku"
-                    name="sku"
-                    value={formData.sku}
-                    onChange={handleInputChange}
-                    placeholder="e.g., TSF-001"
                   />
                 </div>
               </CardContent>
@@ -325,6 +411,25 @@ export default function EditProductPage() {
                 <CardTitle>Product Images</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* URL input */}
+                <div className="flex gap-2">
+                  <Input
+                    value={imageUrlInput}
+                    onChange={(e) => setImageUrlInput(e.target.value)}
+                    placeholder="Paste image URL..."
+                    className="flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addImageUrl();
+                      }
+                    }}
+                  />
+                  <Button type="button" variant="outline" onClick={addImageUrl}>
+                    Add
+                  </Button>
+                </div>
+
                 <div
                   className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors ${
                     isDragging
@@ -367,9 +472,9 @@ export default function EditProductPage() {
                 </div>
 
                 {/* Image Previews */}
-                {imagePreviewUrls.length > 0 && (
+                {imageUrls.length > 0 && (
                   <div className="grid grid-cols-3 gap-2">
-                    {imagePreviewUrls.map((url, index) => (
+                    {imageUrls.map((url, index) => (
                       <div key={index} className="relative aspect-square">
                         <img
                           src={url}
@@ -397,16 +502,16 @@ export default function EditProductPage() {
               </CardHeader>
               <CardContent>
                 <select
-                  name="category"
-                  value={formData.category}
+                  name="categoryId"
+                  value={formData.categoryId}
                   onChange={handleInputChange}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   required
                 >
                   <option value="">Select a category</option>
                   {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
                     </option>
                   ))}
                 </select>
@@ -416,20 +521,24 @@ export default function EditProductPage() {
             {/* Product Stats */}
             <Card>
               <CardHeader>
-                <CardTitle>Product Stats</CardTitle>
+                <CardTitle>Product Info</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total Sold</span>
-                  <span className="font-medium">{product.sold}</span>
+                  <span className="text-muted-foreground">Status</span>
+                  <Badge variant="secondary">{product.status}</Badge>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Created</span>
-                  <span className="font-medium">{product.createdAt}</span>
+                  <span className="font-medium">
+                    {new Date(product.createdAt).toLocaleDateString()}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Last Updated</span>
-                  <span className="font-medium">{product.updatedAt}</span>
+                  <span className="font-medium">
+                    {new Date(product.updatedAt).toLocaleDateString()}
+                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -438,15 +547,20 @@ export default function EditProductPage() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex flex-col gap-3">
-                  <Button type="submit" className="w-full">
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={updateProduct.isPending}
+                  >
                     <Package className="mr-2 h-4 w-4" />
-                    Save Changes
+                    {updateProduct.isPending ? "Saving..." : "Save Changes"}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     className="w-full"
                     onClick={handleCancel}
+                    disabled={updateProduct.isPending}
                   >
                     Cancel
                   </Button>

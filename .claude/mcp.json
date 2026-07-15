@@ -78,6 +78,14 @@
         "CLOUDFLARE_API_TOKEN": "${CLOUDFLARE_API_TOKEN}"
       },
       "description": "Cloudflare R2 storage, DNS, and CDN management"
+    },
+    "vercel": {
+      "command": "npx",
+      "args": ["-y", "vercel-platform-mcp-server"],
+      "env": {
+        "VERCEL_TOKEN": "${VERCEL_TOKEN}"
+      },
+      "description": "Vercel deployments, logs, and project management"
     }
   }
 }

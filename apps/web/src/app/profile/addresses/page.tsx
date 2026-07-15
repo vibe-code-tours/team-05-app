@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
   DialogContent,
@@ -19,8 +20,14 @@ import {
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { cn } from '@/lib/utils'
-import { MOCK_ADDRESSES } from '@/lib/mock-addresses'
-import { Address } from '@/types/address'
+import { toast } from '@/components/ui/use-toast'
+import {
+  useAddresses,
+  useCreateAddress,
+  useUpdateAddress,
+  useDeleteAddress,
+  useSetDefaultAddress,
+} from '@/lib/services/user.service'
 
 const MAX_ADDRESSES = 5
 
@@ -36,6 +43,20 @@ interface AddressFormData {
   country: string
 }
 
+interface AddressUI {
+  id: string
+  recipientName: string
+  phone: string
+  addressLine1: string
+  addressLine2?: string
+  city: string
+  state: string
+  postalCode: string
+  country: string
+  isDefault: boolean
+  label?: string
+}
+
 const emptyForm: AddressFormData = {
   label: '',
   recipientName: '',
@@ -48,13 +69,51 @@ const emptyForm: AddressFormData = {
   country: 'Myanmar',
 }
 
+/** Map API address response to the richer UI shape */
+function apiToUI(addr: {
+  id: string
+  name: string
+  phone: string
+  address: string
+  city: string
+  state: string
+  zipCode: string
+  isDefault: boolean
+}): AddressUI {
+  return {
+    id: addr.id,
+    recipientName: addr.name,
+    phone: addr.phone,
+    addressLine1: addr.address,
+    addressLine2: undefined,
+    city: addr.city,
+    state: addr.state,
+    postalCode: addr.zipCode,
+    country: 'Myanmar',
+    isDefault: addr.isDefault,
+    label: undefined,
+  }
+}
+
+/** Map UI form data to API input shape */
+function formToAPI(form: AddressFormData) {
+  return {
+    name: form.recipientName.trim(),
+    phone: form.phone.trim(),
+    address: form.addressLine1.trim(),
+    city: form.city.trim(),
+    state: form.state.trim(),
+    zipCode: form.postalCode.trim(),
+  }
+}
+
 function getAddressIcon(label?: string) {
   if (label === 'Home') return <Home className="h-4 w-4" />
   if (label === 'Office') return <Building2 className="h-4 w-4" />
   return <MapPin className="h-4 w-4" />
 }
 
-function formatFullAddress(addr: Address): string {
+function formatFullAddress(addr: AddressUI): string {
   const parts = [addr.addressLine1]
   if (addr.addressLine2) parts.push(addr.addressLine2)
   parts.push(`${addr.city}, ${addr.state} ${addr.postalCode}`)
@@ -62,16 +121,58 @@ function formatFullAddress(addr: Address): string {
   return parts.join('\n')
 }
 
+function AddressesLoadingSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {[1, 2].map((i) => (
+          <Card key={i}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-5 w-16" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <Separator />
+              <div className="flex gap-2">
+                <Skeleton className="h-8 w-28" />
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-8 w-18" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function AddressesPage() {
-  const [addresses, setAddresses] = useState<Address[]>(MOCK_ADDRESSES)
+  const { data: addressesResponse, isLoading } = useAddresses()
+  const createAddressMutation = useCreateAddress()
+  const updateAddressMutation = useUpdateAddress()
+  const deleteAddressMutation = useDeleteAddress()
+  const setDefaultMutation = useSetDefaultAddress()
+
+  const addresses: AddressUI[] = addressesResponse?.data ? addressesResponse.data.map(apiToUI) : []
+
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingAddress, setEditingAddress] = useState<Address | null>(null)
+  const [editingAddress, setEditingAddress] = useState<AddressUI | null>(null)
   const [form, setForm] = useState<AddressFormData>(emptyForm)
   const [formErrors, setFormErrors] = useState<Record<string, boolean>>({})
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const handleAddNew = () => {
     if (addresses.length >= MAX_ADDRESSES) {
-      alert(`You can save a maximum of ${MAX_ADDRESSES} addresses.`)
+      toast({
+        title: 'Address limit reached',
+        description: `You can save a maximum of ${MAX_ADDRESSES} addresses. Delete an existing one to add a new address.`,
+        variant: 'destructive',
+      })
       return
     }
     setEditingAddress(null)
@@ -80,7 +181,7 @@ export default function AddressesPage() {
     setDialogOpen(true)
   }
 
-  const handleEdit = (address: Address) => {
+  const handleEdit = (address: AddressUI) => {
     setEditingAddress(address)
     setForm({
       label: address.label || '',
@@ -98,25 +199,47 @@ export default function AddressesPage() {
   }
 
   const handleDelete = (addressId: string) => {
-    const confirmed = window.confirm('Are you sure you want to delete this address?')
-    if (!confirmed) return
+    setDeletingId(addressId)
+  }
 
-    setAddresses((prev) => {
-      const remaining = prev.filter((a) => a.id !== addressId)
-      if (remaining.length > 0 && !remaining.some((a) => a.isDefault)) {
-        remaining[0].isDefault = true
-      }
-      return remaining
+  const confirmDelete = () => {
+    if (!deletingId) return
+
+    deleteAddressMutation.mutate(deletingId, {
+      onSuccess: () => {
+        toast({
+          title: 'Address deleted',
+          description: 'The address has been removed.',
+        })
+        setDeletingId(null)
+      },
+      onError: () => {
+        toast({
+          title: 'Delete failed',
+          description: 'Could not delete the address. Please try again.',
+          variant: 'destructive',
+        })
+        setDeletingId(null)
+      },
     })
   }
 
   const handleSetDefault = (addressId: string) => {
-    setAddresses((prev) =>
-      prev.map((a) => ({
-        ...a,
-        isDefault: a.id === addressId,
-      }))
-    )
+    setDefaultMutation.mutate(addressId, {
+      onSuccess: () => {
+        toast({
+          title: 'Default address updated',
+          description: 'Your default shipping address has been changed.',
+        })
+      },
+      onError: () => {
+        toast({
+          title: 'Update failed',
+          description: 'Could not set default address. Please try again.',
+          variant: 'destructive',
+        })
+      },
+    })
   }
 
   const validateForm = (): boolean => {
@@ -135,43 +258,49 @@ export default function AddressesPage() {
   const handleSave = () => {
     if (!validateForm()) return
 
+    const apiData = formToAPI(form)
+
     if (editingAddress) {
-      setAddresses((prev) =>
-        prev.map((a) =>
-          a.id === editingAddress.id
-            ? {
-                ...a,
-                label: form.label.trim() || undefined,
-                recipientName: form.recipientName.trim(),
-                phone: form.phone.trim(),
-                addressLine1: form.addressLine1.trim(),
-                addressLine2: form.addressLine2.trim() || undefined,
-                city: form.city.trim(),
-                state: form.state.trim(),
-                postalCode: form.postalCode.trim(),
-                country: form.country.trim(),
-              }
-            : a
-        )
+      updateAddressMutation.mutate(
+        { id: editingAddress.id, data: apiData },
+        {
+          onSuccess: () => {
+            toast({
+              title: 'Address updated',
+              description: 'Your address has been saved.',
+            })
+            closeDialog()
+          },
+          onError: () => {
+            toast({
+              title: 'Update failed',
+              description: 'Could not save the address. Please try again.',
+              variant: 'destructive',
+            })
+          },
+        }
       )
     } else {
-      const isFirst = addresses.length === 0
-      const newAddress: Address = {
-        id: `addr-${Date.now()}`,
-        label: form.label.trim() || undefined,
-        recipientName: form.recipientName.trim(),
-        phone: form.phone.trim(),
-        addressLine1: form.addressLine1.trim(),
-        addressLine2: form.addressLine2.trim() || undefined,
-        city: form.city.trim(),
-        state: form.state.trim(),
-        postalCode: form.postalCode.trim(),
-        country: form.country.trim(),
-        isDefault: isFirst,
-      }
-      setAddresses((prev) => [...prev, newAddress])
+      createAddressMutation.mutate(apiData, {
+        onSuccess: () => {
+          toast({
+            title: 'Address added',
+            description: 'Your new address has been saved.',
+          })
+          closeDialog()
+        },
+        onError: () => {
+          toast({
+            title: 'Add failed',
+            description: 'Could not save the address. Please try again.',
+            variant: 'destructive',
+          })
+        },
+      })
     }
+  }
 
+  const closeDialog = () => {
     setDialogOpen(false)
     setForm(emptyForm)
     setEditingAddress(null)
@@ -188,6 +317,9 @@ export default function AddressesPage() {
       })
     }
   }
+
+  const isMutating = createAddressMutation.isPending || updateAddressMutation.isPending
+  const isDeleting = deleteAddressMutation.isPending
 
   return (
     <div className="min-h-screen bg-background">
@@ -208,7 +340,7 @@ export default function AddressesPage() {
             <MapPin className="h-6 w-6 text-foreground" />
             <h1 className="text-2xl font-bold text-foreground">Address Management</h1>
           </div>
-          <Button onClick={handleAddNew} disabled={addresses.length >= MAX_ADDRESSES}>
+          <Button onClick={handleAddNew} disabled={addresses.length >= MAX_ADDRESSES || isLoading}>
             <Plus className="h-4 w-4 mr-2" />
             Add Address
           </Button>
@@ -221,8 +353,11 @@ export default function AddressesPage() {
           </div>
         )}
 
-        {/* Address List */}
-        {addresses.length === 0 ? (
+        {/* Loading State */}
+        {isLoading ? (
+          <AddressesLoadingSkeleton />
+        ) : addresses.length === 0 ? (
+          /* Empty State */
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16">
               <div className="rounded-full bg-muted p-4 mb-4">
@@ -239,6 +374,7 @@ export default function AddressesPage() {
             </CardContent>
           </Card>
         ) : (
+          /* Address Cards Grid */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {addresses.map((address) => (
               <Card
@@ -284,6 +420,7 @@ export default function AddressesPage() {
                         size="sm"
                         className="text-muted-foreground hover:text-foreground"
                         onClick={() => handleSetDefault(address.id)}
+                        disabled={setDefaultMutation.isPending}
                       >
                         <Check className="h-3.5 w-3.5 mr-1" />
                         Set as Default
@@ -303,6 +440,7 @@ export default function AddressesPage() {
                       size="sm"
                       className="text-muted-foreground hover:text-destructive"
                       onClick={() => handleDelete(address.id)}
+                      disabled={isDeleting}
                     >
                       <Trash2 className="h-3.5 w-3.5 mr-1" />
                       Delete
@@ -315,6 +453,39 @@ export default function AddressesPage() {
         )}
       </main>
       <Footer />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deletingId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeletingId(null)
+        }}
+      >
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Delete Address</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete this address? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeletingId(null)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add / Edit Address Dialog */}
       <Dialog
@@ -455,17 +626,17 @@ export default function AddressesPage() {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => {
-                setDialogOpen(false)
-                setForm(emptyForm)
-                setEditingAddress(null)
-                setFormErrors({})
-              }}
+              onClick={closeDialog}
+              disabled={isMutating}
             >
               Cancel
             </Button>
-            <Button onClick={handleSave}>
-              {editingAddress ? 'Save Changes' : 'Add Address'}
+            <Button onClick={handleSave} disabled={isMutating}>
+              {isMutating
+                ? 'Saving...'
+                : editingAddress
+                  ? 'Save Changes'
+                  : 'Add Address'}
             </Button>
           </DialogFooter>
         </DialogContent>

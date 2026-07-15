@@ -54,6 +54,86 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Hero Banner Animations */
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(10px, -15px) rotate(2deg); }
+  50% { transform: translate(-5px, -25px) rotate(-1deg); }
+  75% { transform: translate(-15px, -10px) rotate(1deg); }
+}
+
+@keyframes float-delayed {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(-12px, -20px) rotate(-2deg); }
+  50% { transform: translate(8px, -30px) rotate(1.5deg); }
+  75% { transform: translate(15px, -8px) rotate(-1deg); }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(8px, -12px) scale(1.05); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes progress-bar {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+@keyframes card-float {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-8px) rotate(0deg); }
+}
+
+@keyframes card-float-delayed {
+  0%, 100% { transform: translateY(0) rotate(2deg); }
+  50% { transform: translateY(-12px) rotate(0deg); }
+}
+
+@keyframes shine {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;

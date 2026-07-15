@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useLogin } from '@/lib/services/auth.service'
 
 interface LoginForm {
   email: string
@@ -20,14 +21,16 @@ interface ValidationErrors {
 }
 
 export default function LoginPage() {
+  const loginMutation = useLogin()
   const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState<LoginForm>({
     email: '',
     password: '',
     rememberMe: false,
   })
   const [errors, setErrors] = useState<ValidationErrors>({})
+
+  const isLoading = loginMutation.isPending
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -60,19 +63,14 @@ export default function LoginPage() {
       return
     }
 
-    setIsLoading(true)
-
     try {
-      // TODO: Implement actual authentication API call
-      console.log('Login attempt:', { email: formData.email, rememberMe: formData.rememberMe })
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      // Redirect on success
-    } catch (error) {
+      await loginMutation.mutateAsync({
+        email: formData.email,
+        password: formData.password,
+      })
+    } catch (error: any) {
       console.error('Login error:', error)
-      setErrors({ email: 'Invalid credentials. Please try again.' })
-    } finally {
-      setIsLoading(false)
+      setErrors({ email: error.message || 'Invalid credentials. Please try again.' })
     }
   }
 
@@ -85,7 +83,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-white to-primary/10 p-4">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="space-y-4 text-center">
           {/* CrossMart Logo */}
@@ -95,8 +93,8 @@ export default function LoginPage() {
             </div>
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
-            <p className="text-gray-600 mt-2">Sign in to your CrossMart account</p>
+            <h1 className="text-2xl font-bold text-foreground">Welcome Back</h1>
+            <p className="text-muted-foreground mt-2">Sign in to your CrossMart account</p>
           </div>
         </CardHeader>
 
@@ -104,9 +102,9 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Input */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-700">Email or Phone</Label>
+              <Label htmlFor="email" className="text-foreground">Email or Phone</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
                   id="email"
                   type="text"
@@ -124,9 +122,9 @@ export default function LoginPage() {
 
             {/* Password Input */}
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-gray-700">Password</Label>
+              <Label htmlFor="password" className="text-foreground">Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
@@ -139,7 +137,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
                   disabled={isLoading}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -157,14 +155,14 @@ export default function LoginPage() {
                   type="checkbox"
                   checked={formData.rememberMe}
                   onChange={(e) => handleInputChange('rememberMe', e.target.checked)}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-primary border-border rounded focus:ring-blue-500"
                   disabled={isLoading}
                 />
-                <span className="text-sm text-gray-600">Remember me</span>
+                <span className="text-sm text-muted-foreground">Remember me</span>
               </label>
               <Link
                 href="/forgot-password"
-                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                className="text-sm text-primary hover:text-blue-800 font-medium"
               >
                 Forgot Password?
               </Link>
@@ -195,10 +193,10 @@ export default function LoginPage() {
             {/* Divider */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
+                <div className="w-full border-t border-border"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or login with</span>
+                <span className="px-2 bg-card text-muted-foreground">Or login with</span>
               </div>
             </div>
 
@@ -251,11 +249,11 @@ export default function LoginPage() {
         </CardContent>
 
         <CardFooter className="justify-center">
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Don&apos;t have an account?{' '}
             <Link
               href="/register"
-              className="text-blue-600 hover:text-blue-800 font-semibold"
+              className="text-primary hover:text-blue-800 font-semibold"
             >
               Register
             </Link>

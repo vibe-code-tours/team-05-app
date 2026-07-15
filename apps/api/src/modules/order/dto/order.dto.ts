@@ -1,5 +1,6 @@
 import { IsString, IsOptional, IsNumber, Min, IsIn } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { OrderStatus } from "@prisma/client";
 
 const ORDER_STATUSES = [
   "PENDING_PAYMENT",
@@ -28,9 +29,9 @@ export class CreateOrderDto {
 }
 
 export class UpdateOrderStatusDto {
-  @ApiProperty({ enum: ORDER_STATUSES })
+  @ApiProperty({ enum: OrderStatus })
   @IsIn(ORDER_STATUSES)
-  status: string;
+  status: OrderStatus;
 
   @ApiPropertyOptional()
   @IsOptional()
