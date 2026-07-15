@@ -15,12 +15,18 @@ import { UserModule } from "../user/user.module";
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService): any => ({
-        secret: config.get<string>("JWT_SECRET", "dev-secret-change-me"),
-        signOptions: {
-          expiresIn: config.get<string>("JWT_EXPIRES_IN", "15m"),
-        },
-      }),
+      useFactory: (config: ConfigService): any => {
+        const secret = config.get<string>("JWT_SECRET");
+        if (!secret) {
+          throw new Error("JWT_SECRET is not configured");
+        }
+        return {
+          secret,
+          signOptions: {
+            expiresIn: config.get<string>("JWT_EXPIRES_IN", "15m"),
+          },
+        };
+      },
     }),
   ],
   controllers: [AuthController],
