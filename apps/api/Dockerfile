@@ -10,7 +10,7 @@ COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/shared/package.json ./packages/shared/
 
-# Install dependencies
+# Install all dependencies
 RUN npm install
 
 # Copy source code
@@ -39,7 +39,8 @@ USER nestjs
 
 EXPOSE 3001
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3001/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1) })"
 
-CMD ["dumb-init", "node", "apps/api/dist/src/main.js"]
+CMD ["node", "apps/api/dist/src/main.js"]
