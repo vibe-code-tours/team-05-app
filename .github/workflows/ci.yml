@@ -39,6 +39,9 @@ jobs:
         # npm ci is reproducible but needs a lockfile; fall back to npm install so a
         # first-push repo without package-lock.json still goes green.
         run: npm ci || npm install
+      - name: Generate Prisma Client
+        if: ${{ hashFiles('apps/api/prisma/schema.prisma') != '' }}
+        run: npx prisma generate --schema=apps/api/prisma/schema.prisma
       - name: Lint
         if: ${{ hashFiles('package.json') != '' }}
         run: npm run lint --if-present
