@@ -24,6 +24,7 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nestjs && \
     chown -R nestjs:nodejs /app
 
+WORKDIR /app
 USER nestjs
 EXPOSE 3001
 
