@@ -15,7 +15,7 @@ export class DataIsolationMiddleware implements NestMiddleware {
   private readonly logger = new Logger(DataIsolationMiddleware.name);
 
   use(req: Request, res: Response, next: NextFunction) {
-    const user = req.user as any;
+    const user = req.user as Record<string, unknown> | undefined;
 
     if (!user) {
       // No user - let auth guard handle this
@@ -51,14 +51,5 @@ export class DataIsolationMiddleware implements NestMiddleware {
     }
 
     next();
-  }
-}
-
-// Extend Express Request to include dataFilter
-declare global {
-  namespace Express {
-    interface Request {
-      dataFilter?: Record<string, any> | null;
-    }
   }
 }
