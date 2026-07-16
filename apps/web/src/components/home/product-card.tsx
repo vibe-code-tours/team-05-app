@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { Heart, ShoppingCart, Star, Package, Truck, Eye, X, Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,15 @@ export function ProductCard({ product }: ProductCardProps) {
   const [showQuickView, setShowQuickView] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [isHovered, setIsHovered] = useState(false);
+  const addedToCartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (addedToCartTimeoutRef.current) {
+        clearTimeout(addedToCartTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-MM', {
@@ -43,7 +52,10 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const handleAddToCart = () => {
     setAddedToCart(true);
-    setTimeout(() => setAddedToCart(false), 2000);
+    if (addedToCartTimeoutRef.current) {
+      clearTimeout(addedToCartTimeoutRef.current);
+    }
+    addedToCartTimeoutRef.current = setTimeout(() => setAddedToCart(false), 2000);
   };
 
   const handleQuickView = (e: React.MouseEvent) => {
@@ -70,7 +82,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
+              <div className="w-full h-full flex items-center justify-center" role="img" aria-label={`${product.name} product image`}>
                 <Package className="h-24 w-24 text-muted-foreground/20" />
               </div>
             )}
@@ -108,6 +120,7 @@ export function ProductCard({ product }: ProductCardProps) {
               variant="ghost"
               size="icon"
               className="h-9 w-9 bg-white/90 hover:bg-white text-foreground shadow-lg backdrop-blur-sm"
+              aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
               onClick={() => setIsWishlisted(!isWishlisted)}
             >
               <Heart
@@ -118,6 +131,7 @@ export function ProductCard({ product }: ProductCardProps) {
               variant="ghost"
               size="icon"
               className="h-9 w-9 bg-white/90 hover:bg-white text-foreground shadow-lg backdrop-blur-sm"
+              aria-label="Quick view"
               onClick={handleQuickView}
             >
               <Eye className="h-4 w-4" />
@@ -152,7 +166,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
             {/* Rating */}
             <div className="flex items-center gap-1 mb-2">
-              <div className="flex items-center">
+              <div className="flex items-center" aria-label={`${product.rating} out of 5 stars`} role="img">
                 {[...Array(5)].map((_, i) => (
                   <Star
                     key={i}

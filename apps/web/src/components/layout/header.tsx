@@ -169,14 +169,14 @@ export function Header() {
             {/* Wishlist */}
             <Button variant="ghost" size="icon" className="relative hidden sm:flex" asChild>
               <Link href="/wishlist">
-                <Heart className="h-5 w-5" />
+                <Heart className="h-5 w-5" aria-hidden="true" />
               </Link>
             </Button>
 
             {/* Cart */}
-            <Button variant="ghost" size="icon" className="relative" asChild>
+            <Button variant="ghost" size="icon" className="relative" asChild aria-label={`Shopping cart, ${cartItemCount} items`}>
               <Link href="/cart">
-                <ShoppingCart className="h-5 w-5" />
+                <ShoppingCart className="h-5 w-5" aria-hidden="true" />
                 {cartItemCount > 0 && (
                   <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] bg-primary text-primary-foreground animate-pulse">
                     {cartItemCount}
@@ -188,8 +188,8 @@ export function Header() {
             {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <User className="h-5 w-5" />
+                <Button variant="ghost" size="icon" aria-label="User menu">
+                  <User className="h-5 w-5" aria-hidden="true" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 p-2">
@@ -236,6 +236,8 @@ export function Header() {
               variant="ghost"
               size="icon"
               className="md:hidden"
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileMenuOpen}
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -271,7 +273,7 @@ export function Header() {
               onClick={() => setMobileMenuOpen(false)}
             >
               {link.label}
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           ))}
           <div className="pt-2 border-t mt-2">
