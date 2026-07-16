@@ -58,7 +58,7 @@ export interface NewArrivalsProps {
 }
 
 export function NewArrivals({ className }: NewArrivalsProps) {
-  const { data: response, isLoading, isError } = useProducts({ limit: 6, sort: 'newest' })
+  const { data: response, isLoading, isError } = useProducts({ limit: 6, type: 'IN_STOCK' })
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = React.useState(false)
   const [canScrollRight, setCanScrollRight] = React.useState(true)

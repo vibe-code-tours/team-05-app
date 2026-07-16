@@ -52,7 +52,7 @@ function ProductCardSkeleton() {
 }
 
 export function FeaturedProducts() {
-  const { data: response, isLoading, isError } = useProducts({ limit: 8, sort: 'newest' });
+  const { data: response, isLoading, isError } = useProducts({ limit: 8 });
 
   const products = response?.data
     ? (response.data as ApiProduct[]).map(mapApiProductToCard)

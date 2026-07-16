@@ -31,3 +31,4 @@ docker-compose.override.yml
 *.tsbuildinfo
 .vercel
 .env*
+__pycache__/
