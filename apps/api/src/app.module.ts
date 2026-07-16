@@ -22,6 +22,7 @@ import { AdminModule } from "./modules/admin/admin.module";
 import { HealthController } from "./config/health.controller";
 import { DataIsolationMiddleware } from "./common/middleware/data-isolation.middleware";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
+import { ThrottlerGuard } from "@nestjs/throttler";
 
 @Module({
   imports: [
@@ -67,6 +68,10 @@ import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })

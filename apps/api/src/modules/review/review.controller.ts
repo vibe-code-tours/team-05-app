@@ -15,6 +15,7 @@ import { AuthGuard } from "@nestjs/passport";
 import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
 import { ReviewService } from "./review.service";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { Public } from "../../common/decorators/public.decorator";
 import {
   CreateReviewDto,
   UpdateReviewDto,
@@ -28,6 +29,7 @@ export class ReviewController {
 
   // ── Public Endpoints ────────────────────────────────────────────────────
 
+  @Public()
   @Get("product/:productId")
   @ApiOperation({ summary: "Get reviews for a product" })
   getProductReviews(
@@ -42,13 +44,29 @@ export class ReviewController {
     );
   }
 
+  // ── Authenticated Endpoints ─────────────────────────────────────────────
+
+  @Get("user/me")
+  @UseGuards(AuthGuard("jwt"))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get your reviews" })
+  getUserReviews(
+    @CurrentUser() user: { id: string },
+    @Query() query: ReviewQueryDto,
+  ) {
+    return this.reviewService.getUserReviews(
+      user.id,
+      query.page ?? 1,
+      query.limit ?? 20,
+    );
+  }
+
+  @Public()
   @Get(":id")
   @ApiOperation({ summary: "Get a single review by ID" })
   getReviewById(@Param("id") reviewId: string) {
     return this.reviewService.getReviewById(reviewId);
   }
-
-  // ── Authenticated Endpoints ─────────────────────────────────────────────
 
   @Post()
   @UseGuards(AuthGuard("jwt"))
@@ -85,20 +103,5 @@ export class ReviewController {
     @Param("id") reviewId: string,
   ) {
     return this.reviewService.deleteReview(user.id, reviewId);
-  }
-
-  @Get("user/me")
-  @UseGuards(AuthGuard("jwt"))
-  @ApiBearerAuth()
-  @ApiOperation({ summary: "Get your reviews" })
-  getUserReviews(
-    @CurrentUser() user: { id: string },
-    @Query() query: ReviewQueryDto,
-  ) {
-    return this.reviewService.getUserReviews(
-      user.id,
-      query.page ?? 1,
-      query.limit ?? 20,
-    );
   }
 }
