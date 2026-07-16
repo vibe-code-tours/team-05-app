@@ -3,130 +3,54 @@ import * as bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-// ─── Helper: Generate Unsplash image URLs ──────────────────
-function unsplashImage(query: string, width = 800, height = 800): string {
-  return `https://source.unsplash.com/${width}x${height}/?${encodeURIComponent(query)}`;
+// ─── Helper: Generate Picsum image URLs ──────────────────
+// Using Lorem Picsum for reliable placeholder images
+function picsumImage(seed: number, width = 800, height = 800): string {
+  return `https://picsum.photos/seed/${seed}/${width}/${height}`;
 }
 
 // ─── Product image data ────────────────────────────────────
+// Using unique seeds for each product to get different images
 const productImages: Record<string, string[]> = {
-  // Cameras
-  "sony-alpha-a7-iv": [
-    unsplashImage("sony-camera-mirrorless", 800, 800),
-    unsplashImage("camera-lens-closeup", 800, 800),
-    unsplashImage("photography-equipment", 800, 800),
-  ],
-  "sony-fx30": [
-    unsplashImage("cinema-camera-video", 800, 800),
-    unsplashImage("film-production-camera", 800, 800),
-  ],
-  "canon-eos-r5": [
-    unsplashImage("canon-camera-professional", 800, 800),
-    unsplashImage("camera-sensor technology", 800, 800),
-  ],
-  "nikon-z9": [
-    unsplashImage("nikon-camera-flagship", 800, 800),
-    unsplashImage("sports-photography-camera", 800, 800),
-  ],
+  // Cameras (100-199)
+  "sony-alpha-a7-iv": [picsumImage(101, 800, 800), picsumImage(102, 800, 800), picsumImage(103, 800, 800)],
+  "sony-fx30": [picsumImage(104, 800, 800), picsumImage(105, 800, 800)],
+  "canon-eos-r5": [picsumImage(106, 800, 800), picsumImage(107, 800, 800)],
+  "nikon-z9": [picsumImage(108, 800, 800), picsumImage(109, 800, 800)],
 
-  // Laptops
-  "macbook-pro-16": [
-    unsplashImage("macbook-laptop-apple", 800, 800),
-    unsplashImage("laptop-workspace-desk", 800, 800),
-    unsplashImage("laptop-screen-display", 800, 800),
-  ],
-  "samsung-galaxy-book": [
-    unsplashImage("samsung-laptop-thin", 800, 800),
-    unsplashImage("laptop-coffee-shop", 800, 800),
-  ],
-  "dell-xps-15": [
-    unsplashImage("dell-laptop-premium", 800, 800),
-    unsplashImage("laptop-creative-work", 800, 800),
-  ],
+  // Laptops (200-299)
+  "macbook-pro-16": [picsumImage(201, 800, 800), picsumImage(202, 800, 800), picsumImage(203, 800, 800)],
+  "samsung-galaxy-book": [picsumImage(204, 800, 800), picsumImage(205, 800, 800)],
+  "dell-xps-15": [picsumImage(206, 800, 800), picsumImage(207, 800, 800)],
 
-  // Phones
-  "iphone-15-pro-max": [
-    unsplashImage("iphone-apple-smartphone", 800, 800),
-    unsplashImage("smartphone-camera-closeup", 800, 800),
-    unsplashImage("phone-hand-holding", 800, 800),
-  ],
-  "samsung-s24-ultra": [
-    unsplashImage("samsung-galaxy-phone", 800, 800),
-    unsplashImage("smartphone-amoled-screen", 800, 800),
-  ],
-  "google-pixel-8-pro": [
-    unsplashImage("google-pixel-phone", 800, 800),
-    unsplashImage("phone-photography-night", 800, 800),
-  ],
+  // Phones (300-399)
+  "iphone-15-pro-max": [picsumImage(301, 800, 800), picsumImage(302, 800, 800), picsumImage(303, 800, 800)],
+  "samsung-s24-ultra": [picsumImage(304, 800, 800), picsumImage(305, 800, 800)],
+  "google-pixel-8-pro": [picsumImage(306, 800, 800), picsumImage(307, 800, 800)],
 
-  // Audio
-  "airpods-pro-2": [
-    unsplashImage("airpods-apple-wireless", 800, 800),
-    unsplashImage("earbuds-wireless-case", 800, 800),
-    unsplashImage("headphones-earbuds-music", 800, 800),
-  ],
-  "sony-wh1000xm5": [
-    unsplashImage("sony-headphones-noise-cancelling", 800, 800),
-    unsplashImage("headphones-over-ear-premium", 800, 800),
-  ],
-  "jbl-charge-5": [
-    unsplashImage("jbl-speaker-bluetooth", 800, 800),
-    unsplashImage("portable-speaker-outdoor", 800, 800),
-  ],
-  "shure-mv7": [
-    unsplashImage("shure-microphone-podcast", 800, 800),
-    unsplashImage("microphone-studio-recording", 800, 800),
-  ],
+  // Audio (400-499)
+  "airpods-pro-2": [picsumImage(401, 800, 800), picsumImage(402, 800, 800), picsumImage(403, 800, 800)],
+  "sony-wh1000xm5": [picsumImage(404, 800, 800), picsumImage(405, 800, 800)],
+  "jbl-charge-5": [picsumImage(406, 800, 800), picsumImage(407, 800, 800)],
+  "shure-mv7": [picsumImage(408, 800, 800), picsumImage(409, 800, 800)],
 
-  // Gaming
-  "ps5-console": [
-    unsplashImage("playstation-5-gaming", 800, 800),
-    unsplashImage("gaming-console-setup", 800, 800),
-    unsplashImage("controller-gaming-ps5", 800, 800),
-  ],
-  "xbox-series-x": [
-    unsplashImage("xbox-console-gaming", 800, 800),
-    unsplashImage("gaming-setup-room", 800, 800),
-  ],
-  "razer-deathadder-v3": [
-    unsplashImage("razer-gaming-mouse", 800, 800),
-    unsplashImage("gaming-mouse-rgb", 800, 800),
-  ],
-  "logitech-g-pro-keyboard": [
-    unsplashImage("logitech-keyboard-gaming", 800, 800),
-    unsplashImage("mechanical-keyboard-rgb", 800, 800),
-  ],
+  // Gaming (500-599)
+  "ps5-console": [picsumImage(501, 800, 800), picsumImage(502, 800, 800), picsumImage(503, 800, 800)],
+  "xbox-series-x": [picsumImage(504, 800, 800), picsumImage(505, 800, 800)],
+  "razer-deathadder-v3": [picsumImage(506, 800, 800), picsumImage(507, 800, 800)],
+  "logitech-g-pro-keyboard": [picsumImage(508, 800, 800), picsumImage(509, 800, 800)],
 
-  // Drones
-  "dji-mini-4-pro": [
-    unsplashImage("dji-drone-flying", 800, 800),
-    unsplashImage("drone-aerial-photography", 800, 800),
-    unsplashImage("drone-landscape-sky", 800, 800),
-  ],
-  "dji-air-3": [
-    unsplashImage("dji-drone-compact", 800, 800),
-    unsplashImage("drone-travel-adventure", 800, 800),
-  ],
+  // Drones (600-699)
+  "dji-mini-4-pro": [picsumImage(601, 800, 800), picsumImage(602, 800, 800), picsumImage(603, 800, 800)],
+  "dji-air-3": [picsumImage(604, 800, 800), picsumImage(605, 800, 800)],
 
-  // Storage
-  "samsung-t7-ssd": [
-    unsplashImage("samsung-ssd-portable", 800, 800),
-    unsplashImage("external-hard-drive-tech", 800, 800),
-  ],
-  "apple-airtag-4pack": [
-    unsplashImage("apple-airtag-tracker", 800, 800),
-    unsplashImage("item-tracker-keychain", 800, 800),
-  ],
+  // Storage (700-799)
+  "samsung-t7-ssd": [picsumImage(701, 800, 800), picsumImage(702, 800, 800)],
+  "apple-airtag-4pack": [picsumImage(703, 800, 800), picsumImage(704, 800, 800)],
 
-  // Lighting
-  "elgato-key-light": [
-    unsplashImage("elgato-light-streaming", 800, 800),
-    unsplashImage("studio-lighting-setup", 800, 800),
-  ],
-  "neewer-ring-light": [
-    unsplashImage("ring-light-selfie", 800, 800),
-    unsplashImage("youtube-studio-lighting", 800, 800),
-  ],
+  // Lighting (800-899)
+  "elgato-key-light": [picsumImage(801, 800, 800), picsumImage(802, 800, 800)],
+  "neewer-ring-light": [picsumImage(803, 800, 800), picsumImage(804, 800, 800)],
 };
 
 async function main() {
