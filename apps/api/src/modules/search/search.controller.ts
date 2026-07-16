@@ -18,7 +18,6 @@ import { Roles } from "../../common/decorators/roles.decorator";
 import {
   SearchQueryDto,
   AutocompleteQueryDto,
-  IndexProductDto,
   ReindexAllDto,
 } from "./dto/search.dto";
 

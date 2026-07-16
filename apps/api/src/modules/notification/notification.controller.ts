@@ -16,7 +16,6 @@ import {
   ApiTags,
   ApiOperation,
   ApiBearerAuth,
-  ApiQuery,
 } from "@nestjs/swagger";
 import { NotificationService } from "./notification.service";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";

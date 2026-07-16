@@ -4,7 +4,6 @@ import { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { OtpVerification } from '@/components/auth';
 import { useVerifyOtp, useResendOtp } from '@/lib/services/auth.service';
-import { useAuthStore } from '@/stores/auth.store';
 
 function VerifyOtpContent() {
   const searchParams = useSearchParams();

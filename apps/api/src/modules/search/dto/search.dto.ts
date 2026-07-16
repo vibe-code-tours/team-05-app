@@ -5,7 +5,6 @@ import {
   Min,
   Max,
   IsIn,
-  IsArray,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";

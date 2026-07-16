@@ -10,8 +10,7 @@ import {
   Monitor,
   Info,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { PublicLayout } from '@/components/layout/public-layout';
 import { useNotificationStore } from '@/stores/notification.store';
