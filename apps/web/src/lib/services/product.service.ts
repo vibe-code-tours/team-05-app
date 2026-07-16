@@ -72,10 +72,12 @@ export interface Brand {
 export interface Banner {
   id: string;
   title: string;
-  subtitle?: string;
-  image?: string;
-  href?: string;
-  variant?: "default" | "discount" | "gift";
+  image: string;
+  link?: string;
+  startDate: string;
+  endDate: string;
+  active: boolean;
+  order: number;
 }
 
 // API calls

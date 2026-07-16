@@ -120,6 +120,12 @@
   50% { transform: translateY(-12px) rotate(0deg); }
 }
 
+@keyframes aurora-shift {
+  0% { opacity: 0.4; transform: scale(1) rotate(0deg); }
+  50% { opacity: 0.6; transform: scale(1.05) rotate(2deg); }
+  100% { opacity: 0.5; transform: scale(0.98) rotate(-1deg); }
+}
+
 @keyframes shine {
   0% { left: -100%; }
   100% { left: 200%; }

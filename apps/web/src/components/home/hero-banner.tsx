@@ -1,89 +1,109 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import {
   ChevronLeft,
   ChevronRight,
   Truck,
-  Sparkles,
-  Zap,
   ShieldCheck,
   RotateCcw,
   CreditCard,
-  Package,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useActiveBanners, type Banner } from '@/lib/services/product.service';
 
-/* ─── Slide data ──────────────────────────────────────────── */
+/* ─── Slide data (derived from DB banners + fallback defaults) ── */
 
 interface SlideData {
-  id: number;
-  tagline: string;
+  id: string;
   title: string;
-  highlight: string;
   subtitle: string;
   cta: string;
   href: string;
+  image?: string;
   gradient: string;
+  gradientMesh: string;
   accent: string;
-  icon: React.ReactNode;
-  floatingProducts: { name: string; price: string; color: string }[];
 }
 
-const slides: SlideData[] = [
+const defaultSlides: SlideData[] = [
   {
-    id: 1,
-    tagline: '🌏 Cross-Border Shopping',
-    title: 'From Bangkok',
-    highlight: 'To Your Doorstep',
+    id: 'default-1',
+    title: 'Cross-Border Shopping',
     subtitle: 'Authentic Thai products delivered straight to Myanmar — fast, affordable, trusted.',
     cta: 'Shop Thailand Collection',
-    href: '/products?origin=thailand',
+    href: '/products?type=CARGO',
     gradient: 'from-rose-600 via-pink-600 to-fuchsia-600',
+    gradientMesh:
+      'radial-gradient(ellipse at 20% 50%, rgba(251,113,133,0.4) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(244,114,182,0.3) 0%, transparent 50%), radial-gradient(ellipse at 60% 80%, rgba(232,121,249,0.25) 0%, transparent 50%)',
     accent: '#fda4af',
-    icon: <Truck className="h-5 w-5" />,
-    floatingProducts: [
-      { name: 'Thai Skincare Set', price: '45,000 MMK', color: 'bg-rose-400' },
-      { name: 'Bangkok Snack Box', price: '18,500 MMK', color: 'bg-pink-400' },
-      { name: 'Silk Scarf', price: '32,000 MMK', color: 'bg-fuchsia-400' },
-    ],
   },
   {
-    id: 2,
-    tagline: '✨ Trending Now',
+    id: 'default-2',
     title: 'New Arrivals',
-    highlight: 'Fresh from Asia',
     subtitle: 'Discover the latest trends from Thailand, Japan, and Korea — updated daily.',
     cta: 'Explore New Arrivals',
-    href: '/products?sort=newest',
+    href: '/products?type=IN_STOCK',
     gradient: 'from-violet-600 via-purple-600 to-indigo-600',
+    gradientMesh:
+      'radial-gradient(ellipse at 30% 40%, rgba(167,139,250,0.4) 0%, transparent 50%), radial-gradient(ellipse at 70% 70%, rgba(139,92,246,0.3) 0%, transparent 50%), radial-gradient(ellipse at 50% 20%, rgba(99,102,241,0.25) 0%, transparent 50%)',
     accent: '#c4b5fd',
-    icon: <Sparkles className="h-5 w-5" />,
-    floatingProducts: [
-      { name: 'J-Beauty Serum', price: '68,000 MMK', color: 'bg-violet-400' },
-      { name: 'Korean Hoodie', price: '55,000 MMK', color: 'bg-purple-400' },
-      { name: 'Tokyo Candle', price: '22,000 MMK', color: 'bg-indigo-400' },
-    ],
   },
   {
-    id: 3,
-    tagline: '⚡ Limited Time',
+    id: 'default-3',
     title: 'Flash Sale',
-    highlight: 'Up to 50% Off',
     subtitle: 'Grab incredible deals before they disappear — only this weekend.',
     cta: 'View Flash Deals',
-    href: '/products?sort=deals',
+    href: '/products?type=PROMOTION',
     gradient: 'from-amber-500 via-orange-500 to-red-500',
+    gradientMesh:
+      'radial-gradient(ellipse at 25% 60%, rgba(251,191,36,0.4) 0%, transparent 50%), radial-gradient(ellipse at 75% 30%, rgba(249,115,22,0.3) 0%, transparent 50%), radial-gradient(ellipse at 50% 80%, rgba(239,68,68,0.25) 0%, transparent 50%)',
     accent: '#fcd34d',
-    icon: <Zap className="h-5 w-5" />,
-    floatingProducts: [
-      { name: 'AirPods Pro', price: '189,000 MMK', color: 'bg-amber-400' },
-      { name: 'Running Shoes', price: '78,000 MMK', color: 'bg-orange-400' },
-      { name: 'Watch SE', price: '320,000 MMK', color: 'bg-red-400' },
-    ],
   },
 ];
+
+/** Gradient presets to cycle through for DB banners */
+const gradientPresets = [
+  {
+    gradient: 'from-rose-600 via-pink-600 to-fuchsia-600',
+    gradientMesh:
+      'radial-gradient(ellipse at 20% 50%, rgba(251,113,133,0.4) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(244,114,182,0.3) 0%, transparent 50%)',
+    accent: '#fda4af',
+  },
+  {
+    gradient: 'from-violet-600 via-purple-600 to-indigo-600',
+    gradientMesh:
+      'radial-gradient(ellipse at 30% 40%, rgba(167,139,250,0.4) 0%, transparent 50%), radial-gradient(ellipse at 70% 70%, rgba(139,92,246,0.3) 0%, transparent 50%)',
+    accent: '#c4b5fd',
+  },
+  {
+    gradient: 'from-amber-500 via-orange-500 to-red-500',
+    gradientMesh:
+      'radial-gradient(ellipse at 25% 60%, rgba(251,191,36,0.4) 0%, transparent 50%), radial-gradient(ellipse at 75% 30%, rgba(249,115,22,0.3) 0%, transparent 50%)',
+    accent: '#fcd34d',
+  },
+  {
+    gradient: 'from-emerald-600 via-teal-600 to-cyan-600',
+    gradientMesh:
+      'radial-gradient(ellipse at 20% 60%, rgba(52,211,153,0.4) 0%, transparent 50%), radial-gradient(ellipse at 80% 30%, rgba(20,184,166,0.3) 0%, transparent 50%)',
+    accent: '#6ee7b7',
+  },
+];
+
+function mapBannerToSlide(banner: Banner, index: number): SlideData {
+  const preset = gradientPresets[index % gradientPresets.length];
+  return {
+    id: banner.id,
+    title: banner.title,
+    subtitle: '',
+    cta: 'Shop Now',
+    href: banner.link ?? '/products',
+    image: banner.image,
+    ...preset,
+  };
+}
 
 /* ─── Trust badges ────────────────────────────────────────── */
 
@@ -97,6 +117,17 @@ const trustBadges = [
 /* ─── Component ───────────────────────────────────────────── */
 
 export function HeroBanner() {
+  const { data: bannerResponse, isLoading } = useActiveBanners();
+
+  /* Build slides from DB banners, fall back to defaults */
+  const slides = useMemo(() => {
+    const dbBanners = (bannerResponse?.data as Banner[] | undefined) ?? [];
+    if (dbBanners.length > 0) {
+      return dbBanners.map((b, i) => mapBannerToSlide(b, i));
+    }
+    return defaultSlides;
+  }, [bannerResponse]);
+
   const [current, setCurrent] = useState(0);
   const [progressKey, setProgressKey] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -104,20 +135,17 @@ export function HeroBanner() {
   const next = useCallback(() => {
     setCurrent((p) => (p + 1) % slides.length);
     setProgressKey((p) => p + 1);
-  }, []);
+  }, [slides.length]);
 
   const prev = useCallback(() => {
     setCurrent((p) => (p - 1 + slides.length) % slides.length);
     setProgressKey((p) => p + 1);
-  }, []);
+  }, [slides.length]);
 
-  const goTo = useCallback(
-    (i: number) => {
-      setCurrent(i);
-      setProgressKey((p) => p + 1);
-    },
-    [],
-  );
+  const goTo = useCallback((i: number) => {
+    setCurrent(i);
+    setProgressKey((p) => p + 1);
+  }, []);
 
   /* Auto-play */
   useEffect(() => {
@@ -136,6 +164,20 @@ export function HeroBanner() {
     return () => window.removeEventListener('keydown', handler);
   }, [next, prev]);
 
+  /* Reset current slide when banners change (e.g. after new banners are published) */
+  useEffect(() => {
+    setCurrent(0);
+  }, [slides.length]);
+
+  /* Loading state */
+  if (isLoading) {
+    return (
+      <div className="relative w-full overflow-hidden">
+        <Skeleton className="w-full min-h-[460px] md:min-h-[520px] lg:min-h-[580px] rounded-none" />
+      </div>
+    );
+  }
+
   return (
     <div
       className="relative w-full overflow-hidden"
@@ -147,17 +189,43 @@ export function HeroBanner() {
         className="flex transition-transform duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]"
         style={{ transform: `translateX(-${current * 100}%)` }}
       >
-        {slides.map((s, i) => (
+        {slides.map((slide, i) => (
           <div
-            key={s.id}
-            className={`w-full shrink-0 bg-gradient-to-br ${s.gradient} relative min-h-[420px] md:min-h-[480px] lg:min-h-[540px] flex items-center overflow-hidden`}
+            key={slide.id}
+            className={`w-full shrink-0 relative min-h-[460px] md:min-h-[520px] lg:min-h-[580px] flex items-center overflow-hidden`}
           >
+            {/* ── Background: banner image OR gradient ── */}
+            {slide.image ? (
+              <>
+                <img
+                  src={slide.image}
+                  alt={slide.title}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                {/* Dark overlay for text readability */}
+                <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30" />
+              </>
+            ) : (
+              <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient}`} />
+            )}
+
+            {/* ── Aurora mesh gradient overlay (gradient-only slides) ── */}
+            {!slide.image && (
+              <div
+                className="absolute inset-0 opacity-60 mix-blend-screen"
+                style={{
+                  background: slide.gradientMesh,
+                  animation: 'aurora-shift 8s ease-in-out infinite alternate',
+                }}
+              />
+            )}
+
             {/* ── Mesh gradient blobs ── */}
             <div className="absolute inset-0 overflow-hidden">
               <div
                 className="absolute -top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full opacity-30 blur-3xl"
                 style={{
-                  background: `radial-gradient(circle, ${s.accent} 0%, transparent 70%)`,
+                  background: `radial-gradient(circle, ${slide.accent} 0%, transparent 70%)`,
                   animation: 'float 12s ease-in-out infinite',
                 }}
               />
@@ -168,91 +236,48 @@ export function HeroBanner() {
                   animation: 'float-delayed 15s ease-in-out infinite',
                 }}
               />
-              <div
-                className="absolute top-1/3 left-1/2 w-[300px] h-[300px] rounded-full opacity-10 blur-2xl"
-                style={{
-                  background: `radial-gradient(circle, ${s.accent} 0%, transparent 60%)`,
-                  animation: 'float-slow 18s ease-in-out infinite',
-                }}
-              />
             </div>
 
             {/* ── Grid pattern overlay ── */}
             <div
-              className="absolute inset-0 opacity-[0.03]"
+              className="absolute inset-0 opacity-[0.04]"
               style={{
                 backgroundImage:
                   'linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px)',
-                backgroundSize: '40px 40px',
+                backgroundSize: '48px 48px',
               }}
             />
 
             {/* ── Content ── */}
             <div className="container mx-auto px-6 md:px-8 relative z-10 py-16 md:py-20">
-              <div className="grid lg:grid-cols-2 gap-10 items-center">
-                {/* Left — text */}
-                <div key={`text-${s.id}-${i === current}`} className={i === current ? 'animate-[slideUp_0.6s_ease-out_0.1s_both]' : ''}>
-                  {/* Tagline chip */}
-                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/15 backdrop-blur-sm text-white/90 text-sm font-medium mb-5 border border-white/10">
-                    {s.icon}
-                    <span>{s.tagline}</span>
-                  </div>
-
-                  {/* Headline with gradient text */}
-                  <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-[1.1] mb-4 tracking-tight">
-                    {s.title}{' '}
-                    <span
-                      className="bg-clip-text text-transparent"
-                      style={{
-                        backgroundImage: `linear-gradient(135deg, ${s.accent}, white)`,
-                      }}
-                    >
-                      {s.highlight}
-                    </span>
+              <div className="max-w-2xl">
+                {/* Headline */}
+                <div key={`text-${slide.id}-${i === current}`} className={i === current ? 'animate-[slideUp_0.6s_ease-out_0.1s_both]' : ''}>
+                  <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-extrabold text-white leading-[1.1] mb-4 tracking-tight">
+                    {slide.title}
                   </h1>
 
-                  <p className="text-base md:text-lg text-white/80 mb-8 max-w-lg leading-relaxed">
-                    {s.subtitle}
-                  </p>
+                  {slide.subtitle && (
+                    <p className="text-base md:text-lg text-white/80 mb-8 max-w-lg leading-relaxed">
+                      {slide.subtitle}
+                    </p>
+                  )}
 
                   {/* CTA */}
                   <Button
                     size="lg"
-                    className="group relative bg-white text-gray-900 hover:bg-white/90 font-semibold px-8 py-6 text-base rounded-xl shadow-xl shadow-black/10 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] overflow-hidden"
+                    className="group relative bg-white text-gray-900 hover:bg-white/90 font-semibold px-8 py-6 text-base rounded-xl shadow-xl shadow-black/10 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] overflow-hidden cursor-pointer"
                     asChild
                   >
-                    <Link href={s.href}>
+                    <Link href={slide.href}>
                       <span className="relative z-10 flex items-center gap-2">
-                        {s.cta}
+                        {slide.cta}
                         <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                       </span>
                       {/* Shine sweep */}
                       <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
                     </Link>
                   </Button>
-                </div>
-
-                {/* Right — floating product cards */}
-                <div className="hidden lg:flex justify-center items-center relative h-[380px]">
-                  {s.floatingProducts.map((fp, pi) => (
-                    <div
-                      key={pi}
-                      className="absolute bg-white/15 backdrop-blur-md border border-white/20 rounded-2xl p-4 shadow-2xl shadow-black/10 transition-all duration-500 hover:bg-white/25 hover:scale-105 hover:z-10"
-                      style={{
-                        width: '200px',
-                        top: `${20 + pi * 110}px`,
-                        right: `${pi * 30 + 20}px`,
-                        animation: `card-float${pi === 1 ? '-delayed' : ''} ${6 + pi * 2}s ease-in-out infinite`,
-                        animationDelay: `${pi * 0.8}s`,
-                      }}
-                    >
-                      <div className={`w-12 h-12 ${fp.color} rounded-xl mb-3 flex items-center justify-center shadow-lg`}>
-                        <Package className="h-6 w-6 text-white" />
-                      </div>
-                      <p className="text-white font-semibold text-sm leading-tight mb-1">{fp.name}</p>
-                      <p className="text-white/70 text-xs font-medium">{fp.price}</p>
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>
@@ -261,20 +286,24 @@ export function HeroBanner() {
       </div>
 
       {/* ─── Navigation arrows ──────────────────────────── */}
-      <button
-        onClick={prev}
-        className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white/30 transition-all duration-300 hover:scale-110 z-20"
-        aria-label="Previous slide"
-      >
-        <ChevronLeft className="h-5 w-5" />
-      </button>
-      <button
-        onClick={next}
-        className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white/30 transition-all duration-300 hover:scale-110 z-20"
-        aria-label="Next slide"
-      >
-        <ChevronRight className="h-5 w-5" />
-      </button>
+      {slides.length > 1 && (
+        <>
+          <button
+            onClick={prev}
+            className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white/30 transition-all duration-200 hover:scale-110 z-20 cursor-pointer"
+            aria-label="Previous slide"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            onClick={next}
+            className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white/30 transition-all duration-200 hover:scale-110 z-20 cursor-pointer"
+            aria-label="Next slide"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </>
+      )}
 
       {/* ─── Bottom bar: dots + counter + trust badges ──── */}
       <div className="absolute bottom-0 left-0 right-0 bg-black/10 backdrop-blur-sm border-t border-white/10">
@@ -285,7 +314,7 @@ export function HeroBanner() {
               <button
                 key={i}
                 onClick={() => goTo(i)}
-                className="group relative h-2 rounded-full overflow-hidden transition-all duration-300"
+                className="group relative h-2 rounded-full overflow-hidden transition-all duration-200 cursor-pointer"
                 style={{ width: i === current ? '48px' : '24px' }}
                 aria-label={`Go to slide ${i + 1}`}
               >
