@@ -290,10 +290,12 @@ export default function RegisterPage() {
                   onBlur={() => setFocusedField(null)}
                   className={getInputClasses('fullName', !!errors.fullName)}
                   disabled={isLoading}
+                  aria-invalid={!!errors.fullName}
+                  aria-describedby={errors.fullName ? 'fullName-error' : undefined}
                 />
               </div>
               {errors.fullName && (
-                <p className="text-sm text-red-500 flex items-center gap-1">
+                <p id="fullName-error" role="alert" className="text-sm text-red-500 flex items-center gap-1">
                   <span className="w-1 h-1 bg-red-500 rounded-full" />
                   {errors.fullName}
                 </p>
@@ -319,10 +321,12 @@ export default function RegisterPage() {
                   onBlur={() => setFocusedField(null)}
                   className={getInputClasses('email', !!errors.email)}
                   disabled={isLoading}
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? 'email-error' : undefined}
                 />
               </div>
               {errors.email && (
-                <p className="text-sm text-red-500 flex items-center gap-1">
+                <p id="email-error" role="alert" className="text-sm text-red-500 flex items-center gap-1">
                   <span className="w-1 h-1 bg-red-500 rounded-full" />
                   {errors.email}
                 </p>
@@ -358,11 +362,13 @@ export default function RegisterPage() {
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                     disabled={isLoading}
+                    aria-invalid={!!errors.phone}
+                    aria-describedby={errors.phone ? 'phone-error' : undefined}
                   />
                 </div>
               </div>
               {errors.phone && (
-                <p className="text-sm text-red-500 flex items-center gap-1">
+                <p id="phone-error" role="alert" className="text-sm text-red-500 flex items-center gap-1">
                   <span className="w-1 h-1 bg-red-500 rounded-full" />
                   {errors.phone}
                 </p>
@@ -395,25 +401,28 @@ export default function RegisterPage() {
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                   disabled={isLoading}
+                  aria-invalid={!!errors.password}
+                  aria-describedby={errors.password ? 'password-error' : undefined}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                   disabled={isLoading}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
               {errors.password && (
-                <p className="text-sm text-red-500 flex items-center gap-1">
+                <p id="password-error" role="alert" className="text-sm text-red-500 flex items-center gap-1">
                   <span className="w-1 h-1 bg-red-500 rounded-full" />
                   {errors.password}
                 </p>
               )}
               {/* Password Strength Indicator */}
               {formData.password && (
-                <div className="space-y-2 mt-3">
+                <div className="space-y-2 mt-3" role="progressbar" aria-valuenow={passwordStrength.level === 'weak' ? 33 : passwordStrength.level === 'medium' ? 66 : 100} aria-valuemin={0} aria-valuemax={100} aria-label="Password strength">
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-500">Password strength:</span>
                     <span className={`text-xs font-semibold ${
@@ -457,18 +466,21 @@ export default function RegisterPage() {
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                   disabled={isLoading}
+                  aria-invalid={!!errors.confirmPassword}
+                  aria-describedby={errors.confirmPassword ? 'confirmPassword-error' : undefined}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                   disabled={isLoading}
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                 >
                   {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
               {errors.confirmPassword && (
-                <p className="text-sm text-red-500 flex items-center gap-1">
+                <p id="confirmPassword-error" role="alert" className="text-sm text-red-500 flex items-center gap-1">
                   <span className="w-1 h-1 bg-red-500 rounded-full" />
                   {errors.confirmPassword}
                 </p>
@@ -478,9 +490,11 @@ export default function RegisterPage() {
             {/* Role Selection */}
             <div className="space-y-3">
               <Label className="text-gray-700 font-medium">I want to</Label>
-              <div className="grid grid-cols-2 gap-4">
+              <div role="radiogroup" aria-label="Select account type" className="grid grid-cols-2 gap-4">
                 <button
                   type="button"
+                  role="radio"
+                  aria-checked={formData.role === 'CLIENT'}
                   onClick={() => handleInputChange('role', 'CLIENT')}
                   className={`p-5 rounded-xl border-2 transition-all duration-200 ${
                     formData.role === 'CLIENT'
@@ -501,6 +515,8 @@ export default function RegisterPage() {
                 </button>
                 <button
                   type="button"
+                  role="radio"
+                  aria-checked={formData.role === 'SELLER'}
                   onClick={() => handleInputChange('role', 'SELLER')}
                   className={`p-5 rounded-xl border-2 transition-all duration-200 ${
                     formData.role === 'SELLER'
@@ -521,7 +537,7 @@ export default function RegisterPage() {
                 </button>
               </div>
               {errors.role && (
-                <p className="text-sm text-red-500 flex items-center gap-1">
+                <p id="role-error" role="alert" className="text-sm text-red-500 flex items-center gap-1">
                   <span className="w-1 h-1 bg-red-500 rounded-full" />
                   {errors.role}
                 </p>
@@ -558,7 +574,7 @@ export default function RegisterPage() {
                 </span>
               </label>
               {errors.agreeToTerms && (
-                <p className="text-sm text-red-500 flex items-center gap-1">
+                <p id="agreeToTerms-error" role="alert" className="text-sm text-red-500 flex items-center gap-1">
                   <span className="w-1 h-1 bg-red-500 rounded-full" />
                   {errors.agreeToTerms}
                 </p>
