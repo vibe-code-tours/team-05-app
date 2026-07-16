@@ -3,7 +3,7 @@ FROM node:22-alpine
 WORKDIR /app
 
 # Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init libc6-compat
+RUN apk add --no-cache dumb-init libc6-compat bash
 
 # Copy package files
 COPY package.json package-lock.json ./
@@ -43,4 +43,4 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3001/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1) })"
 
-CMD ["node", "apps/api/dist/src/main.js"]
+CMD ["dumb-init", "bash", "apps/api/start.sh"]
