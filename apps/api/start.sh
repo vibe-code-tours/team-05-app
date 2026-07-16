@@ -1,0 +1,15 @@
+#!/bin/sh
+echo "🚀 Starting CrossMart API..."
+echo "Node version: $(node --version)"
+echo "Working dir: $(pwd)"
+echo "USER: $(whoami)"
+echo "NODE_ENV: $NODE_ENV"
+echo "PORT: $PORT"
+echo "Files in apps/api/dist/src/:"
+ls -la apps/api/dist/src/ 2>&1 || echo "apps/api/dist/src/ not found!"
+echo "node_modules/.prisma exists:"
+ls -la node_modules/.prisma/ 2>&1 || echo "node_modules/.prisma not found!"
+echo "node_modules/@prisma/client exists:"
+ls -la node_modules/@prisma/client/ 2>&1 || echo "node_modules/@prisma/client not found!"
+echo "--- Starting app ---"
+exec node apps/api/dist/src/main.js
