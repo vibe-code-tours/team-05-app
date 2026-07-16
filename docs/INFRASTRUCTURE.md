@@ -13,7 +13,7 @@
 │ Layer           │ Service           │ Free Tier             │
 ├─────────────────┼───────────────────┼───────────────────────┤
 │ Frontend        │ Vercel            │ ✅ Permanent free      │
-│ Backend API     │ Railway           │ ⚠️ $5 trial (~2-4wk)  │
+│ Backend API     │ Render            │ ✅ 750 hrs/mo free     │
 │ Database        │ Supabase          │ ✅ Permanent free      │
 │ Auth            │ Supabase Auth     │ ✅ Permanent free      │
 │ Storage         │ Cloudflare R2     │ ✅ Permanent free      │
@@ -21,7 +21,7 @@
 │ CDN/DNS         │ Cloudflare        │ ✅ Permanent free      │
 │ CI/CD           │ GitHub Actions    │ ✅ Permanent free      │
 ├─────────────────┴───────────────────┴───────────────────────┤
-│ Total Cost: $0 (while Railway trial lasts)                  │
+│ Total Cost: $0                                              │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -67,33 +67,32 @@ vercel --prod     # Deploy to production
 
 ---
 
-## 2. Backend — Railway (Free Trial)
+## 2. Backend — Render (Free)
 
 ### Setup Steps
 
-1. **Go to [railway.app](https://railway.app)** → Sign up with GitHub
-2. **New Project** → Deploy from GitHub repo
+1. **Go to [render.com](https://render.com)** → Sign up with GitHub
+2. **New Web Service** → Deploy from GitHub repo
 3. **Select repository** → `team-05-app`
 4. **Configure service:**
    - Name: `crossmart-api`
-   - Root Directory: `apps/api`
-   - Dockerfile: `apps/api/Dockerfile`
+   - Runtime: Docker
+   - Dockerfile: `./apps/api/Dockerfile`
+   - Region: Singapore
 5. **Add Environment Variables** (see Section 6)
-6. **Generate Domain** → Get your API URL (e.g., `https://crossmart-api.up.railway.app`)
+6. **Service will be live at:** `https://crossmart-api-cdjd.onrender.com`
 
-### Free Trial Limits
+### Free Tier Limits
 
 | Feature | Limit |
 |---------|-------|
-| Credit | $5 one-time |
-| Runtime | ~2-4 weeks |
+| Runtime | 750 hrs/mo |
 | RAM | 512 MB |
-| CPU | 1 vCPU |
-| Disk | 1 GB |
+| CPU | Shared |
+| Disk | Free tier included |
+| Cold Start | ~30s after idle |
 
-### Migration When Trial Ends
-
-When Railway trial expires, migrate to one of these:
+### Superseded: Railway Migration
 
 | Platform | Free Tier | Cold Start | Best For |
 |----------|-----------|------------|----------|
@@ -101,13 +100,6 @@ When Railway trial expires, migrate to one of these:
 | **Fly.io** | 3 shared VMs | None | Always-on apps |
 | **Koyeb** | 1 free nano | None | Always-on apps |
 | **Hetzner VPS** | €4/mo | None | Full control |
-
-**Migration Steps:**
-1. Export environment variables from Railway
-2. Push code to new platform
-3. Update `DATABASE_URL` if needed
-4. Update CORS origins
-5. Update DNS records
 
 ---
 
@@ -273,14 +265,14 @@ export class QueueModule {}
 
 ## 7. Environment Variables Summary
 
-### Railway (Backend)
+### Render (Backend)
 
-Set these in Railway Dashboard → Variables:
+Set these in Render Dashboard → Environment:
 
 ```env
 NODE_ENV=production
 PORT=3001
-DATABASE_URL=postgresql://postgres.xxx:password@aws-0-region.pooler.supabase.com:6543/postgres
+DATABASE_URL=postgresql://postgres.xxx:password@aws-0-region.pooler.supabase.com:6543/postgres?sslmode=require&pgbouncer=true
 JWT_SECRET=your-random-64-char-string
 JWT_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
@@ -301,7 +293,7 @@ CORS_ORIGINS=https://your-app.vercel.app
 Set these in Vercel Dashboard → Settings → Environment Variables:
 
 ```env
-NEXT_PUBLIC_API_URL=https://crossmart-api.up.railway.app
+NEXT_PUBLIC_API_URL=https://crossmart-api-cdjd.onrender.com
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 ```
@@ -313,7 +305,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 | Service | Free Limit | Upgrade Path |
 |---------|-----------|--------------|
 | **Vercel** | 100GB bandwidth/mo | Pro $20/mo |
-| **Railway** | $5 trial (~2-4 weeks) | Hobby $5/mo |
+| **Render** | 750 hrs/mo | Starter $7/mo |
 | **Supabase** | 500MB DB, 50k MAU | Pro $25/mo |
 | **Cloudflare R2** | 10GB storage | Pay-as-you-go |
 | **Upstash Redis** | 10k cmds/day | Pay-as-you-go |
@@ -322,7 +314,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 
 ---
 
-## 9. Migration Path (When Railway Ends)
+## 9. Migration Path (If Render Free Tier Exceeds)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -330,34 +322,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 ├─────────────────┬───────────┬──────────┬────────────────────┤
 │ Platform        │ Free Tier │ Always On│ Docker Support     │
 ├─────────────────┼───────────┼──────────┼────────────────────┤
-│ Render.com      │ 750 hrs   │ ❌ No    │ ✅ Yes             │
+│ Render Starter  │ None      │ ✅ Yes   │ ✅ Yes ($7/mo)     │
 │ Fly.io          │ 3 VMs     │ ✅ Yes   │ ✅ Yes (native)    │
 │ Koyeb           │ 1 nano    │ ✅ Yes   │ ✅ Yes             │
-│ Cyclic.sh       │ Unlimited │ ✅ Yes   │ ❌ Node.js only    │
 │ Hetzner VPS     │ None      │ ✅ Yes   │ ✅ Yes             │
 │ DigitalOcean    │ None      │ ✅ Yes   │ ✅ Yes             │
 └─────────────────┴───────────┴──────────┴────────────────────┘
-```
-
-### Recommended: Fly.io
-
-```bash
-# Install flyctl
-curl -L https://fly.io/install.sh | sh
-
-# Login
-fly auth login
-
-# Launch (from apps/api directory)
-cd apps/api
-fly launch
-
-# Set secrets
-fly secrets set DATABASE_URL="postgresql://..."
-fly secrets set JWT_SECRET="..."
-
-# Deploy
-fly deploy
 ```
 
 ---
@@ -388,8 +358,8 @@ npm run dev
 cd apps/web
 vercel --prod
 
-# 7. Deploy backend to Railway
-# Push to GitHub → Railway auto-deploys
+# 7. Deploy backend to Render
+# Push to GitHub → Render auto-deploys
 git push origin main
 ```
 
@@ -398,8 +368,6 @@ git push origin main
 ## 11. Cost Timeline
 
 ```
-Month 1:     $0 (Railway trial + all free tiers)
-Month 2+:    $0 (migrate backend to free alternative)
-             OR $5/mo (stay on Railway Hobby)
-             OR $4-5/mo (VPS with Docker)
+Month 1+:    $0 (Render free tier 750 hrs/mo + all other free tiers)
+If exceeded: $7/mo (Render Starter) or migrate to Fly.io/Koyeb
 ```
