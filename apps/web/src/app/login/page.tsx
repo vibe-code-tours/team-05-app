@@ -2,9 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, ArrowRight, ShoppingBag, Truck, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useLogin } from '@/lib/services/auth.service'
@@ -29,6 +28,7 @@ export default function LoginPage() {
     rememberMe: false,
   })
   const [errors, setErrors] = useState<ValidationErrors>({})
+  const [focusedField, setFocusedField] = useState<string | null>(null)
 
   const isLoading = loginMutation.isPending
 
@@ -68,101 +68,230 @@ export default function LoginPage() {
         email: formData.email,
         password: formData.password,
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Login error:', error)
-      setErrors({ email: error.message || 'Invalid credentials. Please try again.' })
+      const errorMessage = error instanceof Error ? error.message : 'Invalid credentials. Please try again.'
+      setErrors({ email: errorMessage })
     }
   }
 
   const handleInputChange = (field: keyof LoginForm, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }))
-    // Clear error when user starts typing
     if (errors[field as keyof ValidationErrors]) {
       setErrors(prev => ({ ...prev, [field]: undefined }))
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-white to-primary/10 p-4">
-      <Card className="w-full max-w-md shadow-xl">
-        <CardHeader className="space-y-4 text-center">
-          {/* CrossMart Logo */}
-          <div className="flex justify-center">
-            <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-2xl">CM</span>
+    <div className="min-h-screen flex">
+      {/* Left Side - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl" />
+          <div className="absolute bottom-20 right-20 w-96 h-96 bg-white rounded-full blur-3xl" />
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 flex flex-col justify-center px-12 xl:px-16">
+          {/* Logo */}
+          <div className="mb-12">
+            <div className="flex items-center gap-3">
+              <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg">
+                <ShoppingBag className="w-8 h-8 text-blue-600" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-white">CrossMart</h1>
+                <p className="text-blue-100 text-sm">Myanmar&apos;s Most Trusted Marketplace</p>
+              </div>
             </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Welcome Back</h1>
-            <p className="text-muted-foreground mt-2">Sign in to your CrossMart account</p>
-          </div>
-        </CardHeader>
 
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Main Heading */}
+          <div className="mb-12">
+            <h2 className="text-4xl xl:text-5xl font-bold text-white leading-tight mb-6">
+              Welcome back to your favorite marketplace
+            </h2>
+            <p className="text-xl text-blue-100 leading-relaxed">
+              Sign in to continue shopping from thousands of products across Myanmar and Thailand.
+            </p>
+          </div>
+
+          {/* Features */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                <Truck className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-white font-semibold">Fast Cross-Border Delivery</h3>
+                <p className="text-blue-100 text-sm">From Bangkok to your doorstep in 7-14 days</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                <Shield className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-white font-semibold">Secure Payments</h3>
+                <p className="text-blue-100 text-sm">Pay with confidence using encrypted transactions</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Social Proof */}
+          <div className="mt-12 pt-8 border-t border-white/20">
+            <div className="flex items-center gap-4">
+              <div className="flex -space-x-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="w-10 h-10 rounded-full bg-white/20 border-2 border-blue-600 flex items-center justify-center"
+                  >
+                    <span className="text-white text-sm font-medium">
+                      {String.fromCharCode(64 + i)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div>
+                <p className="text-white font-semibold">10,000+ Happy Customers</p>
+                <p className="text-blue-100 text-sm">Join our growing community</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Side - Login Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gray-50">
+        <div className="w-full max-w-md">
+          {/* Mobile Logo */}
+          <div className="lg:hidden mb-8 text-center">
+            <div className="inline-flex items-center gap-3">
+              <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                <ShoppingBag className="w-7 h-7 text-white" />
+              </div>
+              <span className="text-2xl font-bold text-gray-900">CrossMart</span>
+            </div>
+          </div>
+
+          {/* Form Header */}
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">Sign In</h2>
+            <p className="text-gray-600">
+              Don&apos;t have an account?{' '}
+              <Link
+                href="/register"
+                className="text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+              >
+                Create one now
+              </Link>
+            </p>
+          </div>
+
+          {/* Login Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email Input */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground">Email or Phone</Label>
+              <Label htmlFor="email" className="text-gray-700 font-medium">
+                Email or Phone
+              </Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-colors ${
+                  focusedField === 'email' ? 'text-blue-600' : 'text-gray-400'
+                }`} />
                 <Input
                   id="email"
                   type="text"
                   placeholder="you@example.com"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  className={`pl-10 ${errors.email ? 'border-red-500' : ''}`}
+                  onFocus={() => setFocusedField('email')}
+                  onBlur={() => setFocusedField(null)}
+                  className={`pl-12 h-12 rounded-xl border-2 transition-all duration-200 ${
+                    focusedField === 'email'
+                      ? 'border-blue-500 ring-4 ring-blue-100'
+                      : errors.email
+                      ? 'border-red-500'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? 'email-error' : undefined}
                   disabled={isLoading}
                 />
               </div>
               {errors.email && (
-                <p className="text-sm text-red-500">{errors.email}</p>
+                <p id="email-error" className="text-sm text-red-500 flex items-center gap-1" role="alert">
+                  <span className="w-1 h-1 bg-red-500 rounded-full" aria-hidden="true" />
+                  {errors.email}
+                </p>
               )}
             </div>
 
             {/* Password Input */}
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground">Password</Label>
+              <Label htmlFor="password" className="text-gray-700 font-medium">
+                Password
+              </Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-colors ${
+                  focusedField === 'password' ? 'text-blue-600' : 'text-gray-400'
+                }`} />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  className={`pl-10 pr-10 ${errors.password ? 'border-red-500' : ''}`}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
+                  className={`pl-12 pr-12 h-12 rounded-xl border-2 transition-all duration-200 ${
+                    focusedField === 'password'
+                      ? 'border-blue-500 ring-4 ring-blue-100'
+                      : errors.password
+                      ? 'border-red-500'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  aria-invalid={!!errors.password}
+                  aria-describedby={errors.password ? 'password-error' : undefined}
                   disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   disabled={isLoading}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
               {errors.password && (
-                <p className="text-sm text-red-500">{errors.password}</p>
+                <p id="password-error" className="text-sm text-red-500 flex items-center gap-1" role="alert">
+                  <span className="w-1 h-1 bg-red-500 rounded-full" aria-hidden="true" />
+                  {errors.password}
+                </p>
               )}
             </div>
 
             {/* Remember Me & Forgot Password */}
             <div className="flex items-center justify-between">
-              <label className="flex items-center space-x-2 cursor-pointer">
+              <label className="flex items-center gap-2 cursor-pointer group">
                 <input
                   type="checkbox"
                   checked={formData.rememberMe}
                   onChange={(e) => handleInputChange('rememberMe', e.target.checked)}
-                  className="w-4 h-4 text-primary border-border rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 transition-colors"
                   disabled={isLoading}
                 />
-                <span className="text-sm text-muted-foreground">Remember me</span>
+                <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
+                  Remember me
+                </span>
               </label>
               <Link
                 href="/forgot-password"
-                className="text-sm text-primary hover:text-blue-800 font-medium"
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
               >
                 Forgot Password?
               </Link>
@@ -171,7 +300,7 @@ export default function LoginPage() {
             {/* Login Button */}
             <Button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-blue-200 active:scale-[0.98]"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -183,20 +312,20 @@ export default function LoginPage() {
                   Signing in...
                 </span>
               ) : (
-                <span className="flex items-center justify-center">
-                  Login
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                <span className="flex items-center justify-center gap-2">
+                  Sign In
+                  <ArrowRight className="h-5 w-5" />
                 </span>
               )}
             </Button>
 
             {/* Divider */}
-            <div className="relative">
+            <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border"></div>
+                <div className="w-full border-t border-gray-200" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-card text-muted-foreground">Or login with</span>
+                <span className="px-4 bg-gray-50 text-gray-500">Or continue with</span>
               </div>
             </div>
 
@@ -205,7 +334,7 @@ export default function LoginPage() {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full"
+                className="h-12 rounded-xl border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
                 disabled={isLoading}
                 onClick={() => console.log('Google login')}
               >
@@ -232,7 +361,7 @@ export default function LoginPage() {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full"
+                className="h-12 rounded-xl border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
                 disabled={isLoading}
                 onClick={() => console.log('Facebook login')}
               >
@@ -246,20 +375,22 @@ export default function LoginPage() {
               </Button>
             </div>
           </form>
-        </CardContent>
 
-        <CardFooter className="justify-center">
-          <p className="text-muted-foreground">
-            Don&apos;t have an account?{' '}
-            <Link
-              href="/register"
-              className="text-primary hover:text-blue-800 font-semibold"
-            >
-              Register
-            </Link>
-          </p>
-        </CardFooter>
-      </Card>
+          {/* Footer */}
+          <div className="mt-8 text-center">
+            <p className="text-sm text-gray-500">
+              By signing in, you agree to our{' '}
+              <Link href="/terms" className="text-blue-600 hover:text-blue-700">
+                Terms
+              </Link>
+              {' '}and{' '}
+              <Link href="/privacy" className="text-blue-600 hover:text-blue-700">
+                Privacy Policy
+              </Link>
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

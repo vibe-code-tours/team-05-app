@@ -16,6 +16,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
 import { BannerService } from "./banner.service";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
+import { Public } from "../../common/decorators/public.decorator";
 import { CreateBannerDto, UpdateBannerDto } from "./dto/banner.dto";
 
 @ApiTags("Banners")
@@ -25,6 +26,7 @@ export class BannerController {
 
   // ── Public Endpoints ────────────────────────────────────────────────────
 
+  @Public()
   @Get("active")
   @ApiOperation({ summary: "Get active banners" })
   getActiveBanners() {

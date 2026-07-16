@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ServiceUnavailableException, Logger } from "@nestjs/common";
+import { Injectable, NotFoundException, Logger } from "@nestjs/common";
 import { PrismaService } from "../../config/prisma.service";
 import { CreateBannerDto } from "./dto/banner.dto";
 import { UpdateBannerDto } from "./dto/banner.dto";

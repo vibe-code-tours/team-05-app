@@ -15,10 +15,10 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
 import { SearchService } from "./search.service";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
+import { Public } from "../../common/decorators/public.decorator";
 import {
   SearchQueryDto,
   AutocompleteQueryDto,
-  IndexProductDto,
   ReindexAllDto,
 } from "./dto/search.dto";
 
@@ -29,18 +29,21 @@ export class SearchController {
 
   // ── Public Endpoints ────────────────────────────────────────────────────
 
+  @Public()
   @Get()
   @ApiOperation({ summary: "Search products" })
   search(@Query() query: SearchQueryDto) {
     return this.searchService.search(query);
   }
 
+  @Public()
   @Get("autocomplete")
   @ApiOperation({ summary: "Autocomplete product names" })
   autocomplete(@Query() query: AutocompleteQueryDto) {
     return this.searchService.autocomplete(query);
   }
 
+  @Public()
   @Get("stats")
   @ApiOperation({ summary: "Get search index stats" })
   getIndexStats() {
