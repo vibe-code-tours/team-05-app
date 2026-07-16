@@ -216,12 +216,14 @@ export default function LoginPage() {
                       ? 'border-red-500'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? 'email-error' : undefined}
                   disabled={isLoading}
                 />
               </div>
               {errors.email && (
-                <p className="text-sm text-red-500 flex items-center gap-1">
-                  <span className="w-1 h-1 bg-red-500 rounded-full" />
+                <p id="email-error" className="text-sm text-red-500 flex items-center gap-1" role="alert">
+                  <span className="w-1 h-1 bg-red-500 rounded-full" aria-hidden="true" />
                   {errors.email}
                 </p>
               )}
@@ -251,20 +253,23 @@ export default function LoginPage() {
                       ? 'border-red-500'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
+                  aria-invalid={!!errors.password}
+                  aria-describedby={errors.password ? 'password-error' : undefined}
                   disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   disabled={isLoading}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
               {errors.password && (
-                <p className="text-sm text-red-500 flex items-center gap-1">
-                  <span className="w-1 h-1 bg-red-500 rounded-full" />
+                <p id="password-error" className="text-sm text-red-500 flex items-center gap-1" role="alert">
+                  <span className="w-1 h-1 bg-red-500 rounded-full" aria-hidden="true" />
                   {errors.password}
                 </p>
               )}

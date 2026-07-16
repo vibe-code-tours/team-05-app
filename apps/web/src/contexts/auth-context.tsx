@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/stores/auth.store';
 
 interface User {
   id: string;
@@ -25,48 +26,60 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  // Read from Zustand store (single source of truth)
+  const storeUser = useAuthStore((s) => s.user);
+  const storeToken = useAuthStore((s) => s.accessToken);
+  const storeLogin = useAuthStore((s) => s.login);
+  const storeLogout = useAuthStore((s) => s.logout);
+
+  const [user, setUser] = useState<User | null>(storeUser);
+
+  // Sync Zustand state to local state
   useEffect(() => {
-    // Check for existing token on mount
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      validateToken(token);
+    setUser(storeUser);
+  }, [storeUser]);
+
+  useEffect(() => {
+    // Validate token on mount if one exists in Zustand
+    if (storeToken && storeUser) {
+      validateToken(storeToken);
     } else {
       setLoading(false);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const validateToken = async (token: string) => {
     try {
-      const response = await fetch('/api/auth/me', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+      const response = await fetch(`${apiUrl}/users/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.ok) {
         const data = await response.json();
-        setUser(data.user);
+        if (data.success && data.data) {
+          setUser(data.data);
+          storeLogin(data.data, token);
+        } else {
+          clearAuth();
+        }
       } else {
         // Token invalid - try refresh
-        const refreshTokenValue = localStorage.getItem('refreshToken');
-        if (refreshTokenValue) {
-          await refreshToken();
-        } else {
-          clearTokens();
-        }
+        clearAuth();
       }
-    } catch (error) {
-      console.error('Token validation failed:', error);
-      clearTokens();
+    } catch {
+      clearAuth();
     } finally {
       setLoading(false);
     }
   };
 
   const login = async (email: string, password: string) => {
-    const response = await fetch('/api/auth/login', {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+    const response = await fetch(`${apiUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -75,55 +88,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await response.json();
 
     if (data.success) {
-      localStorage.setItem('accessToken', data.data.accessToken);
-      localStorage.setItem('refreshToken', data.data.refreshToken);
-      setUser(data.data.user);
+      const { user: userData, accessToken } = data.data;
+      storeLogin(userData, accessToken);
+      setUser(userData);
 
       // Redirect based on role
-      redirectByRole(data.data.user.role);
+      redirectByRole(userData.role);
     } else {
-      throw new Error(data.message);
+      throw new Error(data.message || 'Login failed');
     }
   };
 
   const logout = () => {
-    clearTokens();
+    storeLogout();
     setUser(null);
     router.push('/login');
   };
 
-  const refreshToken = async () => {
-    try {
-      const refreshTokenValue = localStorage.getItem('refreshToken');
-      if (!refreshTokenValue) {
-        throw new Error('No refresh token');
-      }
-
-      const response = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken: refreshTokenValue }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        localStorage.setItem('accessToken', data.data.accessToken);
-        localStorage.setItem('refreshToken', data.data.refreshToken);
-        setUser(data.data.user);
-      } else {
-        throw new Error('Refresh failed');
-      }
-    } catch (error) {
-      console.error('Token refresh failed:', error);
-      clearTokens();
-      setUser(null);
-    }
+  const clearAuth = () => {
+    storeLogout();
+    setUser(null);
   };
 
-  const clearTokens = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+  const refreshToken = async () => {
+    // Token refresh not yet implemented on backend
+    clearAuth();
   };
 
   const redirectByRole = (role: string) => {
