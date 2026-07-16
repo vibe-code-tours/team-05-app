@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, MiddlewareConsumer, NestModule } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { envValidationSchema } from "./config/env.validation";
@@ -19,6 +19,7 @@ import { BannerModule } from "./modules/banner/banner.module";
 import { CouponModule } from "./modules/coupon/coupon.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { HealthController } from "./config/health.controller";
+import { DataIsolationMiddleware } from "./common/middleware/data-isolation.middleware";
 
 @Module({
   imports: [
@@ -61,4 +62,12 @@ import { HealthController } from "./config/health.controller";
   ],
   controllers: [HealthController],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Apply data isolation middleware to all routes except auth
+    consumer
+      .apply(DataIsolationMiddleware)
+      .exclude('auth/(.*)') // Exclude auth routes
+      .forRoutes('*');
+  }
+}

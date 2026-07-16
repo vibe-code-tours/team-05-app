@@ -16,7 +16,7 @@ interface RegisterForm {
   phone: string
   password: string
   confirmPassword: string
-  role: 'BUYER' | 'SELLER'
+  role: 'CLIENT' | 'SELLER'
   agreeToTerms: boolean
 }
 
@@ -49,7 +49,7 @@ export default function RegisterPage() {
     phone: '',
     password: '',
     confirmPassword: '',
-    role: 'BUYER',
+    role: 'CLIENT',
     agreeToTerms: false,
   })
   const [errors, setErrors] = useState<ValidationErrors>({})
@@ -327,9 +327,9 @@ export default function RegisterPage() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => handleInputChange('role', 'BUYER')}
+                  onClick={() => handleInputChange('role', 'CLIENT')}
                   className={`p-4 rounded-lg border-2 transition-all ${
-                    formData.role === 'BUYER'
+                    formData.role === 'CLIENT'
                       ? 'border-blue-600 bg-blue-50'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
@@ -338,7 +338,7 @@ export default function RegisterPage() {
                   <div className="text-center">
                     <span className="text-2xl">🛒</span>
                     <p className={`font-medium mt-2 ${
-                      formData.role === 'BUYER' ? 'text-blue-600' : 'text-gray-700'
+                      formData.role === 'CLIENT' ? 'text-blue-600' : 'text-gray-700'
                     }`}>
                       Shop
                     </p>
