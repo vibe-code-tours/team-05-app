@@ -1,6 +1,7 @@
 import { Module, MiddlewareConsumer, NestModule } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { ThrottlerModule } from "@nestjs/throttler";
+import { APP_GUARD } from "@nestjs/core";
 import { envValidationSchema } from "./config/env.validation";
 import { PrismaModule } from "./config/prisma.module";
 import { AuthModule } from "./modules/auth/auth.module";
@@ -20,6 +21,7 @@ import { CouponModule } from "./modules/coupon/coupon.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { HealthController } from "./config/health.controller";
 import { DataIsolationMiddleware } from "./common/middleware/data-isolation.middleware";
+import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 
 @Module({
   imports: [
@@ -61,6 +63,12 @@ import { DataIsolationMiddleware } from "./common/middleware/data-isolation.midd
     AdminModule,
   ],
   controllers: [HealthController],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

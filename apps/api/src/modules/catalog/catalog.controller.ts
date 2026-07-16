@@ -21,6 +21,7 @@ import {
 } from "./dto/catalog.dto";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
+import { Public } from "../../common/decorators/public.decorator";
 
 @ApiTags("Catalog")
 @Controller("catalog")
@@ -29,12 +30,14 @@ export class CatalogController {
 
   // ─── Categories (Public) ─────────────────────────────
 
+  @Public()
   @Get("categories")
   @ApiOperation({ summary: "List all categories" })
   findAllCategories() {
     return this.catalogService.findAllCategories();
   }
 
+  @Public()
   @Get("categories/:slug")
   @ApiOperation({ summary: "Get category by slug" })
   findCategoryBySlug(@Param("slug") slug: string) {
@@ -74,12 +77,14 @@ export class CatalogController {
 
   // ─── Brands (Public) ─────────────────────────────────
 
+  @Public()
   @Get("brands")
   @ApiOperation({ summary: "List all brands" })
   findAllBrands() {
     return this.catalogService.findAllBrands();
   }
 
+  @Public()
   @Get("brands/:slug")
   @ApiOperation({ summary: "Get brand by slug" })
   findBrandBySlug(@Param("slug") slug: string) {
