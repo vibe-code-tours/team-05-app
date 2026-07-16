@@ -86,6 +86,22 @@
         "VERCEL_TOKEN": "${VERCEL_TOKEN}"
       },
       "description": "Vercel deployments, logs, and project management"
+    },
+    "supabase": {
+      "command": "npx",
+      "args": ["-y", "supabase@latest", "mcp", "serve"],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"
+      },
+      "description": "Supabase database, auth, storage, and edge functions"
+    },
+    "render": {
+      "type": "http",
+      "url": "https://mcp.render.com/mcp",
+      "headers": {
+        "Authorization": "Bearer rnd_mQFkeINh844QFhONM277NiidNXWq"
+      },
+      "description": "Render deployment: services, deploys, logs, metrics"
     }
   }
 }

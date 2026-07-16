@@ -29,7 +29,7 @@
 | Auth | JWT + OTP | Authentication |
 | Container | Docker & Docker Compose | Local dev + deployment |
 | Deploy (Frontend) | Vercel | Free tier (100GB bandwidth) |
-| Deploy (Backend) | Railway | Free trial ($5 credit, ~2-4 weeks) |
+| Deploy (Backend) | Render | Free tier (750 hrs/mo) |
 | Database | Supabase | Free tier (500MB PostgreSQL) |
 | Auth | Supabase Auth | Free tier (50k MAU) |
 | Cache | Upstash Redis | Free tier (10k cmds/day) |

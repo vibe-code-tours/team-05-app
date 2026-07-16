@@ -3,58 +3,197 @@ import * as bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+// ─── User Data ─────────────────────────────────────────
+
+const ADMIN_DATA = [
+  {
+    email: "admin@crossmart.com",
+    phone: "+95912345678",
+    name: "CrossMart Admin",
+    password: "Admin123!",
+    role: "ADMIN" as const,
+    status: "ACTIVE" as const,
+  },
+];
+
+const SELLER_DATA = [
+  {
+    email: "seller1@crossmart.com",
+    phone: "+95998765432",
+    name: "TechZone Myanmar",
+    password: "Seller123!",
+    role: "SELLER" as const,
+    status: "ACTIVE" as const,
+  },
+  {
+    email: "seller2@crossmart.com",
+    phone: "+95998765433",
+    name: "Bangkok Gadgets",
+    password: "Seller123!",
+    role: "SELLER" as const,
+    status: "ACTIVE" as const,
+  },
+  {
+    email: "seller3@crossmart.com",
+    phone: "+95998765434",
+    name: "Digital World",
+    password: "Seller123!",
+    role: "SELLER" as const,
+    status: "ACTIVE" as const,
+  },
+  {
+    email: "seller4@crossmart.com",
+    phone: "+95998765435",
+    name: "Premium Electronics",
+    password: "Seller123!",
+    role: "SELLER" as const,
+    status: "ACTIVE" as const,
+  },
+  {
+    email: "seller5@crossmart.com",
+    phone: "+95998765436",
+    name: "Myanmar Tech Hub",
+    password: "Seller123!",
+    role: "SELLER" as const,
+    status: "ACTIVE" as const,
+  },
+];
+
+const CLIENT_DATA = [
+  {
+    email: "client1@crossmart.com",
+    phone: "+95911111111",
+    name: "Aung Aung",
+    password: "Client123!",
+    role: "CLIENT" as const,
+    status: "ACTIVE" as const,
+  },
+  {
+    email: "client2@crossmart.com",
+    phone: "+95922222222",
+    name: "Mya Mya",
+    password: "Client123!",
+    role: "CLIENT" as const,
+    status: "ACTIVE" as const,
+  },
+  {
+    email: "client3@crossmart.com",
+    phone: "+95933333333",
+    name: "Tun Tun",
+    password: "Client123!",
+    role: "CLIENT" as const,
+    status: "ACTIVE" as const,
+  },
+  {
+    email: "client4@crossmart.com",
+    phone: "+95944444444",
+    name: "San San",
+    password: "Client123!",
+    role: "CLIENT" as const,
+    status: "ACTIVE" as const,
+  },
+  {
+    email: "client5@crossmart.com",
+    phone: "+95955555555",
+    name: "Kyaw Kyaw",
+    password: "Client123!",
+    role: "CLIENT" as const,
+    status: "ACTIVE" as const,
+  },
+  {
+    email: "client6@crossmart.com",
+    phone: "+95966666666",
+    name: "Nwe Nwe",
+    password: "Client123!",
+    role: "CLIENT" as const,
+    status: "ACTIVE" as const,
+  },
+  {
+    email: "client7@crossmart.com",
+    phone: "+95977777777",
+    name: "Zaw Zaw",
+    password: "Client123!",
+    role: "CLIENT" as const,
+    status: "ACTIVE" as const,
+  },
+  {
+    email: "client8@crossmart.com",
+    phone: "+95988888888",
+    name: "Thin Thin",
+    password: "Client123!",
+    role: "CLIENT" as const,
+    status: "ACTIVE" as const,
+  },
+  {
+    email: "client9@crossmart.com",
+    phone: "+95999999999",
+    name: "Hla Hla",
+    password: "Client123!",
+    role: "CLIENT" as const,
+    status: "ACTIVE" as const,
+  },
+  {
+    email: "client10@crossmart.com",
+    phone: "+95900000000",
+    name: "Lwin Lwin",
+    password: "Client123!",
+    role: "CLIENT" as const,
+    status: "ACTIVE" as const,
+  },
+];
+
+async function seedUsers(
+  label: string,
+  data: Array<{
+    email: string;
+    phone: string;
+    name: string;
+    password: string;
+    role: "ADMIN" | "SELLER" | "CLIENT";
+    status: "ACTIVE" | "PENDING_VERIFICATION" | "SUSPENDED" | "BANNED";
+  }>
+) {
+  const hashed = await bcrypt.hash(data[0].password, 12);
+  const users = [];
+
+  for (const u of data) {
+    const user = await prisma.user.upsert({
+      where: { email: u.email },
+      update: {},
+      create: {
+        email: u.email,
+        phone: u.phone,
+        name: u.name,
+        password: hashed,
+        role: u.role,
+        status: u.status,
+      },
+    });
+    users.push(user);
+    console.log(`  ✅ ${u.role}: ${u.email}`);
+  }
+
+  console.log(`✅ ${label}: ${users.length} users created`);
+  return users;
+}
+
 async function main() {
-  console.log("🌱 Seeding database...");
+  console.log("🌱 Seeding database...\n");
 
   // ─── Users ──────────────────────────────────────────
 
-  const adminPassword = await bcrypt.hash("Admin123!", 12);
-  const admin = await prisma.user.upsert({
-    where: { email: "admin@crossmart.com" },
-    update: {},
-    create: {
-      email: "admin@crossmart.com",
-      phone: "+95912345678",
-      name: "CrossMart Admin",
-      password: adminPassword,
-      role: "ADMIN",
-      status: "ACTIVE",
-    },
-  });
-  console.log(`✅ Admin: ${admin.email}`);
+  console.log("👤 Creating Admin...");
+  const admins = await seedUsers("Admins", ADMIN_DATA);
 
-  const sellerPassword = await bcrypt.hash("Seller123!", 12);
-  const seller = await prisma.user.upsert({
-    where: { email: "seller@crossmart.com" },
-    update: {},
-    create: {
-      email: "seller@crossmart.com",
-      phone: "+95998765432",
-      name: "Test Seller",
-      password: sellerPassword,
-      role: "SELLER",
-      status: "ACTIVE",
-    },
-  });
-  console.log(`✅ Seller: ${seller.email}`);
+  console.log("\n🏪 Creating Sellers...");
+  const sellers = await seedUsers("Sellers", SELLER_DATA);
 
-  const clientPassword = await bcrypt.hash("Client123!", 12);
-  const client = await prisma.user.upsert({
-    where: { email: "client@crossmart.com" },
-    update: {},
-    create: {
-      email: "client@crossmart.com",
-      phone: "+95911111111",
-      name: "Test Client",
-      password: clientPassword,
-      role: "CLIENT",
-      status: "ACTIVE",
-    },
-  });
-  console.log(`✅ Client: ${client.email}`);
+  console.log("\n🛒 Creating Clients...");
+  const clients = await seedUsers("Clients", CLIENT_DATA);
 
   // ─── Categories ─────────────────────────────────────
 
+  console.log("\n📂 Creating Categories...");
   const categories = [
     { name: "Camera", slug: "camera" },
     { name: "Microphone", slug: "microphone" },
@@ -78,6 +217,7 @@ async function main() {
 
   // ─── Brands ─────────────────────────────────────────
 
+  console.log("\n🏷️  Creating Brands...");
   const brands = [
     { name: "Sony", slug: "sony" },
     { name: "Apple", slug: "apple" },
@@ -102,13 +242,15 @@ async function main() {
 
   // ─── Sample Products ────────────────────────────────
 
+  console.log("\n📦 Creating Sample Products...");
   const cameraCategory = await prisma.category.findUnique({ where: { slug: "camera" } });
   const sonyBrand = await prisma.brand.findUnique({ where: { slug: "sony" } });
+  const seller1 = sellers[0]; // first seller
 
-  if (cameraCategory && sonyBrand) {
+  if (cameraCategory && sonyBrand && seller1) {
     const products = [
       {
-        sellerId: seller.id,
+        sellerId: seller1.id,
         name: "Sony Alpha A7 IV",
         description: "Full-frame mirrorless camera with 33MP sensor, 4K 60p video, and advanced autofocus.",
         price: 2499.00,
@@ -120,7 +262,7 @@ async function main() {
         slug: "sony-alpha-a7-iv",
       },
       {
-        sellerId: seller.id,
+        sellerId: seller1.id,
         name: "Sony FX30",
         description: "Cinema line camera with Super 35 sensor, 4K 120p, and professional video features.",
         price: 1799.00,
@@ -145,26 +287,41 @@ async function main() {
 
   // ─── Addresses ──────────────────────────────────────
 
-  await prisma.address.create({
-    data: {
-      userId: client.id,
-      name: "Home",
-      phone: "+95911111111",
-      street: "123 Main Street, Block A",
-      city: "Yangon",
-      district: "Thanlyin",
-      state: "Yangon Region",
-      postalCode: "11221",
-      isDefault: true,
-    },
-  });
-  console.log(`✅ Addresses: 1`);
+  console.log("\n📍 Creating Addresses...");
+  const firstClient = clients[0];
+  if (firstClient) {
+    await prisma.address.create({
+      data: {
+        userId: firstClient.id,
+        name: "Home",
+        phone: firstClient.phone,
+        street: "123 Main Street, Block A",
+        city: "Yangon",
+        district: "Thanlyin",
+        state: "Yangon Region",
+        postalCode: "11221",
+        isDefault: true,
+      },
+    });
+    console.log(`✅ Addresses: 1`);
+  }
 
-  console.log("\n🎉 Seeding complete!");
-  console.log("\n📋 Test Accounts:");
-  console.log("   Admin:  admin@crossmart.com / Admin123!");
-  console.log("   Seller: seller@crossmart.com / Seller123!");
-  console.log("   Client: client@crossmart.com / Client123!");
+  // ─── Summary ────────────────────────────────────────
+
+  console.log("\n🎉 Seeding complete!\n");
+  console.log("📋 Test Accounts:");
+  console.log("─".repeat(50));
+  console.log("ADMIN:");
+  console.log(`  ${admins[0].email} / Admin123!`);
+  console.log("\nSELLERS:");
+  for (const s of sellers) {
+    console.log(`  ${s.email} / Seller123!`);
+  }
+  console.log("\nCLIENTS:");
+  for (const c of clients) {
+    console.log(`  ${c.email} / Client123!`);
+  }
+  console.log("─".repeat(50));
 }
 
 main()
