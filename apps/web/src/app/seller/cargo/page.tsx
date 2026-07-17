@@ -42,6 +42,7 @@ import { toast } from "@/components/ui/use-toast";
 import { useSellerShipments, useUpdateMilestone, CARGO_MILESTONES } from "@/lib/services/cargo.service";
 import type { CargoMilestone as ApiCargoMilestone } from "@/lib/services/cargo.service";
 import type { CargoShipment as ApiCargoShipment } from "@/lib/services/cargo.service";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -440,7 +441,8 @@ export default function SellerCargoPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <ProtectedRoute requiredRole="SELLER">
+      <div className="space-y-6">
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Cargo Management</h1>
@@ -921,5 +923,6 @@ export default function SellerCargoPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </ProtectedRoute>
   );
 }

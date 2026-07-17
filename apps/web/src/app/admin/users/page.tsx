@@ -39,6 +39,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/components/ui/use-toast";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 
 // ---------------------------------------------------------------------------
 // Types (matching backend AdminUser from admin.service.ts)
@@ -257,6 +258,7 @@ export default function AdminUsersPage() {
 
   // ---- render ----
   return (
+    <ProtectedRoute requiredRole="ADMIN">
     <div className="space-y-6">
       {/* Page header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -606,5 +608,6 @@ export default function AdminUsersPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </ProtectedRoute>
   );
 }

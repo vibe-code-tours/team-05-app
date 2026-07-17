@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useCart } from '@/lib/services/cart.service';
+import { useAuthStore } from '@/stores/auth.store';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -38,6 +39,7 @@ export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const { data: cart } = useCart();
   const cartItemCount = cart?.data?.itemCount ?? 0;
+  const { user, isAuthenticated, logout } = useAuthStore();
   const searchRef = useRef<HTMLDivElement>(null);
 
   // Handle scroll effect
@@ -193,41 +195,72 @@ export function Header() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 p-2">
-                <div className="px-3 py-2 border-b mb-2">
-                  <p className="text-sm font-medium">Guest User</p>
-                  <p className="text-xs text-muted-foreground">Sign in for the best experience</p>
-                </div>
-                <DropdownMenuItem asChild className="rounded-lg">
-                  <Link href="/login" className="flex items-center gap-2">
-                    <LogOut className="h-4 w-4" />
-                    Sign In
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild className="rounded-lg">
-                  <Link href="/register" className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    Create Account
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild className="rounded-lg">
-                  <Link href="/profile" className="flex items-center gap-2">
-                    <Settings className="h-4 w-4" />
-                    My Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild className="rounded-lg">
-                  <Link href="/orders" className="flex items-center gap-2">
-                    <Package className="h-4 w-4" />
-                    My Orders
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild className="rounded-lg">
-                  <Link href="/wishlist" className="flex items-center gap-2">
-                    <Heart className="h-4 w-4" />
-                    Wishlist
-                  </Link>
-                </DropdownMenuItem>
+                {isAuthenticated ? (
+                  <>
+                    <div className="px-3 py-2 border-b mb-2">
+                      <p className="text-sm font-medium">{user?.name}</p>
+                      <p className="text-xs text-muted-foreground">{user?.email}</p>
+                    </div>
+                    <DropdownMenuItem asChild className="rounded-lg">
+                      <Link href="/profile" className="flex items-center gap-2">
+                        <Settings className="h-4 w-4" />
+                        My Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="rounded-lg">
+                      <Link href="/orders" className="flex items-center gap-2">
+                        <Package className="h-4 w-4" />
+                        My Orders
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="rounded-lg">
+                      <Link href="/wishlist" className="flex items-center gap-2">
+                        <Heart className="h-4 w-4" />
+                        Wishlist
+                      </Link>
+                    </DropdownMenuItem>
+                    {user?.role === 'SELLER' && (
+                      <DropdownMenuItem asChild className="rounded-lg">
+                        <Link href="/seller" className="flex items-center gap-2">
+                          <Package className="h-4 w-4" />
+                          Seller Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {user?.role === 'ADMIN' && (
+                      <DropdownMenuItem asChild className="rounded-lg">
+                        <Link href="/admin" className="flex items-center gap-2">
+                          <Settings className="h-4 w-4" />
+                          Admin Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={logout} className="rounded-lg cursor-pointer">
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <>
+                    <div className="px-3 py-2 border-b mb-2">
+                      <p className="text-sm font-medium">Guest User</p>
+                      <p className="text-xs text-muted-foreground">Sign in for the best experience</p>
+                    </div>
+                    <DropdownMenuItem asChild className="rounded-lg">
+                      <Link href="/login" className="flex items-center gap-2">
+                        <LogOut className="h-4 w-4" />
+                        Sign In
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="rounded-lg">
+                      <Link href="/register" className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Create Account
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
 

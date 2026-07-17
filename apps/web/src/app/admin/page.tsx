@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatPrice } from "@/lib/utils";
 import { useAdminProducts, useAdminOrders, useAllSellers } from "@/lib/services/admin.service";
 import type { AdminProduct } from "@/lib/services/admin.service";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -130,7 +131,11 @@ export default function AdminDashboardPage() {
   const isLoading = productsLoading || ordersLoading || sellersLoading;
 
   if (isLoading) {
-    return <DashboardSkeleton />;
+    return (
+      <ProtectedRoute requiredRole="ADMIN">
+        <DashboardSkeleton />
+      </ProtectedRoute>
+    );
   }
 
   const products: AdminProduct[] = Array.isArray(productsData) ? productsData : [];
@@ -178,6 +183,7 @@ export default function AdminDashboardPage() {
   const recentOrders = orders.slice(0, 5);
 
   return (
+    <ProtectedRoute requiredRole="ADMIN">
     <div className="space-y-6">
       {/* Page heading */}
       <div className="flex items-center justify-between">
@@ -514,5 +520,6 @@ export default function AdminDashboardPage() {
         </CardContent>
       </Card>
     </div>
+    </ProtectedRoute>
   );
 }

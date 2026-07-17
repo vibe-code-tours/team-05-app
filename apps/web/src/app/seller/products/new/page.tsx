@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import { useCreateProduct } from "@/lib/services/seller.service";
 import { useCategories } from "@/lib/services/product.service";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 
 interface VariantOption {
   type: "size" | "color";
@@ -158,7 +159,8 @@ export default function NewProductPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <ProtectedRoute requiredRole="SELLER">
+      <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
@@ -458,5 +460,6 @@ export default function NewProductPage() {
         </div>
       </form>
     </div>
+    </ProtectedRoute>
   );
 }

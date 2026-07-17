@@ -28,6 +28,7 @@ import { cn, formatPrice } from '@/lib/utils';
 import { useMyOrders } from '@/lib/services/order.service';
 import type { Order as ApiOrder } from '@/lib/services/order.service';
 import type { Order, OrderStatus } from '@/types/order';
+import { ProtectedRoute } from '@/components/auth/protected-route';
 
 const STATUS_CONFIG: Record<
   OrderStatus,
@@ -415,8 +416,9 @@ export default function OrdersPage() {
   const hasFilters = activeTab !== 'all' || searchTerm.trim().length > 0;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Header />
+    <ProtectedRoute>
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header />
 
       <main className="flex-1">
         {/* Page Header */}
@@ -517,7 +519,8 @@ export default function OrdersPage() {
         </div>
       </main>
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </ProtectedRoute>
   );
 }

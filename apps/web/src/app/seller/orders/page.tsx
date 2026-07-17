@@ -47,6 +47,7 @@ import { formatPrice } from "@/lib/utils";
 import { useSellerOrders, useUpdateSellerOrderStatus } from "@/lib/services/seller.service";
 import type { SellerOrderStatus } from "@/types/seller";
 import type { SellerOrder as ApiSellerOrder } from "@/lib/services/seller.service";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -266,7 +267,8 @@ export default function SellerOrdersPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <ProtectedRoute requiredRole="SELLER">
+      <div className="space-y-6">
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Orders</h1>
@@ -725,5 +727,6 @@ export default function SellerOrdersPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </ProtectedRoute>
   );
 }

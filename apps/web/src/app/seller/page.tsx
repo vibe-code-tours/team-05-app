@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatPrice } from "@/lib/utils";
 import { useMyProducts, useSellerOrders } from "@/lib/services/seller.service";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 
 const orderStatusConfig: Record<
   string,
@@ -145,11 +146,16 @@ export default function SellerDashboardPage() {
   ];
 
   if (isLoading) {
-    return <DashboardSkeleton />;
+    return (
+      <ProtectedRoute requiredRole="SELLER">
+        <DashboardSkeleton />
+      </ProtectedRoute>
+    );
   }
 
   return (
-    <div className="space-y-6">
+    <ProtectedRoute requiredRole="SELLER">
+      <div className="space-y-6">
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
@@ -341,5 +347,6 @@ export default function SellerDashboardPage() {
         </CardContent>
       </Card>
     </div>
+    </ProtectedRoute>
   );
 }

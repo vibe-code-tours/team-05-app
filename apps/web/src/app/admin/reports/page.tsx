@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatPrice } from "@/lib/utils";
 import { mockReportData } from "@/lib/mock-admin-data";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -281,6 +282,7 @@ export default function AdminReportsPage() {
   }
 
   return (
+    <ProtectedRoute requiredRole="ADMIN">
     <div className="space-y-6">
       {/* Page header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -537,5 +539,6 @@ export default function AdminReportsPage() {
         </CardContent>
       </Card>
     </div>
+    </ProtectedRoute>
   );
 }

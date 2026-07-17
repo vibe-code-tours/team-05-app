@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
+import { ProtectedRoute } from '@/components/auth/protected-route';
 import { cn, formatPrice } from '@/lib/utils';
 import { useOrder } from '@/lib/services/order.service';
 import type { Order as ApiOrder } from '@/lib/services/order.service';

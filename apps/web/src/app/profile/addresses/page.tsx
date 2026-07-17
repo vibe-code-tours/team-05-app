@@ -21,6 +21,7 @@ import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { cn } from '@/lib/utils'
 import { toast } from '@/components/ui/use-toast'
+import { ProtectedRoute } from '@/components/auth/protected-route'
 import {
   useAddresses,
   useCreateAddress,
@@ -322,8 +323,9 @@ export default function AddressesPage() {
   const isDeleting = deleteAddressMutation.isPending
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <ProtectedRoute>
+      <div className="min-h-screen bg-background">
+        <Header />
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Link */}
         <Link
@@ -641,6 +643,7 @@ export default function AddressesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </ProtectedRoute>
   )
 }

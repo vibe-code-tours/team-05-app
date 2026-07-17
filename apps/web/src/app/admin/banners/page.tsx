@@ -45,6 +45,7 @@ import type {
   Banner as ApiBanner,
   CreateBannerInput,
 } from "@/lib/services/banner.service";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -343,14 +344,17 @@ export default function AdminBannersPage() {
   // ---- loading state ----
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-32">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <ProtectedRoute requiredRole="ADMIN">
+        <div className="flex items-center justify-center py-32">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </ProtectedRoute>
     );
   }
 
   // ---- render ----
   return (
+    <ProtectedRoute requiredRole="ADMIN">
     <div className="space-y-6">
       {/* Page header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -878,5 +882,6 @@ export default function AdminBannersPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </ProtectedRoute>
   );
 }

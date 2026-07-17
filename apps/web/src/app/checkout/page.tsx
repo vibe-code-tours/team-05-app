@@ -32,6 +32,7 @@ import {
 } from '@/lib/services/user.service'
 import { toast } from '@/components/ui/use-toast'
 import type { CartItemView } from '@/types/cart'
+import { ProtectedRoute } from '@/components/auth/protected-route'
 
 type CheckoutStep = 'address' | 'payment' | 'review'
 
@@ -211,13 +212,15 @@ export default function CheckoutPage() {
   // --- Guard: still loading or empty cart ---
   if (cartLoading) {
     return (
-      <PublicLayout>
-        <div className="bg-background">
-          <div className="container mx-auto px-4 py-8 max-w-4xl flex items-center justify-center min-h-[50vh]">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <ProtectedRoute>
+        <PublicLayout>
+          <div className="bg-background">
+            <div className="container mx-auto px-4 py-8 max-w-4xl flex items-center justify-center min-h-[50vh]">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
           </div>
-        </div>
-      </PublicLayout>
+        </PublicLayout>
+      </ProtectedRoute>
     )
   }
 
@@ -226,8 +229,9 @@ export default function CheckoutPage() {
   }
 
   return (
-    <PublicLayout>
-      <div className="bg-background">
+    <ProtectedRoute>
+      <PublicLayout>
+        <div className="bg-background">
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           {/* Page Header */}
           <div className="mb-8">
@@ -532,6 +536,7 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
-    </PublicLayout>
+      </PublicLayout>
+    </ProtectedRoute>
   )
 }

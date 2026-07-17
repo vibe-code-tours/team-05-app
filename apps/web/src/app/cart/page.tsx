@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { useCart, useUpdateCartItem, useRemoveCartItem, useClearCart } from '@/lib/services/cart.service'
 import { CartItem, CartSummary, EmptyCart } from '@/components/cart'
 import type { CartItemView } from '@/types/cart'
+import { ProtectedRoute } from '@/components/auth/protected-route'
 
 /** Map nested API CartItem to flat CartItemView for UI components. */
 function toCartItemView(item: import('@/types/cart').CartItem): CartItemView {
@@ -55,54 +56,60 @@ export default function CartPage() {
   // --- Loading state ---
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center gap-3 mb-8">
-            <ShoppingCart className="h-6 w-6 text-foreground animate-pulse" />
-            <div className="h-8 w-48 bg-muted rounded animate-pulse" />
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-24 bg-muted rounded-lg animate-pulse" />
-              ))}
+      <ProtectedRoute>
+        <div className="min-h-screen bg-background">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="flex items-center gap-3 mb-8">
+              <ShoppingCart className="h-6 w-6 text-foreground animate-pulse" />
+              <div className="h-8 w-48 bg-muted rounded animate-pulse" />
             </div>
-            <div className="lg:col-span-1">
-              <div className="h-64 bg-muted rounded-lg animate-pulse" />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-24 bg-muted rounded-lg animate-pulse" />
+                ))}
+              </div>
+              <div className="lg:col-span-1">
+                <div className="h-64 bg-muted rounded-lg animate-pulse" />
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </ProtectedRoute>
     )
   }
 
   // --- Error state ---
   if (error) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col items-center justify-center py-16">
-            <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
-            <h2 className="text-xl font-semibold text-foreground mb-2">
-              Failed to load cart
-            </h2>
-            <p className="text-muted-foreground text-center max-w-md">
-              Something went wrong while fetching your cart. Please try again later.
-            </p>
+      <ProtectedRoute>
+        <div className="min-h-screen bg-background">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="flex flex-col items-center justify-center py-16">
+              <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
+              <h2 className="text-xl font-semibold text-foreground mb-2">
+                Failed to load cart
+              </h2>
+              <p className="text-muted-foreground text-center max-w-md">
+                Something went wrong while fetching your cart. Please try again later.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      </ProtectedRoute>
     )
   }
 
   // --- Empty cart ---
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <EmptyCart />
+      <ProtectedRoute>
+        <div className="min-h-screen bg-background">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <EmptyCart />
+          </div>
         </div>
-      </div>
+      </ProtectedRoute>
     )
   }
 
@@ -110,10 +117,11 @@ export default function CartPage() {
   const outOfStockCount = cartItemViews.filter((item) => item.quantity > item.stock).length
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page Header */}
-        <div className="flex items-center justify-between mb-8">
+    <ProtectedRoute>
+      <div className="min-h-screen bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Page Header */}
+          <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <ShoppingCart className="h-6 w-6 text-foreground" />
             <h1 className="text-2xl font-bold text-foreground">Shopping Cart</h1>
@@ -167,7 +175,8 @@ export default function CartPage() {
             </div>
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   )
 }
