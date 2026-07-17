@@ -54,7 +54,8 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Hero Banner Animations */
+/* ═══ Hero Banner Animations ═══ */
+
 @keyframes float {
   0%, 100% { transform: translate(0, 0) rotate(0deg); }
   25% { transform: translate(10px, -15px) rotate(2deg); }
@@ -129,6 +130,56 @@
 @keyframes shine {
   0% { left: -100%; }
   100% { left: 200%; }
+}
+
+/* ═══ Premium Hero Animations ═══ */
+
+/* Staggered text reveal — each line enters sequentially */
+@keyframes stagger-in {
+  from { opacity: 0; transform: translateY(40px) skewY(2deg); filter: blur(8px); }
+  to { opacity: 1; transform: translateY(0) skewY(0deg); filter: blur(0); }
+}
+
+/* Glow pulse for CTA buttons */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(225, 29, 72, 0.3), 0 0 60px rgba(225, 29, 72, 0.1); }
+  50% { box-shadow: 0 0 30px rgba(225, 29, 72, 0.5), 0 0 80px rgba(225, 29, 72, 0.2); }
+}
+
+/* Floating product card entrance */
+@keyframes float-in-right {
+  from { opacity: 0; transform: translateX(60px) translateY(20px) rotate(6deg); }
+  to { opacity: 1; transform: translateX(0) translateY(0) rotate(0deg); }
+}
+
+/* Orbit rotation for decorative ring */
+@keyframes orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Morph blob for background organic shapes */
+@keyframes morph-blob {
+  0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+  25% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+  50% { border-radius: 50% 60% 30% 60% / 30% 60% 70% 40%; }
+  75% { border-radius: 60% 40% 60% 30% / 70% 30% 50% 60%; }
+}
+
+/* Badge pop-in */
+@keyframes badge-pop {
+  0% { opacity: 0; transform: scale(0.5) translateY(10px); }
+  60% { transform: scale(1.1) translateY(-2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Particle float for background sparkles */
+@keyframes particle-float {
+  0% { transform: translateY(0) translateX(0) scale(1); opacity: 0.6; }
+  25% { transform: translateY(-30px) translateX(15px) scale(1.2); opacity: 1; }
+  50% { transform: translateY(-50px) translateX(-10px) scale(0.8); opacity: 0.4; }
+  75% { transform: translateY(-30px) translateX(20px) scale(1.1); opacity: 0.8; }
+  100% { transform: translateY(0) translateX(0) scale(1); opacity: 0.6; }
 }
 
 /* Reduced motion support */
