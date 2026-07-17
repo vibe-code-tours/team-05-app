@@ -16,6 +16,7 @@ import { RegisterSellerDto, ApproveSellerDto } from "./dto/seller.dto";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
+import { Public } from "../../common/decorators/public.decorator";
 
 @ApiTags("Sellers")
 @Controller("sellers")
@@ -72,6 +73,7 @@ export class SellerController {
 
   // ─── Public ──────────────────────────────────────────
 
+  @Public()
   @Get(":id")
   @ApiOperation({ summary: "Get seller public profile" })
   getSellerProfile(@Param("id") sellerId: string) {
