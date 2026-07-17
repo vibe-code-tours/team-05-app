@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { User, Mail, Phone, Lock, Eye, EyeOff, ArrowRight, ShoppingBag, CheckCircle2 } from 'lucide-react'
+import { User, Mail, Phone, Lock, Eye, EyeOff, ArrowRight, ShoppingBag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -52,7 +52,6 @@ export default function RegisterPage() {
     agreeToTerms: false,
   })
   const [errors, setErrors] = useState<ValidationErrors>({})
-  const [focusedField, setFocusedField] = useState<string | null>(null)
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -161,245 +160,134 @@ export default function RegisterPage() {
   }
 
   const getInputClasses = (field: string, hasError: boolean = false) => {
-    const baseClasses = 'pl-12 h-12 rounded-xl border-2 transition-all duration-200'
-    const focusClasses = focusedField === field
-      ? 'border-blue-500 ring-4 ring-blue-100'
-      : hasError
-      ? 'border-red-500'
-      : 'border-gray-200 hover:border-gray-300'
-    return `${baseClasses} ${focusClasses}`
+    const base = 'h-11 rounded-xl border transition-all'
+    const focus = 'focus-visible:ring-4 focus-visible:border-rose-500 focus-visible:ring-rose-100'
+    const error = hasError ? 'border-red-300' : 'border-gray-200'
+    return `${base} ${focus} ${error}`
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl" />
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-white rounded-full blur-3xl" />
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-100">
+        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-rose-600 rounded-xl flex items-center justify-center">
+              <ShoppingBag className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-lg font-bold text-gray-900">CrossMart</span>
+          </Link>
+          <span className="text-sm font-medium text-gray-500">Create Account</span>
         </div>
+      </header>
 
-        {/* Content */}
-        <div className="relative z-10 flex flex-col justify-center px-12 xl:px-16">
-          {/* Logo */}
-          <div className="mb-12">
-            <div className="flex items-center gap-3">
-              <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg">
-                <ShoppingBag className="w-8 h-8 text-blue-600" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-white">CrossMart</h1>
-                <p className="text-blue-100 text-sm">Myanmar&apos;s Most Trusted Marketplace</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Main Heading */}
-          <div className="mb-12">
-            <h2 className="text-4xl xl:text-5xl font-bold text-white leading-tight mb-6">
-              Start your shopping journey today
-            </h2>
-            <p className="text-xl text-blue-100 leading-relaxed">
-              Join thousands of buyers and sellers across Myanmar and Thailand.
-            </p>
-          </div>
-
-          {/* Benefits */}
-          <div className="space-y-6">
-            {[
-              { text: 'Access to 10,000+ products', sub: 'From local and international sellers' },
-              { text: 'Free shipping on first order', sub: 'No minimum purchase required' },
-              { text: 'Secure payment protection', sub: '100% money-back guarantee' },
-            ].map((benefit, index) => (
-              <div key={index} className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-green-400 rounded-full flex items-center justify-center flex-shrink-0">
-                  <CheckCircle2 className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-white font-semibold">{benefit.text}</p>
-                  <p className="text-blue-100 text-sm">{benefit.sub}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Stats */}
-          <div className="mt-12 pt-8 border-t border-white/20 grid grid-cols-3 gap-8">
-            <div>
-              <p className="text-3xl font-bold text-white">10K+</p>
-              <p className="text-blue-100 text-sm">Active Users</p>
-            </div>
-            <div>
-              <p className="text-3xl font-bold text-white">5K+</p>
-              <p className="text-blue-100 text-sm">Products</p>
-            </div>
-            <div>
-              <p className="text-3xl font-bold text-white">1K+</p>
-              <p className="text-blue-100 text-sm">Sellers</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Right Side - Register Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gray-50 overflow-y-auto">
+      {/* Main Content */}
+      <main className="flex-1 flex items-start justify-center pt-12 pb-12 px-6">
         <div className="w-full max-w-md">
-          {/* Mobile Logo */}
-          <div className="lg:hidden mb-8 text-center">
-            <div className="inline-flex items-center gap-3">
-              <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                <ShoppingBag className="w-7 h-7 text-white" />
-              </div>
-              <span className="text-2xl font-bold text-gray-900">CrossMart</span>
-            </div>
-          </div>
-
-          {/* Form Header */}
+          {/* Welcome */}
           <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h2>
-            <p className="text-gray-600">
-              Already have an account?{' '}
-              <Link
-                href="/login"
-                className="text-blue-600 hover:text-blue-700 font-semibold transition-colors"
-              >
-                Sign in
-              </Link>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Create your account</h1>
+            <p className="text-gray-500">
+              Join CrossMart to buy or sell products
             </p>
           </div>
 
-          {/* Register Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Full Name Input */}
-            <div className="space-y-2">
-              <Label htmlFor="fullName" className="text-gray-700 font-medium">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Full Name */}
+            <div className="space-y-1.5">
+              <Label htmlFor="fullName" className="text-sm font-medium text-gray-700">
                 Full Name
               </Label>
               <div className="relative">
-                <User className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-colors ${
-                  focusedField === 'fullName' ? 'text-blue-600' : 'text-gray-400'
-                }`} />
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   id="fullName"
                   type="text"
                   placeholder="John Doe"
                   value={formData.fullName}
                   onChange={(e) => handleInputChange('fullName', e.target.value)}
-                  onFocus={() => setFocusedField('fullName')}
-                  onBlur={() => setFocusedField(null)}
-                  className={getInputClasses('fullName', !!errors.fullName)}
+                  className={`pl-10 ${getInputClasses('fullName', !!errors.fullName)}`}
                   disabled={isLoading}
                   aria-invalid={!!errors.fullName}
                   aria-describedby={errors.fullName ? 'fullName-error' : undefined}
                 />
               </div>
               {errors.fullName && (
-                <p id="fullName-error" role="alert" className="text-sm text-red-500 flex items-center gap-1">
-                  <span className="w-1 h-1 bg-red-500 rounded-full" />
+                <p id="fullName-error" role="alert" className="text-xs text-red-500">
                   {errors.fullName}
                 </p>
               )}
             </div>
 
-            {/* Email Input */}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-700 font-medium">
+            {/* Email */}
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-sm font-medium text-gray-700">
                 Email
               </Label>
               <div className="relative">
-                <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-colors ${
-                  focusedField === 'email' ? 'text-blue-600' : 'text-gray-400'
-                }`} />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="you@example.com"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  onFocus={() => setFocusedField('email')}
-                  onBlur={() => setFocusedField(null)}
-                  className={getInputClasses('email', !!errors.email)}
+                  className={`pl-10 ${getInputClasses('email', !!errors.email)}`}
                   disabled={isLoading}
                   aria-invalid={!!errors.email}
                   aria-describedby={errors.email ? 'email-error' : undefined}
                 />
               </div>
               {errors.email && (
-                <p id="email-error" role="alert" className="text-sm text-red-500 flex items-center gap-1">
-                  <span className="w-1 h-1 bg-red-500 rounded-full" />
+                <p id="email-error" role="alert" className="text-xs text-red-500">
                   {errors.email}
                 </p>
               )}
             </div>
 
-            {/* Phone Number Input */}
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="text-gray-700 font-medium">
+            {/* Phone */}
+            <div className="space-y-1.5">
+              <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
                 Phone Number
               </Label>
-              <div className="relative">
-                <Phone className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-colors ${
-                  focusedField === 'phone' ? 'text-blue-600' : 'text-gray-400'
-                }`} />
-                <div className="flex">
-                  <span className="h-12 px-4 text-gray-500 bg-gray-100 border-2 border-r-0 border-gray-200 rounded-l-xl flex items-center font-medium">
-                    +95
-                  </span>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="9XXXXXXXXX"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
-                    onFocus={() => setFocusedField('phone')}
-                    onBlur={() => setFocusedField(null)}
-                    className={`h-12 rounded-r-xl border-2 transition-all duration-200 ${
-                      focusedField === 'phone'
-                        ? 'border-blue-500 ring-4 ring-blue-100'
-                        : errors.phone
-                        ? 'border-red-500'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    disabled={isLoading}
-                    aria-invalid={!!errors.phone}
-                    aria-describedby={errors.phone ? 'phone-error' : undefined}
-                  />
-                </div>
+              <div className="flex">
+                <span className="h-11 px-3 text-sm text-gray-500 bg-gray-100 border border-gray-200 border-r-0 rounded-l-xl flex items-center font-medium">
+                  +95
+                </span>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="9XXXXXXXXX"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  className={`rounded-l-none ${getInputClasses('phone', !!errors.phone)}`}
+                  disabled={isLoading}
+                  aria-invalid={!!errors.phone}
+                  aria-describedby={errors.phone ? 'phone-error' : undefined}
+                />
               </div>
               {errors.phone && (
-                <p id="phone-error" role="alert" className="text-sm text-red-500 flex items-center gap-1">
-                  <span className="w-1 h-1 bg-red-500 rounded-full" />
+                <p id="phone-error" role="alert" className="text-xs text-red-500">
                   {errors.phone}
                 </p>
               )}
-              <p className="text-xs text-gray-500">Format: 9XXXXXXXXX (10 digits)</p>
             </div>
 
-            {/* Password Input */}
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-gray-700 font-medium">
+            {/* Password */}
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
                 Password
               </Label>
               <div className="relative">
-                <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-colors ${
-                  focusedField === 'password' ? 'text-blue-600' : 'text-gray-400'
-                }`} />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Create a strong password"
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  onFocus={() => setFocusedField('password')}
-                  onBlur={() => setFocusedField(null)}
-                  className={`pl-12 pr-12 h-12 rounded-xl border-2 transition-all duration-200 ${
-                    focusedField === 'password'
-                      ? 'border-blue-500 ring-4 ring-blue-100'
-                      : errors.password
-                      ? 'border-red-500'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                  className={`pl-10 pr-10 ${getInputClasses('password', !!errors.password)}`}
                   disabled={isLoading}
                   aria-invalid={!!errors.password}
                   aria-describedby={errors.password ? 'password-error' : undefined}
@@ -407,64 +295,51 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                   disabled={isLoading}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
               {errors.password && (
-                <p id="password-error" role="alert" className="text-sm text-red-500 flex items-center gap-1">
-                  <span className="w-1 h-1 bg-red-500 rounded-full" />
+                <p id="password-error" role="alert" className="text-xs text-red-500">
                   {errors.password}
                 </p>
               )}
-              {/* Password Strength Indicator */}
+              {/* Password Strength */}
               {formData.password && (
-                <div className="space-y-2 mt-3" role="progressbar" aria-valuenow={passwordStrength.level === 'weak' ? 33 : passwordStrength.level === 'medium' ? 66 : 100} aria-valuemin={0} aria-valuemax={100} aria-label="Password strength">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-500">Password strength:</span>
-                    <span className={`text-xs font-semibold ${
+                <div className="pt-1">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-gray-400">Password strength</span>
+                    <span className={`text-xs font-medium ${
                       passwordStrength.level === 'weak' ? 'text-red-500' :
                       passwordStrength.level === 'medium' ? 'text-yellow-500' : 'text-green-500'
                     }`}>
                       {passwordStrength.text}
                     </span>
                   </div>
-                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${passwordStrength.color} transition-all duration-500 ease-out ${passwordStrength.width}`}
-                    />
+                  <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                    <div className={`h-full ${passwordStrength.color} transition-all duration-300 ${passwordStrength.width}`} />
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Confirm Password Input */}
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-gray-700 font-medium">
+            {/* Confirm Password */}
+            <div className="space-y-1.5">
+              <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
                 Confirm Password
               </Label>
               <div className="relative">
-                <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-colors ${
-                  focusedField === 'confirmPassword' ? 'text-blue-600' : 'text-gray-400'
-                }`} />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="Confirm your password"
                   value={formData.confirmPassword}
                   onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                  onFocus={() => setFocusedField('confirmPassword')}
-                  onBlur={() => setFocusedField(null)}
-                  className={`pl-12 pr-12 h-12 rounded-xl border-2 transition-all duration-200 ${
-                    focusedField === 'confirmPassword'
-                      ? 'border-blue-500 ring-4 ring-blue-100'
-                      : errors.confirmPassword
-                      ? 'border-red-500'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                  className={`pl-10 pr-10 ${getInputClasses('confirmPassword', !!errors.confirmPassword)}`}
                   disabled={isLoading}
                   aria-invalid={!!errors.confirmPassword}
                   aria-describedby={errors.confirmPassword ? 'confirmPassword-error' : undefined}
@@ -472,124 +347,109 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                   disabled={isLoading}
                   aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
               {errors.confirmPassword && (
-                <p id="confirmPassword-error" role="alert" className="text-sm text-red-500 flex items-center gap-1">
-                  <span className="w-1 h-1 bg-red-500 rounded-full" />
+                <p id="confirmPassword-error" role="alert" className="text-xs text-red-500">
                   {errors.confirmPassword}
                 </p>
               )}
             </div>
 
             {/* Role Selection */}
-            <div className="space-y-3">
-              <Label className="text-gray-700 font-medium">I want to</Label>
-              <div role="radiogroup" aria-label="Select account type" className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">I want to</Label>
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  role="radio"
-                  aria-checked={formData.role === 'CLIENT'}
                   onClick={() => handleInputChange('role', 'CLIENT')}
-                  className={`p-5 rounded-xl border-2 transition-all duration-200 ${
+                  className={`p-4 rounded-xl border-2 transition-all duration-200 ${
                     formData.role === 'CLIENT'
-                      ? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-100'
+                      ? 'border-rose-500 bg-rose-50'
                       : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                   disabled={isLoading}
                 >
                   <div className="text-center">
-                    <span className="text-3xl">🛒</span>
-                    <p className={`font-semibold mt-3 ${
-                      formData.role === 'CLIENT' ? 'text-blue-600' : 'text-gray-700'
+                    <span className="text-2xl">🛒</span>
+                    <p className={`text-sm font-semibold mt-2 ${
+                      formData.role === 'CLIENT' ? 'text-rose-600' : 'text-gray-700'
                     }`}>
                       Shop
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">Buy products from sellers</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Buy products</p>
                   </div>
                 </button>
                 <button
                   type="button"
-                  role="radio"
-                  aria-checked={formData.role === 'SELLER'}
                   onClick={() => handleInputChange('role', 'SELLER')}
-                  className={`p-5 rounded-xl border-2 transition-all duration-200 ${
+                  className={`p-4 rounded-xl border-2 transition-all duration-200 ${
                     formData.role === 'SELLER'
-                      ? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-100'
+                      ? 'border-rose-500 bg-rose-50'
                       : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                   disabled={isLoading}
                 >
                   <div className="text-center">
-                    <span className="text-3xl">🏪</span>
-                    <p className={`font-semibold mt-3 ${
-                      formData.role === 'SELLER' ? 'text-blue-600' : 'text-gray-700'
+                    <span className="text-2xl">🏪</span>
+                    <p className={`text-sm font-semibold mt-2 ${
+                      formData.role === 'SELLER' ? 'text-rose-600' : 'text-gray-700'
                     }`}>
                       Sell
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">Start your own store</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Start your store</p>
                   </div>
                 </button>
               </div>
               {errors.role && (
-                <p id="role-error" role="alert" className="text-sm text-red-500 flex items-center gap-1">
-                  <span className="w-1 h-1 bg-red-500 rounded-full" />
+                <p id="role-error" role="alert" className="text-xs text-red-500">
                   {errors.role}
                 </p>
               )}
             </div>
 
-            {/* Terms & Conditions */}
-            <div className="space-y-2">
-              <label className="flex items-start gap-3 cursor-pointer group">
+            {/* Terms */}
+            <div className="space-y-1.5">
+              <label className="flex items-start gap-2.5 cursor-pointer group">
                 <input
                   type="checkbox"
                   checked={formData.agreeToTerms}
                   onChange={(e) => handleInputChange('agreeToTerms', e.target.checked)}
-                  className="w-5 h-5 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 transition-colors"
+                  className="w-4 h-4 mt-0.5 text-rose-600 border-gray-300 rounded focus:ring-rose-500"
                   disabled={isLoading}
                 />
-                <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors leading-relaxed">
+                <span className="text-sm text-gray-500 group-hover:text-gray-700 transition-colors leading-relaxed">
                   I agree to the{' '}
-                  <Link
-                    href="/terms"
-                    className="text-blue-600 hover:text-blue-700 font-medium"
-                    target="_blank"
-                  >
-                    Terms & Conditions
+                  <Link href="/terms" className="text-rose-600 hover:text-rose-700 font-medium" target="_blank">
+                    Terms
                   </Link>
                   {' '}and{' '}
-                  <Link
-                    href="/privacy"
-                    className="text-blue-600 hover:text-blue-700 font-medium"
-                    target="_blank"
-                  >
+                  <Link href="/privacy" className="text-rose-600 hover:text-rose-700 font-medium" target="_blank">
                     Privacy Policy
                   </Link>
                 </span>
               </label>
               {errors.agreeToTerms && (
-                <p id="agreeToTerms-error" role="alert" className="text-sm text-red-500 flex items-center gap-1">
-                  <span className="w-1 h-1 bg-red-500 rounded-full" />
+                <p id="agreeToTerms-error" role="alert" className="text-xs text-red-500">
                   {errors.agreeToTerms}
                 </p>
               )}
             </div>
 
-            {/* Create Account Button */}
+            {/* Submit */}
             <Button
               type="submit"
-              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-blue-200 active:scale-[0.98]"
+              className="w-full h-11 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-rose-200 active:scale-[0.98]"
               disabled={isLoading || !formData.agreeToTerms}
             >
               {isLoading ? (
                 <span className="flex items-center justify-center">
-                  <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
@@ -598,27 +458,38 @@ export default function RegisterPage() {
               ) : (
                 <span className="flex items-center justify-center gap-2">
                   Create Account
-                  <ArrowRight className="h-5 w-5" />
+                  <ArrowRight className="h-4 w-4" />
                 </span>
               )}
             </Button>
           </form>
 
+          {/* Sign In Link */}
+          <p className="mt-6 text-center text-sm text-gray-500">
+            Already have an account?{' '}
+            <Link
+              href="/login"
+              className="text-rose-600 hover:text-rose-700 font-semibold transition-colors"
+            >
+              Sign in
+            </Link>
+          </p>
+
           {/* Footer */}
-          <div className="mt-8 text-center">
-            <p className="text-sm text-gray-500">
+          <div className="mt-6 text-center">
+            <p className="text-xs text-gray-400">
               By creating an account, you agree to our{' '}
-              <Link href="/terms" className="text-blue-600 hover:text-blue-700">
+              <Link href="/terms" className="hover:text-gray-600 transition-colors">
                 Terms
               </Link>
               {' '}and{' '}
-              <Link href="/privacy" className="text-blue-600 hover:text-blue-700">
+              <Link href="/privacy" className="hover:text-gray-600 transition-colors">
                 Privacy Policy
               </Link>
             </p>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }
