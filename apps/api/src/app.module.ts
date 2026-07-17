@@ -1,6 +1,8 @@
-import { Module } from "@nestjs/common";
+import { Module, MiddlewareConsumer, NestModule } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { ThrottlerModule } from "@nestjs/throttler";
+import { APP_GUARD } from "@nestjs/core";
+import { envValidationSchema } from "./config/env.validation";
 import { PrismaModule } from "./config/prisma.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { UserModule } from "./modules/user/user.module";
@@ -18,11 +20,20 @@ import { BannerModule } from "./modules/banner/banner.module";
 import { CouponModule } from "./modules/coupon/coupon.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { HealthController } from "./config/health.controller";
+import { DataIsolationMiddleware } from "./common/middleware/data-isolation.middleware";
+import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
+import { ThrottlerGuard } from "@nestjs/throttler";
 
 @Module({
   imports: [
     // Config
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validationSchema: envValidationSchema,
+      validationOptions: {
+        abortEarly: true, // Fail on first error
+      },
+    }),
 
     // Rate limiting
     ThrottlerModule.forRoot([
@@ -53,5 +64,23 @@ import { HealthController } from "./config/health.controller";
     AdminModule,
   ],
   controllers: [HealthController],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Apply data isolation middleware to all routes except auth
+    consumer
+      .apply(DataIsolationMiddleware)
+      .exclude('auth/(.*)') // Exclude auth routes
+      .forRoutes('*');
+  }
+}

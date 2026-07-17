@@ -22,6 +22,7 @@ import {
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
+import { Public } from "../../common/decorators/public.decorator";
 
 @ApiTags("Products")
 @Controller("products")
@@ -30,6 +31,7 @@ export class ProductController {
 
   // ─── Public ──────────────────────────────────────────
 
+  @Public()
   @Get()
   @ApiOperation({ summary: "List products with filters" })
   @ApiQuery({ name: "page", required: false })
@@ -88,6 +90,7 @@ export class ProductController {
     });
   }
 
+  @Public()
   @Get(":slug")
   @ApiOperation({ summary: "Get product by slug" })
   findBySlug(@Param("slug") slug: string) {

@@ -5,6 +5,8 @@ import { FeaturedProducts } from '@/components/home/featured-products';
 import { CategoryGrid } from '@/components/home/category-grid';
 import { NewArrivals } from '@/components/home/new-arrivals';
 import { PromoBanner } from '@/components/home/promo-banner';
+import { Testimonials } from '@/components/home/testimonials';
+import { WhyChooseUs } from '@/components/home/why-choose-us';
 
 export default function Home() {
   return (
@@ -32,8 +34,14 @@ export default function Home() {
         {/* Category Grid */}
         <CategoryGrid />
 
+        {/* Why Choose Us */}
+        <WhyChooseUs />
+
         {/* New Arrivals */}
         <NewArrivals />
+
+        {/* Testimonials */}
+        <Testimonials />
 
         {/* Second Promo Banner */}
         <section className="container mx-auto px-4 py-8">

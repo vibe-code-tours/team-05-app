@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, MinLength, Min } from "class-validator";
+import { IsString, IsOptional, MinLength } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 // ─── Category DTOs ───────────────────────────────────

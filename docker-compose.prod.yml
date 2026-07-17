@@ -1,15 +1,28 @@
-# Production Docker Compose (for VPS deployment)
-# Usage: docker compose -f docker-compose.prod.yml up -d
+# Production Docker Compose (Supabase + GCP)
+# Usage: docker compose -f docker-compose.prod.yml up -d --build
 
 services:
+  nginx:
+    image: nginx:alpine
+    container_name: crossmart-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - web
+      - api
+
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
     container_name: crossmart-api
     restart: unless-stopped
-    ports:
-      - "3001:3001"
+    expose:
+      - "3001"
     environment:
       - NODE_ENV=production
       - PORT=3001
@@ -17,19 +30,13 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-15m}
       - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN:-7d}
-      - REDIS_URL=${REDIS_URL}
-      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID}
-      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
-      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
-      - R2_BUCKET_NAME=${R2_BUCKET_NAME}
-      - R2_PUBLIC_URL=${R2_PUBLIC_URL}
       - CORS_ORIGINS=${CORS_ORIGINS}
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3001/api/v1/health"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 15s
 
   web:
     build:
@@ -37,8 +44,8 @@ services:
       dockerfile: apps/web/Dockerfile
     container_name: crossmart-web
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}

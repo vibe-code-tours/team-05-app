@@ -2,41 +2,56 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/stores/auth.store';
+import { useAuth } from '@/contexts/auth-context';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'ADMIN' | 'SELLER' | 'CLIENT';
+  allowedRoles: ('ADMIN' | 'SELLER' | 'CLIENT')[];
 }
 
-export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+  const { user, loading } = useAuth();
   const router = useRouter();
-  const { user, isAuthenticated } = useAuthStore();
 
   useEffect(() => {
-    if (!isAuthenticated || !user) {
-      router.replace('/login');
+    if (loading) return;
+
+    if (!user) {
+      router.push('/login');
       return;
     }
 
-    if (requiredRole && user.role !== requiredRole) {
-      // Redirect to appropriate dashboard based on role
-      if (user.role === 'ADMIN') {
-        router.replace('/admin');
-      } else if (user.role === 'SELLER') {
-        router.replace('/seller');
-      } else {
-        router.replace('/');
-      }
+    if (!allowedRoles.includes(user.role)) {
+      redirectByRole(user.role);
+      return;
     }
-  }, [isAuthenticated, user, requiredRole, router]);
+  }, [user, loading, allowedRoles, router]);
 
-  // Don't render anything while checking
-  if (!isAuthenticated || !user) {
-    return null;
+  const redirectByRole = (role: string) => {
+    switch (role) {
+      case 'ADMIN':
+        router.push('/admin');
+        break;
+      case 'SELLER':
+        router.push('/seller');
+        break;
+      case 'CLIENT':
+      default:
+        router.push('/');
+        break;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen" role="status" aria-label="Loading">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" aria-hidden="true"></div>
+        <span className="sr-only">Loading...</span>
+      </div>
+    );
   }
 
-  if (requiredRole && user.role !== requiredRole) {
+  if (!user || !allowedRoles.includes(user.role)) {
     return null;
   }
 

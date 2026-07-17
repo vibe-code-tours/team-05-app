@@ -1,12 +1,15 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { User } from "@/types/user";
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: "ADMIN" | "SELLER" | "CLIENT";
-  avatar?: string;
+const AUTH_COOKIE_NAME = "crossmart-auth-token";
+
+function setAuthCookie(token: string) {
+  document.cookie = `${AUTH_COOKIE_NAME}=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax; Secure`;
+}
+
+function clearAuthCookie() {
+  document.cookie = `${AUTH_COOKIE_NAME}=; path=/; max-age=0`;
 }
 
 interface AuthState {
@@ -25,11 +28,15 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       isAuthenticated: false,
 
-      login: (user, accessToken) =>
-        set({ user, accessToken, isAuthenticated: true }),
+      login: (user, accessToken) => {
+        setAuthCookie(accessToken);
+        set({ user, accessToken, isAuthenticated: true });
+      },
 
-      logout: () =>
-        set({ user: null, accessToken: null, isAuthenticated: false }),
+      logout: () => {
+        clearAuthCookie();
+        set({ user: null, accessToken: null, isAuthenticated: false });
+      },
 
       updateUser: (partial) =>
         set((state) => ({

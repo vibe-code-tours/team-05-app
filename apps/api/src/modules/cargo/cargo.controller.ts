@@ -21,6 +21,7 @@ import {
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
+import { Public } from "../../common/decorators/public.decorator";
 
 @ApiTags("Cargo Tracking")
 @Controller("cargo")
@@ -110,6 +111,7 @@ export class CargoController {
 
   // ─── Public ──────────────────────────────────────────
 
+  @Public()
   @Get("track/:trackingNumber")
   @ApiOperation({ summary: "Track by tracking number (public)" })
   getByTrackingNumber(@Param("trackingNumber") trackingNumber: string) {

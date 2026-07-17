@@ -11,7 +11,6 @@ import {
   MapPin,
   Bell,
   Save,
-  Check,
   User,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'

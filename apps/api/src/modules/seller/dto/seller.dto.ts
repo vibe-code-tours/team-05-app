@@ -1,4 +1,4 @@
-import { IsString, IsOptional, MinLength } from "class-validator";
+import { IsString, IsOptional, MinLength, IsIn } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class RegisterSellerDto {
@@ -24,8 +24,8 @@ export class RegisterSellerDto {
 
 export class ApproveSellerDto {
   @ApiProperty({ enum: ["APPROVED", "REJECTED"] })
-  @IsString()
-  status: string;
+  @IsIn(["APPROVED", "REJECTED"])
+  status: "APPROVED" | "REJECTED";
 
   @ApiPropertyOptional()
   @IsOptional()

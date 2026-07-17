@@ -4,7 +4,6 @@ import { ShoppingCart, Trash2, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useCart, useUpdateCartItem, useRemoveCartItem, useClearCart } from '@/lib/services/cart.service'
 import { CartItem, CartSummary, EmptyCart } from '@/components/cart'
-import { formatPrice } from '@/lib/utils'
 import type { CartItemView } from '@/types/cart'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 

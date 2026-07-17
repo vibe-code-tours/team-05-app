@@ -6,7 +6,6 @@ import {
   Eye,
   ChevronDown,
   ShoppingCart,
-  Calendar,
   Package,
   CreditCard,
   Truck,

@@ -12,7 +12,7 @@ import { Footer } from '@/components/layout/footer';
 import { useWishlistStore } from '@/stores/wishlist.store';
 import { useCartStore } from '@/stores/cart.store';
 import { MOCK_WISHLIST } from '@/lib/mock-wishlist';
-import { formatPrice, cn } from '@/lib/utils';
+import { formatPrice } from '@/lib/utils';
 import type { WishlistItem } from '@/types/wishlist';
 import { ProtectedRoute } from '@/components/auth/protected-route';
 

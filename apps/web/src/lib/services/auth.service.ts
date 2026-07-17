@@ -2,15 +2,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth.store";
 import { useRouter } from "next/navigation";
+import { User } from "@/types/user";
 
 // Types
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: "ADMIN" | "SELLER" | "CLIENT";
-  avatar?: string;
-}
 
 export interface AuthResponse {
   user: User;
