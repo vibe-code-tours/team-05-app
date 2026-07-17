@@ -35,6 +35,7 @@ import {
   useApproveProduct,
 } from "@/lib/services/admin.service";
 import type { AdminProduct } from "@/lib/services/admin.service";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 
 // ---------------------------------------------------------------------------
 // Types (local filter types aligned with API status values)
@@ -302,11 +303,16 @@ export default function AdminProductsPage() {
 
   // ---- loading ----
   if (isLoading) {
-    return <ProductsSkeleton />;
+    return (
+      <ProtectedRoute requiredRole="ADMIN">
+        <ProductsSkeleton />
+      </ProtectedRoute>
+    );
   }
 
   // ---- render ----
   return (
+    <ProtectedRoute requiredRole="ADMIN">
     <div className="space-y-6">
       {/* Page header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -864,5 +870,6 @@ export default function AdminProductsPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </ProtectedRoute>
   );
 }

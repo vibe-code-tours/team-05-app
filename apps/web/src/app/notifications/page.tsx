@@ -27,6 +27,7 @@ import {
 } from '@/lib/services/notification.service';
 import { cn } from '@/lib/utils';
 import type { NotificationType } from '@/types/notification';
+import { ProtectedRoute } from '@/components/auth/protected-route';
 
 const TYPE_ICON_MAP: Record<NotificationType, React.ComponentType<{ className?: string }>> = {
   order_update: Package,
@@ -111,6 +112,7 @@ export default function NotificationsPage() {
   };
 
   return (
+    <ProtectedRoute>
     <PublicLayout>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
         {/* Back Link */}
@@ -246,5 +248,6 @@ export default function NotificationsPage() {
         )}
       </div>
     </PublicLayout>
+    </ProtectedRoute>
   );
 }

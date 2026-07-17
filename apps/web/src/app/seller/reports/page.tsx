@@ -22,6 +22,7 @@ import {
   mockTopProductsReport,
   mockCategoryBreakdown,
 } from "@/lib/mock-seller-data";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 
 // ── CSS-Based Line Chart ───────────────────────────────────────────
 
@@ -269,7 +270,8 @@ export default function SellerReportsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <ProtectedRoute requiredRole="SELLER">
+      <div className="space-y-6">
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -448,5 +450,6 @@ export default function SellerReportsPage() {
         </CardContent>
       </Card>
     </div>
+    </ProtectedRoute>
   );
 }

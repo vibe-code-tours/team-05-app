@@ -17,6 +17,7 @@ import { PublicLayout } from '@/components/layout/public-layout';
 import { useNotificationStore } from '@/stores/notification.store';
 import { cn } from '@/lib/utils';
 import type { NotificationChannel } from '@/types/notification';
+import { ProtectedRoute } from '@/components/auth/protected-route';
 
 const CHANNEL_META: Record<
   NotificationChannel,
@@ -87,6 +88,7 @@ export default function NotificationPreferencesPage() {
   };
 
   return (
+    <ProtectedRoute>
     <PublicLayout>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
           {/* Back Link */}
@@ -224,5 +226,6 @@ export default function NotificationPreferencesPage() {
           </div>
         </div>
     </PublicLayout>
+    </ProtectedRoute>
   );
 }

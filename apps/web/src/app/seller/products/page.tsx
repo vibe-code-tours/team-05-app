@@ -33,6 +33,7 @@ import {
   useDeleteProduct,
   type SellerProduct,
 } from "@/lib/services/seller.service";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 
 const statusConfig: Record<
   SellerProduct["status"],
@@ -141,11 +142,16 @@ export default function SellerProductsPage() {
   };
 
   if (isLoading) {
-    return <ProductsSkeleton />;
+    return (
+      <ProtectedRoute requiredRole="SELLER">
+        <ProductsSkeleton />
+      </ProtectedRoute>
+    );
   }
 
   return (
-    <div className="space-y-6">
+    <ProtectedRoute requiredRole="SELLER">
+      <div className="space-y-6">
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -438,5 +444,6 @@ export default function SellerProductsPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </ProtectedRoute>
   );
 }

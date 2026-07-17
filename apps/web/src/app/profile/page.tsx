@@ -26,6 +26,7 @@ import { Footer } from '@/components/layout/footer'
 import { useAuthStore } from '@/stores/auth.store'
 import { useProfile, useUpdateProfile } from '@/lib/services/user.service'
 import { toast } from '@/components/ui/use-toast'
+import { ProtectedRoute } from '@/components/auth/protected-route'
 
 function getInitials(name: string): string {
   return name
@@ -137,10 +138,11 @@ export default function ProfilePage() {
   const displayEmail = user?.email ?? ''
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Header />
+    <ProtectedRoute>
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header />
 
-      <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-8">
+        <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-8">
         {/* Back Link */}
         <Link
           href="/"
@@ -345,7 +347,8 @@ export default function ProfilePage() {
         )}
       </main>
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </ProtectedRoute>
   )
 }

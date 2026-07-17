@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useCart } from '@/lib/services/cart.service';
+import { useAuthStore } from '@/stores/auth.store';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -28,6 +29,7 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const { data: cart } = useCart();
   const cartItemCount = cart?.data?.itemCount ?? 0;
+  const { user, isAuthenticated, logout } = useAuthStore();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -87,22 +89,47 @@ export function Header() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem asChild>
-                  <Link href="/login">Login</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/register">Register</Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/profile">My Profile</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/orders">My Orders</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/wishlist">Wishlist</Link>
-                </DropdownMenuItem>
+                {isAuthenticated ? (
+                  <>
+                    <div className="px-2 py-1.5">
+                      <p className="text-sm font-medium">{user?.name}</p>
+                      <p className="text-xs text-muted-foreground">{user?.email}</p>
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile">My Profile</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/orders">My Orders</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/wishlist">Wishlist</Link>
+                    </DropdownMenuItem>
+                    {user?.role === 'SELLER' && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/seller">Seller Dashboard</Link>
+                      </DropdownMenuItem>
+                    )}
+                    {user?.role === 'ADMIN' && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin">Admin Dashboard</Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={logout}>
+                      Logout
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <>
+                    <DropdownMenuItem asChild>
+                      <Link href="/login">Sign In</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/register">Create Account</Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
 

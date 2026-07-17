@@ -14,6 +14,7 @@ import { useCartStore } from '@/stores/cart.store';
 import { MOCK_WISHLIST } from '@/lib/mock-wishlist';
 import { formatPrice, cn } from '@/lib/utils';
 import type { WishlistItem } from '@/types/wishlist';
+import { ProtectedRoute } from '@/components/auth/protected-route';
 
 export default function WishlistPage() {
   const wishlistItems = useWishlistStore((s) => s.items);
@@ -44,8 +45,9 @@ export default function WishlistPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
+    <ProtectedRoute>
+      <div className="min-h-screen flex flex-col">
+        <Header />
       <main className="flex-1">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Back Link */}
@@ -188,7 +190,8 @@ export default function WishlistPage() {
           )}
         </div>
       </main>
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </ProtectedRoute>
   );
 }
