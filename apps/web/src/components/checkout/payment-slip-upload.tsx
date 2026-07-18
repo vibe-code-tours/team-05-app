@@ -8,7 +8,7 @@ import { Upload, X, FileImage, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface PaymentSlipUploadProps {
-  onUpload: (file: File) => void
+  onUpload: (file: File | null) => void
   uploadedSlip: File | null
 }
 
@@ -62,7 +62,7 @@ export function PaymentSlipUpload({ onUpload, uploadedSlip }: PaymentSlipUploadP
 
   const handleRemove = () => {
     setPreview(null)
-    onUpload(null as any)
+    onUpload(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }

@@ -6,6 +6,7 @@ import {
   ServiceUnavailableException,
   Logger,
 } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../config/prisma.service";
 import {
   CreateProductDto,
@@ -41,9 +42,9 @@ export class ProductService {
       const { page = 1, limit = 20, category, type, search } = params;
       const skip = (page - 1) * limit;
 
-      const where: any = { status: "APPROVED" };
+      const where: Prisma.ProductWhereInput = { status: "APPROVED" };
       if (category) where.category = { slug: category };
-      if (type) where.type = type;
+      if (type) where.type = type as Prisma.EnumProductTypeFilter["equals"];
       if (search) {
         where.OR = [
           { name: { contains: search, mode: "insensitive" } },
@@ -68,9 +69,11 @@ export class ProductService {
         this.prisma.product.count({ where }),
       ]);
 
+      type ProductWithReviews = (typeof products)[number];
+
       return {
         success: true,
-        data: products.map((p) => ({
+        data: products.map((p: ProductWithReviews) => ({
           ...p,
           avgRating:
             p.reviews.length > 0
@@ -350,8 +353,8 @@ export class ProductService {
     const { page = 1, limit = 20, status } = params;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
-    if (status) where.status = status;
+    const where: Prisma.ProductWhereInput = {};
+    if (status) where.status = status as Prisma.EnumProductStatusFilter["equals"];
 
     const [products, total] = await Promise.all([
       this.prisma.product.findMany({

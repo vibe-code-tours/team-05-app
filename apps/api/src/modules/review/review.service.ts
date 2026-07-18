@@ -43,6 +43,22 @@ export class ReviewService {
       throw new BadRequestException("You have already reviewed this product");
     }
 
+    // Verify user purchased and received this product
+    const deliveredOrder = await this.prisma.order.findFirst({
+      where: {
+        buyerId: userId,
+        status: { in: ["DELIVERED", "COMPLETED"] },
+        items: {
+          some: { productId: dto.productId },
+        },
+      },
+    });
+    if (!deliveredOrder) {
+      throw new ForbiddenException(
+        "You can only review products you have purchased and received",
+      );
+    }
+
     const review = await this.prisma.review.create({
       data: {
         productId: dto.productId,

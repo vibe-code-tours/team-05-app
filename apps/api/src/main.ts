@@ -4,6 +4,7 @@ import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import helmet from "helmet";
 import { AppModule } from "./app.module";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
+import type { IncomingMessage, ServerResponse } from "http";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { logger: ["error", "warn", "log"] });
@@ -46,11 +47,13 @@ async function bootstrap() {
 
   // Root + /health handlers for Render health checks (outside /api/v1 prefix)
   const httpAdapter = app.getHttpAdapter();
-  httpAdapter.get("/", (req: any, res: any) => {
-    res.json({ status: "ok", service: "crossmart-api" });
+  httpAdapter.get("/", (req: IncomingMessage, res: ServerResponse) => {
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ status: "ok", service: "crossmart-api" }));
   });
-  httpAdapter.get("/health", (req: any, res: any) => {
-    res.json({ status: "ok", service: "crossmart-api" });
+  httpAdapter.get("/health", (req: IncomingMessage, res: ServerResponse) => {
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ status: "ok", service: "crossmart-api" }));
   });
 
   const port = process.env.PORT || 3001;
