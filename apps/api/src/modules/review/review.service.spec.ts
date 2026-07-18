@@ -55,6 +55,9 @@ describe("ReviewService", () => {
       product: {
         findUnique: jest.fn(),
       },
+      order: {
+        findFirst: jest.fn(),
+      },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -77,6 +80,7 @@ describe("ReviewService", () => {
     it("should create a review", async () => {
       prisma.product.findUnique.mockResolvedValue(mockProduct);
       prisma.review.findUnique.mockResolvedValue(null);
+      prisma.order.findFirst.mockResolvedValue({ id: "order-123" });
       prisma.review.create.mockResolvedValue(mockReview);
 
       const result = await service.createReview(mockUserId, {
@@ -113,9 +117,23 @@ describe("ReviewService", () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it("should throw if user has not purchased the product", async () => {
+      prisma.product.findUnique.mockResolvedValue(mockProduct);
+      prisma.review.findUnique.mockResolvedValue(null);
+      prisma.order.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.createReview(mockUserId, {
+          productId: mockProductId,
+          rating: 5,
+        }),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
     it("should create review without images", async () => {
       prisma.product.findUnique.mockResolvedValue(mockProduct);
       prisma.review.findUnique.mockResolvedValue(null);
+      prisma.order.findFirst.mockResolvedValue({ id: "order-123" });
       prisma.review.create.mockResolvedValue(mockReview);
 
       await service.createReview(mockUserId, {
