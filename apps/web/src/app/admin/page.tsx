@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatPrice } from "@/lib/utils";
 import { useAdminProducts, useAdminOrders, useAllSellers } from "@/lib/services/admin.service";
-import type { AdminProduct } from "@/lib/services/admin.service";
+import type { AdminProduct, AdminOrder, AdminSeller } from "@/lib/services/admin.service";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 
 // ---------------------------------------------------------------------------
@@ -139,8 +139,8 @@ export default function AdminDashboardPage() {
   }
 
   const products: AdminProduct[] = Array.isArray(productsData) ? productsData : [];
-  const orders: any[] = Array.isArray(ordersData) ? ordersData : [];
-  const sellers: any[] = Array.isArray(sellersData) ? sellersData : [];
+  const orders: AdminOrder[] = Array.isArray(ordersData) ? ordersData : [];
+  const sellers: AdminSeller[] = Array.isArray(sellersData) ? sellersData : [];
 
   // Compute metrics from real data
   const totalProducts = products.length;
@@ -155,7 +155,7 @@ export default function AdminDashboardPage() {
 
   // Compute orders by status from real data
   const orderStatusCounts: Record<string, number> = {};
-  orders.forEach((o: any) => {
+  orders.forEach((o) => {
     const s = o.status ?? "pending";
     orderStatusCounts[s] = (orderStatusCounts[s] || 0) + 1;
   });
@@ -374,7 +374,7 @@ export default function AdminDashboardPage() {
               </p>
             ) : (
               <div className="space-y-4">
-                {recentOrders.map((order: any) => (
+                {recentOrders.map((order) => (
                   <div key={order.id} className="flex items-center gap-3">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
                       <ShoppingCart className="h-3.5 w-3.5 text-muted-foreground" />

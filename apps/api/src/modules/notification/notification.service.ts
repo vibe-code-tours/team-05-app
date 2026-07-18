@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ServiceUnavailableException, Logger } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../config/prisma.service";
 import { CreateNotificationDto } from "./dto/notification.dto";
 
@@ -109,7 +110,7 @@ export class NotificationService {
 
   // ── Internal: Create notification (used by other modules) ────────────────
 
-  async create(userId: string, title: string, message: string, type: string, data?: any) {
+  async create(userId: string, title: string, message: string, type: string, data?: Prisma.InputJsonValue) {
     return this.prisma.notification.create({
       data: { userId, title, message, type, data },
     });

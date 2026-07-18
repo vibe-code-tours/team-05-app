@@ -26,6 +26,37 @@ export interface AdminProduct {
   createdAt: string;
 }
 
+export interface AdminOrder {
+  id: string;
+  orderNumber: string;
+  status: string;
+  total: number;
+  totalAmount: number;
+  customerName?: string;
+  user?: { name: string };
+  createdAt: string;
+}
+
+export interface AdminSeller {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  status: string;
+  createdAt: string;
+  _count?: { products: number };
+}
+
+export interface AdminNotification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: string;
+  read: boolean;
+  createdAt: string;
+}
+
 export interface PlatformMetrics {
   totalUsers: number;
   totalOrders: number;
@@ -44,20 +75,20 @@ export const adminApi = {
 
   // Orders
   getAdminOrders: (status?: string) =>
-    api.get<any[]>(`/orders/admin${status ? `?status=${status}` : ""}`),
+    api.get<AdminOrder[]>(`/orders/admin${status ? `?status=${status}` : ""}`),
 
   // Sellers
-  getPendingSellers: () => api.get<any[]>("/sellers/pending"),
-  getAllSellers: () => api.get<any[]>("/sellers/all"),
+  getPendingSellers: () => api.get<AdminSeller[]>("/sellers/pending"),
+  getAllSellers: () => api.get<AdminSeller[]>("/sellers/all"),
   approveSeller: (id: string, data: { status: "APPROVED" | "REJECTED"; reason?: string }) =>
-    api.put<any>(`/sellers/${id}/approve`, data),
+    api.put<{ success: boolean; message: string }>(`/sellers/${id}/approve`, data),
 
   // Notifications (admin)
   createNotification: (data: { userId: string; type: string; title: string; message: string }) =>
-    api.post<any>("/notifications/admin", data),
+    api.post<{ success: boolean; data: AdminNotification }>("/notifications/admin", data),
   getAdminNotifications: (params?: { userId?: string; read?: boolean; type?: string }) => {
     const qs = params ? "?" + new URLSearchParams(params as Record<string, string>).toString() : "";
-    return api.get<any[]>(`/notifications/admin${qs}`);
+    return api.get<AdminNotification[]>(`/notifications/admin${qs}`);
   },
 };
 

@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ForbiddenException,
 } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../config/prisma.service";
 import {
   CreateCargoTrackingDto,
@@ -26,6 +27,8 @@ const MILESTONE_SEQUENCE = [
   "OUT_FOR_DELIVERY",
   "DELIVERED",
 ] as const;
+
+type Milestone = (typeof MILESTONE_SEQUENCE)[number];
 
 // Default ETA days from each milestone position (used when no historical data)
 const DEFAULT_ETA_DAYS: Record<string, number> = {
@@ -58,7 +61,7 @@ export class CargoService {
     const historicalData = await this.prisma.cargoHistory.groupBy({
       by: ["milestone"],
       where: {
-        milestone: { in: [...MILESTONE_SEQUENCE] as any[] },
+        milestone: { in: [...MILESTONE_SEQUENCE] },
       },
       _count: true,
     });
@@ -158,8 +161,8 @@ export class CargoService {
     }
 
     // Validate milestone is the next in sequence
-    const currentIndex = MILESTONE_SEQUENCE.indexOf(tracking.currentMilestone as any);
-    const newIndex = MILESTONE_SEQUENCE.indexOf(dto.milestone as any);
+    const currentIndex = MILESTONE_SEQUENCE.indexOf(tracking.currentMilestone as Milestone);
+    const newIndex = MILESTONE_SEQUENCE.indexOf(dto.milestone as Milestone);
 
     if (newIndex === -1) {
       throw new BadRequestException(`Invalid milestone: ${dto.milestone}`);
@@ -185,7 +188,7 @@ export class CargoService {
       const updatedTracking = await tx.cargoTracking.update({
         where: { id: trackingId },
         data: {
-          currentMilestone: dto.milestone as any,
+          currentMilestone: dto.milestone as Milestone,
           estimatedArrival: newEta,
         },
       });
@@ -193,7 +196,7 @@ export class CargoService {
       await tx.cargoHistory.create({
         data: {
           shipmentId: trackingId,
-          milestone: dto.milestone as any,
+          milestone: dto.milestone as Milestone,
           location: dto.location,
           notes: dto.notes,
           recordedBy: userId,
@@ -249,7 +252,7 @@ export class CargoService {
       const updatedTracking = await tx.cargoTracking.update({
         where: { id: trackingId },
         data: {
-          currentMilestone: dto.milestone as any,
+          currentMilestone: dto.milestone as Milestone,
           estimatedArrival: newEta,
         },
       });
@@ -257,7 +260,7 @@ export class CargoService {
       await tx.cargoHistory.create({
         data: {
           shipmentId: trackingId,
-          milestone: dto.milestone as any,
+          milestone: dto.milestone as Milestone,
           location: dto.location,
           notes: dto.notes
             ? `[Admin Override] ${dto.notes}`
@@ -339,10 +342,10 @@ export class CargoService {
     carrier?: string,
   ) {
     const skip = (page - 1) * limit;
-    const where: any = {};
+    const where: Prisma.CargoTrackingWhereInput = {};
 
     if (milestone) {
-      where.currentMilestone = milestone;
+      where.currentMilestone = milestone as Prisma.EnumCargoMilestoneFilter["equals"];
     }
     if (carrier) {
       where.carrier = { contains: carrier, mode: "insensitive" };

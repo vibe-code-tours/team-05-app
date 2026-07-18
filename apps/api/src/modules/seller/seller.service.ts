@@ -133,7 +133,7 @@ export class SellerService {
 
     const updated = await this.prisma.user.update({
       where: { id: userId },
-      data: { status: newStatus as any },
+      data: { status: newStatus as "ACTIVE" | "SUSPENDED" },
       select: {
         id: true,
         email: true,

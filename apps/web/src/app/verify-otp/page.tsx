@@ -5,6 +5,12 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { OtpVerification } from '@/components/auth';
 import { useVerifyOtp, useResendOtp } from '@/lib/services/auth.service';
 
+declare global {
+  interface Window {
+    __otpToken?: string;
+  }
+}
+
 function VerifyOtpContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -15,7 +21,7 @@ function VerifyOtpContent() {
   const handleVerify = async (otp: string) => {
     // The token should be stored somewhere during registration
     // For now, we'll use a temporary token approach
-    const token = (window as any).__otpToken || '';
+    const token = window.__otpToken || '';
 
     await verifyOtpMutation.mutateAsync({
       code: otp,

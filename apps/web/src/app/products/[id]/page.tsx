@@ -181,8 +181,7 @@ export default function ProductDetailPage() {
   const slug = params.id as string;
 
   const { data: response, isLoading, error } = useProduct(slug);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const product = (response?.data as any) as FullProduct | undefined;
+  const product = response?.data as FullProduct | undefined;
 
   const [selectedVariants, setSelectedVariants] = useState<
     Record<string, string>
@@ -230,8 +229,7 @@ export default function ProductDetailPage() {
   });
   const relatedProducts = useMemo(() => {
     if (!relatedResponse?.data || !product) return [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const items = relatedResponse.data as any as ListProduct[];
+    const items = relatedResponse.data as ListProduct[];
     return items
       .filter((p) => p.id !== product.id)
       .slice(0, 8)
