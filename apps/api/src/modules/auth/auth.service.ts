@@ -57,11 +57,18 @@ export class AuthService {
     const code = await this.otpService.generate(user.id, "VERIFY_EMAIL");
     await this.otpService.sendOtp(user.email, code, "email");
 
+    // Sign OTP token with purpose claim to prevent token type confusion
+    const otpToken = this.jwt.sign(
+      { sub: user.id, email: user.email, purpose: "otp_verify" },
+      { expiresIn: "10m" }
+    );
+
     return {
       success: true,
       message: "Account created. Please verify your email with the OTP code sent.",
       data: {
         user: { id: user.id, email: user.email, name: user.name },
+        otpToken,
         requiresVerification: true,
       },
     };
@@ -91,10 +98,16 @@ export class AuthService {
       const code = await this.otpService.generate(user.id, "VERIFY_EMAIL");
       await this.otpService.sendOtp(user.email, code, "email");
 
+      // Sign OTP token with purpose claim
+      const otpToken = this.jwt.sign(
+        { sub: user.id, email: user.email, purpose: "otp_verify" },
+        { expiresIn: "10m" }
+      );
+
       return {
         success: false,
         message: "Please verify your email first. A new OTP has been sent.",
-        data: { requiresVerification: true, email: user.email },
+        data: { requiresVerification: true, email: user.email, otpToken },
       };
     }
 
@@ -115,8 +128,12 @@ export class AuthService {
     let userId: string;
     try {
       const payload = this.jwt.verify(dto.token);
+      if (payload.purpose !== "otp_verify") {
+        throw new BadRequestException("Invalid token type");
+      }
       userId = payload.sub;
-    } catch {
+    } catch (e) {
+      if (e instanceof BadRequestException) throw e;
       throw new BadRequestException("Invalid or expired token");
     }
 
@@ -157,7 +174,13 @@ export class AuthService {
     const code = await this.otpService.generate(user.id, "VERIFY_EMAIL");
     await this.otpService.sendOtp(user.email, code, "email");
 
-    return { success: true, message: "If the email exists, an OTP has been sent." };
+    // Sign OTP token with purpose claim
+    const otpToken = this.jwt.sign(
+      { sub: user.id, email: user.email, purpose: "otp_verify" },
+      { expiresIn: "10m" }
+    );
+
+    return { success: true, message: "If the email exists, an OTP has been sent.", data: { otpToken } };
   }
 
   private generateTokens(userId: string, email: string, role: string) {

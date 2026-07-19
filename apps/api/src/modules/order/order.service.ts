@@ -87,7 +87,7 @@ export class OrderService {
       throw new NotFoundException("Address not found");
     }
 
-    // Validate stock and group items by seller
+    // Group items by seller (stock validation happens inside the transaction)
     const sellerGroups = new Map<
       string,
       Array<{
@@ -104,18 +104,6 @@ export class OrderService {
       if (item.product.status !== "APPROVED") {
         throw new BadRequestException(
           `Product "${item.product.name}" is no longer available`,
-        );
-      }
-
-      // Check stock (use variant stock if applicable)
-      let availableStock = item.product.stock;
-      if (item.variantId && item.variant) {
-        availableStock = item.variant.stock;
-      }
-
-      if (availableStock < item.quantity) {
-        throw new BadRequestException(
-          `Insufficient stock for "${item.product.name}". Available: ${availableStock}`,
         );
       }
 
@@ -140,6 +128,31 @@ export class OrderService {
       const createdOrders = [];
 
       for (const [sellerId, items] of sellerGroups) {
+        // Validate stock atomically inside the transaction to prevent race conditions
+        for (const item of items) {
+          if (item.variantId) {
+            const variant = await tx.productVariant.findUnique({
+              where: { id: item.variantId },
+              select: { stock: true, product: { select: { name: true } } },
+            });
+            if (!variant || variant.stock < item.quantity) {
+              throw new BadRequestException(
+                `Insufficient stock for "${item.name}". Available: ${variant?.stock ?? 0}`,
+              );
+            }
+          } else {
+            const product = await tx.product.findUnique({
+              where: { id: item.productId },
+              select: { stock: true, name: true },
+            });
+            if (!product || product.stock < item.quantity) {
+              throw new BadRequestException(
+                `Insufficient stock for "${item.name}". Available: ${product?.stock ?? 0}`,
+              );
+            }
+          }
+        }
+
         const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
         const shippingFee = 5000; // Fixed 5,000 MMK shipping per seller
         const tax = subtotal * 0.05; // 5% tax
