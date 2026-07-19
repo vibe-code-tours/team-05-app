@@ -1,8 +1,8 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
 import { AuthService } from "./auth.service";
-import { RegisterDto, LoginDto, VerifyOtpDto } from "./dto/auth.dto";
+import { RegisterDto, LoginDto, VerifyOtpDto, RefreshTokenDto } from "./dto/auth.dto";
 import { ResendOtpDto } from "./dto/resend-otp.dto";
 import { Public } from "../../common/decorators/public.decorator";
 
@@ -51,5 +51,25 @@ export class AuthController {
   @ApiResponse({ status: 200, description: "OTP resent (if user exists)" })
   resendOtp(@Body() dto: ResendOtpDto) {
     return this.authService.resendOtp(dto.email);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post("refresh")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Refresh access token using refresh token" })
+  @ApiResponse({ status: 200, description: "New token pair issued" })
+  @ApiResponse({ status: 401, description: "Invalid or revoked refresh token" })
+  refresh(@Body() dto: RefreshTokenDto) {
+    return this.authService.refreshTokens(dto);
+  }
+
+  @Post("logout")
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Logout and revoke refresh token" })
+  @ApiResponse({ status: 200, description: "Logged out successfully" })
+  logout(@Body() dto: RefreshTokenDto) {
+    return this.authService.logout(dto);
   }
 }

@@ -45,6 +45,12 @@ describe("AuthService", () => {
         create: jest.fn(),
         update: jest.fn(),
       },
+      session: {
+        create: jest.fn().mockResolvedValue({ id: "session-1" }),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+        updateMany: jest.fn(),
+      },
     };
 
     jwt = {
@@ -255,6 +261,51 @@ describe("AuthService", () => {
 
       expect(result.success).toBe(true);
       expect(otp.generate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("refreshTokens", () => {
+    it("should refresh tokens successfully", async () => {
+      jwt.verify.mockReturnValue({ sub: mockUserId, type: "refresh", jti: "abc123" });
+      prisma.session.findUnique.mockResolvedValue({
+        id: "session-1",
+        userId: mockUserId,
+        expiresAt: new Date(Date.now() + 86400000),
+        user: { id: mockUserId, email: mockEmail, role: "CLIENT", status: "ACTIVE" },
+      });
+
+      const result = await service.refreshTokens({ refreshToken: "valid-refresh-token" });
+
+      expect(prisma.session.update).toHaveBeenCalled();
+      expect(result.success).toBe(true);
+    });
+
+    it("should throw for non-refresh token", async () => {
+      jwt.verify.mockReturnValue({ sub: mockUserId }); // no type claim
+
+      await expect(
+        service.refreshTokens({ refreshToken: "access-token" }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it("should throw for revoked refresh token", async () => {
+      jwt.verify.mockReturnValue({ sub: mockUserId, type: "refresh", jti: "abc123" });
+      prisma.session.findUnique.mockResolvedValue(null); // not found (revoked/deleted)
+
+      await expect(
+        service.refreshTokens({ refreshToken: "revoked-token" }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe("logout", () => {
+    it("should logout successfully", async () => {
+      prisma.session.updateMany.mockResolvedValue({ count: 1 });
+
+      const result = await service.logout({ refreshToken: "valid-token" });
+
+      expect(prisma.session.updateMany).toHaveBeenCalled();
+      expect(result.success).toBe(true);
     });
   });
 });

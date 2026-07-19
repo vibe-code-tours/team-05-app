@@ -115,12 +115,13 @@ model User {
 }
 
 model Session {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   userId       String
-  refreshToken String   @unique
+  refreshToken String    @unique
   userAgent    String?
   expiresAt    DateTime
-  createdAt    DateTime @default(now())
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
