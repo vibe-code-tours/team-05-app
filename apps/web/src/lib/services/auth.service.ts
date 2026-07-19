@@ -47,7 +47,7 @@ export const authApi = {
     api.post<AuthResponse>("/auth/verify-otp", data),
 
   resendOtp: (email: string) =>
-    api.post<{ message: string }>("/auth/resend-otp", { email }),
+    api.post<{ message: string; otpToken?: string }>("/auth/resend-otp", { email }),
 };
 
 // React Query hooks
