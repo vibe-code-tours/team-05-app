@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import Image from "next/image";
 import {
   Plus,
   Search,
   Pencil,
   Trash2,
-  Image,
+  ImageIcon,
   ArrowUp,
   ArrowDown,
   Eye,
@@ -144,14 +145,16 @@ function BannerPreview({
       className={`relative overflow-hidden rounded-lg border bg-muted ${width} ${height}`}
     >
       {banner.imageUrl ? (
-        <img
+        <Image
           src={banner.imageUrl}
           alt={banner.title}
-          className="h-full w-full object-cover"
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, 50vw"
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center">
-          <Image className={`text-muted-foreground/50 ${isMobile ? "h-8 w-8" : "h-12 w-12"}`} />
+          <ImageIcon className={`text-muted-foreground/50 ${isMobile ? "h-8 w-8" : "h-12 w-12"}`} />
         </div>
       )}
 
@@ -433,7 +436,7 @@ export default function AdminBannersPage() {
       {filteredBanners.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <Image className="mb-4 h-12 w-12 text-muted-foreground/50" />
+            <ImageIcon className="mb-4 h-12 w-12 text-muted-foreground/50" />
             <p className="text-lg font-medium text-muted-foreground">
               No banners found
             </p>
@@ -456,6 +459,7 @@ export default function AdminBannersPage() {
                       className="h-6 w-6"
                       disabled={index === 0 || isMutating}
                       onClick={() => moveBanner(banner.id, "up")}
+                      aria-label="Move banner up"
                       title="Move up"
                     >
                       <ArrowUp className="h-3 w-3" />
@@ -469,6 +473,7 @@ export default function AdminBannersPage() {
                       className="h-6 w-6"
                       disabled={index === filteredBanners.length - 1 || isMutating}
                       onClick={() => moveBanner(banner.id, "down")}
+                      aria-label="Move banner down"
                       title="Move down"
                     >
                       <ArrowDown className="h-3 w-3" />
@@ -489,7 +494,7 @@ export default function AdminBannersPage() {
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
-                        <Image className="h-6 w-6 text-muted-foreground/50" />
+                        <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
                       </div>
                     )}
                   </div>
