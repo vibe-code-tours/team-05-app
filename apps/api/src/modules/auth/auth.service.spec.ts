@@ -188,7 +188,7 @@ describe("AuthService", () => {
 
   describe("verifyOtp", () => {
     it("should verify OTP and activate user", async () => {
-      jwt.verify.mockReturnValue({ sub: mockUserId });
+      jwt.verify.mockReturnValue({ sub: mockUserId, purpose: "otp_verify" });
       otp.verify.mockResolvedValue({ success: true, message: "OTP verified" });
       prisma.user.update.mockResolvedValue({ ...mockUser, status: "ACTIVE" });
       prisma.user.findUnique.mockResolvedValue(mockUser);
@@ -216,8 +216,16 @@ describe("AuthService", () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it("should throw BadRequestException for token without purpose claim", async () => {
+      jwt.verify.mockReturnValue({ sub: mockUserId }); // no purpose
+
+      await expect(
+        service.verifyOtp({ token: "access-token", code: "123456" }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
     it("should throw BadRequestException for invalid OTP", async () => {
-      jwt.verify.mockReturnValue({ sub: mockUserId });
+      jwt.verify.mockReturnValue({ sub: mockUserId, purpose: "otp_verify" });
       otp.verify.mockResolvedValue({
         success: false,
         message: "Invalid or expired OTP code",
