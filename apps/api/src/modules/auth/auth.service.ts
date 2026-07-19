@@ -90,9 +90,43 @@ export class AuthService {
       throw new UnauthorizedException("Invalid email or password");
     }
 
+    // Check if account is locked
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      const remainingMinutes = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
+      throw new UnauthorizedException(`Account is locked. Try again in ${remainingMinutes} minute(s).`);
+    }
+
     const passwordValid = await bcrypt.compare(dto.password, user.password);
     if (!passwordValid) {
+      // Increment failed attempts
+      const failedAttempts = user.failedAttempts + 1;
+      const MAX_FAILED_ATTEMPTS = 5;
+      const LOCKOUT_DURATION_MINUTES = 15;
+
+      const updateData: { failedAttempts: number; lockedUntil?: Date } = {
+        failedAttempts,
+      };
+
+      // Lock account after 5 failed attempts
+      if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+        updateData.lockedUntil = new Date(Date.now() + LOCKOUT_DURATION_MINUTES * 60 * 1000);
+        this.logger.warn(`Account ${user.email} locked after ${MAX_FAILED_ATTEMPTS} failed attempts`);
+      }
+
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: updateData,
+      });
+
       throw new UnauthorizedException("Invalid email or password");
+    }
+
+    // Reset failed attempts on successful password validation
+    if (user.failedAttempts > 0) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { failedAttempts: 0, lockedUntil: null },
+      });
     }
 
     if (user.status === "PENDING_VERIFICATION") {

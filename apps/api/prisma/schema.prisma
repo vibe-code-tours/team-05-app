@@ -84,17 +84,19 @@ enum PaymentMethod {
 // ─── Models ────────────────────────────────────────────
 
 model User {
-  id        String     @id @default(cuid())
-  email     String     @unique
-  phone     String     @unique
-  name      String
-  password  String
-  role      Role       @default(CLIENT)
-  status    UserStatus @default(ACTIVE)
-  avatar    String?
-  version   Int        @default(0)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id             String      @id @default(cuid())
+  email          String      @unique
+  phone          String      @unique
+  name           String
+  password       String
+  role           Role        @default(CLIENT)
+  status         UserStatus  @default(ACTIVE)
+  avatar         String?
+  failedAttempts Int         @default(0)
+  lockedUntil    DateTime?
+  version        Int         @default(0)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   products         Product[]
   orders           Order[]           @relation("BuyerOrders")
@@ -133,6 +135,7 @@ model OtpCode {
   userId    String
   code      String
   type      String   // VERIFY_EMAIL, RESET_PASSWORD, LOGIN
+  attempts  Int      @default(0)
   used      Boolean  @default(false)
   expiresAt DateTime
   createdAt DateTime @default(now())

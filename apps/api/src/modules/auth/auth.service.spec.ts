@@ -190,6 +190,56 @@ describe("AuthService", () => {
         service.login({ email: mockEmail, password: mockPassword }),
       ).rejects.toThrow(UnauthorizedException);
     });
+
+    it("should lock account after 5 failed attempts", async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...mockUser,
+        failedAttempts: 4,
+      });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+      prisma.user.update.mockResolvedValue({});
+
+      await expect(
+        service.login({ email: mockEmail, password: "wrong" }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: mockUserId },
+        data: {
+          failedAttempts: 5,
+          lockedUntil: expect.any(Date),
+        },
+      });
+    });
+
+    it("should throw when account is locked", async () => {
+      const lockedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 min from now
+      prisma.user.findUnique.mockResolvedValue({
+        ...mockUser,
+        failedAttempts: 5,
+        lockedUntil,
+      });
+
+      await expect(
+        service.login({ email: mockEmail, password: mockPassword }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it("should reset failed attempts on successful login", async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...mockUser,
+        failedAttempts: 3,
+      });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      prisma.user.update.mockResolvedValue({});
+
+      await service.login({ email: mockEmail, password: mockPassword });
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: mockUserId },
+        data: { failedAttempts: 0, lockedUntil: null },
+      });
+    });
   });
 
   describe("verifyOtp", () => {
