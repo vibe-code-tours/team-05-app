@@ -81,6 +81,9 @@ export class OtpService {
    */
   async sendOtp(identifier: string, code: string, channel: "email" | "sms" = "email"): Promise<void> {
     // TODO: Integrate with email/SMS provider (e.g., Twilio, SendGrid, Resend)
-    console.log(`📧 OTP [${channel}] to ${identifier}: ${code}`);
+    // Only log OTP in development to prevent exposure in production logs
+    if (process.env.NODE_ENV !== "production") {
+      this.logger.log(`📧 OTP [${channel}] to ${identifier}: ${code}`);
+    }
   }
 }
