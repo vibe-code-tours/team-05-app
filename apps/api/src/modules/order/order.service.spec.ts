@@ -122,7 +122,10 @@ describe("OrderService", () => {
               seller: { id: mockSellerId, name: "Test Seller" },
             }),
           },
-          product: { update: jest.fn() },
+          product: {
+            findUnique: jest.fn().mockResolvedValue(mockProduct),
+            update: jest.fn(),
+          },
           cartItem: { deleteMany: jest.fn() },
         };
         return fn(tx);
@@ -193,6 +196,14 @@ describe("OrderService", () => {
       };
       prisma.cart.findUnique.mockResolvedValue(cart);
       prisma.address.findFirst.mockResolvedValue(mockAddress);
+      prisma.$transaction.mockImplementation(async (fn: any) => {
+        const tx = {
+          product: {
+            findUnique: jest.fn().mockResolvedValue({ ...mockProduct, stock: 10 }),
+          },
+        };
+        return fn(tx);
+      });
 
       await expect(
         service.createOrder(mockBuyerId, { addressId: mockAddressId }),
@@ -214,6 +225,14 @@ describe("OrderService", () => {
       };
       prisma.cart.findUnique.mockResolvedValue(cart);
       prisma.address.findFirst.mockResolvedValue(mockAddress);
+      prisma.$transaction.mockImplementation(async (fn: any) => {
+        const tx = {
+          productVariant: {
+            findUnique: jest.fn().mockResolvedValue({ stock: 3, product: { name: mockProduct.name } }),
+          },
+        };
+        return fn(tx);
+      });
 
       await expect(
         service.createOrder(mockBuyerId, { addressId: mockAddressId }),
