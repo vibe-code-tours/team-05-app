@@ -49,9 +49,10 @@ export class CouponController {
     @Query("page") page?: string,
     @Query("limit") limit?: string,
   ) {
+    const take = Math.min(parseInt(limit) || 20, 100);
     return this.couponService.adminGetAllCoupons(
       page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
+      take,
     );
   }
 
