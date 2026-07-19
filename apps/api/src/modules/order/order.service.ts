@@ -128,31 +128,6 @@ export class OrderService {
       const createdOrders = [];
 
       for (const [sellerId, items] of sellerGroups) {
-        // Validate stock atomically inside the transaction to prevent race conditions
-        for (const item of items) {
-          if (item.variantId) {
-            const variant = await tx.productVariant.findUnique({
-              where: { id: item.variantId },
-              select: { stock: true, product: { select: { name: true } } },
-            });
-            if (!variant || variant.stock < item.quantity) {
-              throw new BadRequestException(
-                `Insufficient stock for "${item.name}". Available: ${variant?.stock ?? 0}`,
-              );
-            }
-          } else {
-            const product = await tx.product.findUnique({
-              where: { id: item.productId },
-              select: { stock: true, name: true },
-            });
-            if (!product || product.stock < item.quantity) {
-              throw new BadRequestException(
-                `Insufficient stock for "${item.name}". Available: ${product?.stock ?? 0}`,
-              );
-            }
-          }
-        }
-
         const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
         const shippingFee = 5000; // Fixed 5,000 MMK shipping per seller
         const tax = subtotal * 0.05; // 5% tax
@@ -188,18 +163,28 @@ export class OrderService {
           },
         });
 
-        // Deduct stock per item
+        // Deduct stock atomically — the WHERE guard prevents overselling
         for (const item of items) {
           if (item.variantId) {
-            await tx.productVariant.update({
-              where: { id: item.variantId },
+            const result = await tx.productVariant.updateMany({
+              where: { id: item.variantId, stock: { gte: item.quantity } },
               data: { stock: { decrement: item.quantity } },
             });
+            if (result.count === 0) {
+              throw new BadRequestException(
+                `Insufficient stock for "${item.name}". Please reduce quantity or try again.`,
+              );
+            }
           } else {
-            await tx.product.update({
-              where: { id: item.productId },
+            const result = await tx.product.updateMany({
+              where: { id: item.productId, stock: { gte: item.quantity } },
               data: { stock: { decrement: item.quantity } },
             });
+            if (result.count === 0) {
+              throw new BadRequestException(
+                `Insufficient stock for "${item.name}". Please reduce quantity or try again.`,
+              );
+            }
           }
         }
 
