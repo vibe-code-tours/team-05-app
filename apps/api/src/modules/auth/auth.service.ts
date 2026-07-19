@@ -57,12 +57,19 @@ export class AuthService {
     const code = await this.otpService.generate(user.id, "VERIFY_EMAIL");
     await this.otpService.sendOtp(user.email, code, "email");
 
+    // Issue a dedicated, short-lived token for OTP verification
+    const otpToken = this.jwt.sign(
+      { sub: user.id, email: user.email, purpose: "otp_verify" },
+      { expiresIn: "10m" }
+    );
+
     return {
       success: true,
       message: "Account created. Please verify your email with the OTP code sent.",
       data: {
         user: { id: user.id, email: user.email, name: user.name },
         requiresVerification: true,
+        otpToken,
       },
     };
   }
@@ -115,8 +122,13 @@ export class AuthService {
     let userId: string;
     try {
       const payload = this.jwt.verify(dto.token);
+      // Reject if this isn't an OTP-specific token
+      if (payload.purpose !== "otp_verify") {
+        throw new BadRequestException("Invalid token type");
+      }
       userId = payload.sub;
-    } catch {
+    } catch (e) {
+      if (e instanceof BadRequestException) throw e;
       throw new BadRequestException("Invalid or expired token");
     }
 
@@ -157,7 +169,13 @@ export class AuthService {
     const code = await this.otpService.generate(user.id, "VERIFY_EMAIL");
     await this.otpService.sendOtp(user.email, code, "email");
 
-    return { success: true, message: "If the email exists, an OTP has been sent." };
+    // Issue a new dedicated OTP verification token
+    const otpToken = this.jwt.sign(
+      { sub: user.id, email: user.email, purpose: "otp_verify" },
+      { expiresIn: "10m" }
+    );
+
+    return { success: true, message: "If the email exists, an OTP has been sent.", data: { otpToken } };
   }
 
   private generateTokens(userId: string, email: string, role: string) {

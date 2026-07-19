@@ -15,10 +15,12 @@ function clearAuthCookie() {
 interface AuthState {
   user: User | null;
   accessToken: string | null;
+  otpToken: string | null;
   isAuthenticated: boolean;
   login: (user: User, accessToken: string) => void;
   logout: () => void;
-  updateUser: (user: Partial<User>) => void;
+  updateUser: (partial: Partial<User>) => void;
+  clearOtpToken: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -26,22 +28,25 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       accessToken: null,
+      otpToken: null,
       isAuthenticated: false,
 
       login: (user, accessToken) => {
         setAuthCookie(accessToken);
-        set({ user, accessToken, isAuthenticated: true });
+        set({ user, accessToken, isAuthenticated: true, otpToken: null });
       },
 
       logout: () => {
         clearAuthCookie();
-        set({ user: null, accessToken: null, isAuthenticated: false });
+        set({ user: null, accessToken: null, otpToken: null, isAuthenticated: false });
       },
 
       updateUser: (partial) =>
         set((state) => ({
           user: state.user ? { ...state.user, ...partial } : null,
         })),
+
+      clearOtpToken: () => set({ otpToken: null }),
     }),
     {
       name: "crossmart-auth",

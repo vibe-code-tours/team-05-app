@@ -4,12 +4,7 @@ import { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { OtpVerification } from '@/components/auth';
 import { useVerifyOtp, useResendOtp } from '@/lib/services/auth.service';
-
-declare global {
-  interface Window {
-    __otpToken?: string;
-  }
-}
+import { useAuthStore } from '@/stores/auth.store';
 
 function VerifyOtpContent() {
   const searchParams = useSearchParams();
@@ -17,15 +12,16 @@ function VerifyOtpContent() {
   const email = searchParams.get('email') || '';
   const verifyOtpMutation = useVerifyOtp();
   const resendOtpMutation = useResendOtp();
+  const otpToken = useAuthStore((state) => state.otpToken);
 
   const handleVerify = async (otp: string) => {
-    // The token should be stored somewhere during registration
-    // For now, we'll use a temporary token approach
-    const token = window.__otpToken || '';
+    if (!otpToken) {
+      throw new Error('OTP token not found. Please register again.');
+    }
 
     await verifyOtpMutation.mutateAsync({
       code: otp,
-      token,
+      token: otpToken,
     });
   };
 
