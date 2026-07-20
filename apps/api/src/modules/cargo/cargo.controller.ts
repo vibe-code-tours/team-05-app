@@ -12,6 +12,7 @@ import {
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 import { CargoService } from "./cargo.service";
 import {
   CreateCargoTrackingDto,
@@ -112,6 +113,7 @@ export class CargoController {
   // ─── Public ──────────────────────────────────────────
 
   @Public()
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @Get("track/:trackingNumber")
   @ApiOperation({ summary: "Track by tracking number (public)" })
   getByTrackingNumber(@Param("trackingNumber") trackingNumber: string) {

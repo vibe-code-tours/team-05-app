@@ -13,6 +13,7 @@ import {
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 import { CouponService } from "./coupon.service";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
@@ -31,6 +32,7 @@ export class CouponController {
   // ── Public: Validate coupon ─────────────────────────────────────────────
 
   @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post("validate")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Validate a coupon code" })
