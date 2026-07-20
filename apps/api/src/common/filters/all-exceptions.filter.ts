@@ -4,6 +4,7 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
+  Logger,
 } from "@nestjs/common";
 import { Response } from "express";
 
@@ -18,6 +19,8 @@ interface ErrorResponseBody {
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
+  private readonly logger = new Logger(AllExceptionsFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -51,10 +54,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
         }
       }
     } else if (exception instanceof Error) {
-      // Don't leak internal error messages in production
-      message = process.env.NODE_ENV === "production"
-        ? "An unexpected error occurred"
-        : exception.message;
+      // Log the real error server-side, return generic message to client
+      this.logger.error(exception.message, exception.stack);
+      message = "An unexpected error occurred";
       code = "INTERNAL_SERVER_ERROR";
     }
 
