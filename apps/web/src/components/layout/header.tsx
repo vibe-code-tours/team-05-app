@@ -20,7 +20,7 @@ const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/products', label: 'Products' },
   { href: '/products?category=electronics', label: 'Categories' },
-  { href: '/seller/cargo', label: 'Cargo Tracking' },
+  { href: '/cargo-tracking', label: 'Cargo Tracking' },
   { href: '/products?sort=deals', label: 'Deals' },
 ];
 
