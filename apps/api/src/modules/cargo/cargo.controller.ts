@@ -89,9 +89,10 @@ export class CargoController {
     @Query("milestone") milestone?: string,
     @Query("carrier") carrier?: string,
   ) {
+    const take = Math.min(parseInt(limit) || 20, 100);
     return this.cargoService.adminListShipments(
       page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
+      take,
       milestone,
       carrier,
     );
