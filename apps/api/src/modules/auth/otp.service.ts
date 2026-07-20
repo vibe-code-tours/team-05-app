@@ -107,6 +107,5 @@ export class OtpService {
     if (process.env.NODE_ENV !== "production") {
       this.logger.log(`📧 OTP [${channel}] to ${identifier}: ${code}`);
     }
-    }
   }
 }
