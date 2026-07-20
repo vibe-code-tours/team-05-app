@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Home, ChevronRight, Loader2, AlertCircle, PackageX, Zap } from 'lucide-react';
 import { PublicLayout } from '@/components/layout/public-layout';
@@ -83,6 +83,18 @@ function buildApiFilters(
 }
 
 export default function ProductsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <ProductsContent />
+    </Suspense>
+  );
+}
+
+function ProductsContent() {
   const searchParams = useSearchParams();
   const isDeals = searchParams.get('sort') === 'deals';
 
