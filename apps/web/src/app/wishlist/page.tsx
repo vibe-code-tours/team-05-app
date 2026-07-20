@@ -107,6 +107,9 @@ export default function WishlistPage() {
                             src={item.image}
                             alt={item.name}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = '/placeholder.png';
+                            }}
                           />
                           {discount > 0 && (
                             <Badge

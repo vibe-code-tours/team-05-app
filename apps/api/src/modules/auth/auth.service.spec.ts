@@ -45,6 +45,12 @@ describe("AuthService", () => {
         create: jest.fn(),
         update: jest.fn(),
       },
+      session: {
+        create: jest.fn().mockResolvedValue({ id: "session-1" }),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+        updateMany: jest.fn(),
+      },
     };
 
     jwt = {
@@ -184,6 +190,56 @@ describe("AuthService", () => {
         service.login({ email: mockEmail, password: mockPassword }),
       ).rejects.toThrow(UnauthorizedException);
     });
+
+    it("should lock account after 5 failed attempts", async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...mockUser,
+        failedAttempts: 4,
+      });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+      prisma.user.update.mockResolvedValue({});
+
+      await expect(
+        service.login({ email: mockEmail, password: "wrong" }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: mockUserId },
+        data: {
+          failedAttempts: 5,
+          lockedUntil: expect.any(Date),
+        },
+      });
+    });
+
+    it("should throw when account is locked", async () => {
+      const lockedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 min from now
+      prisma.user.findUnique.mockResolvedValue({
+        ...mockUser,
+        failedAttempts: 5,
+        lockedUntil,
+      });
+
+      await expect(
+        service.login({ email: mockEmail, password: mockPassword }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it("should reset failed attempts on successful login", async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...mockUser,
+        failedAttempts: 3,
+      });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      prisma.user.update.mockResolvedValue({});
+
+      await service.login({ email: mockEmail, password: mockPassword });
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: mockUserId },
+        data: { failedAttempts: 0, lockedUntil: null },
+      });
+    });
   });
 
   describe("verifyOtp", () => {
@@ -255,6 +311,51 @@ describe("AuthService", () => {
 
       expect(result.success).toBe(true);
       expect(otp.generate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("refreshTokens", () => {
+    it("should refresh tokens successfully", async () => {
+      jwt.verify.mockReturnValue({ sub: mockUserId, type: "refresh", jti: "abc123" });
+      prisma.session.findUnique.mockResolvedValue({
+        id: "session-1",
+        userId: mockUserId,
+        expiresAt: new Date(Date.now() + 86400000),
+        user: { id: mockUserId, email: mockEmail, role: "CLIENT", status: "ACTIVE" },
+      });
+
+      const result = await service.refreshTokens({ refreshToken: "valid-refresh-token" });
+
+      expect(prisma.session.update).toHaveBeenCalled();
+      expect(result.success).toBe(true);
+    });
+
+    it("should throw for non-refresh token", async () => {
+      jwt.verify.mockReturnValue({ sub: mockUserId }); // no type claim
+
+      await expect(
+        service.refreshTokens({ refreshToken: "access-token" }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it("should throw for revoked refresh token", async () => {
+      jwt.verify.mockReturnValue({ sub: mockUserId, type: "refresh", jti: "abc123" });
+      prisma.session.findUnique.mockResolvedValue(null); // not found (revoked/deleted)
+
+      await expect(
+        service.refreshTokens({ refreshToken: "revoked-token" }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe("logout", () => {
+    it("should logout successfully", async () => {
+      prisma.session.updateMany.mockResolvedValue({ count: 1 });
+
+      const result = await service.logout({ refreshToken: "valid-token" });
+
+      expect(prisma.session.updateMany).toHaveBeenCalled();
+      expect(result.success).toBe(true);
     });
   });
 });

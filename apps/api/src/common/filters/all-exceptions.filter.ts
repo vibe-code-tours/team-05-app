@@ -51,7 +51,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
         }
       }
     } else if (exception instanceof Error) {
-      message = exception.message;
+      // Don't leak internal error messages in production
+      message = process.env.NODE_ENV === "production"
+        ? "An unexpected error occurred"
+        : exception.message;
       code = "INTERNAL_SERVER_ERROR";
     }
 
