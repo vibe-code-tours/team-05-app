@@ -11,11 +11,36 @@ async function bootstrap() {
 
   // Security
   app.use(helmet());
+
+  // CORS - use function to properly validate origins
+  const allowedOrigins = process.env.CORS_ORIGINS?.split(",") || [
+    "http://localhost:3000",
+  ];
+
+  // Reject wildcard CORS origins for security
+  if (allowedOrigins.includes("*")) {
+    throw new Error("CORS_ORIGINS must not contain wildcard '*' - list explicit origins");
+  }
+
   app.enableCors({
-    origin: process.env.CORS_ORIGINS?.split(",") || [
-      "http://localhost:3000",
-      "https://*.vercel.app",
-    ],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      // Check exact match first
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Check Vercel preview deployments pattern
+      if (origin.match(/^https:\/\/.*-.*\.vercel\.app$/)) {
+        return callback(null, true);
+      }
+
+      callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   });
 
