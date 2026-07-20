@@ -12,6 +12,12 @@ export interface AuthResponse {
   refreshToken: string;
 }
 
+export interface RegisterResponse {
+  user: User;
+  requiresVerification: boolean;
+  otpToken?: string;
+}
+
 export interface RegisterInput {
   name: string;
   email: string;
@@ -32,7 +38,7 @@ export interface VerifyOtpInput {
 // API calls
 export const authApi = {
   register: (data: RegisterInput) =>
-    api.post<{ user: User; requiresVerification: boolean }>("/auth/register", data),
+    api.post<RegisterResponse>("/auth/register", data),
 
   login: (data: LoginInput) =>
     api.post<AuthResponse>("/auth/login", data),
@@ -41,7 +47,7 @@ export const authApi = {
     api.post<AuthResponse>("/auth/verify-otp", data),
 
   resendOtp: (email: string) =>
-    api.post<{ message: string }>("/auth/resend-otp", { email }),
+    api.post<{ message: string; otpToken?: string }>("/auth/resend-otp", { email }),
 };
 
 // React Query hooks
@@ -49,9 +55,12 @@ export function useRegister() {
   return useMutation({
     mutationFn: authApi.register,
     onSuccess: (response) => {
-      // Store the token for OTP verification
-      if (response.data.requiresVerification) {
-        useAuthStore.setState({ user: response.data.user });
+      // Store the OTP token for verification
+      if (response.data.requiresVerification && response.data.otpToken) {
+        useAuthStore.setState({
+          user: response.data.user,
+          otpToken: response.data.otpToken,
+        });
       }
     },
   });
@@ -90,5 +99,11 @@ export function useVerifyOtp() {
 export function useResendOtp() {
   return useMutation({
     mutationFn: authApi.resendOtp,
+    onSuccess: (response) => {
+      // Store the new OTP token if provided
+      if (response.data?.otpToken) {
+        useAuthStore.setState({ otpToken: response.data.otpToken });
+      }
+    },
   });
 }

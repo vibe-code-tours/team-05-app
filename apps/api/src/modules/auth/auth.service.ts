@@ -59,7 +59,7 @@ export class AuthService {
     const code = await this.otpService.generate(user.id, "VERIFY_EMAIL");
     await this.otpService.sendOtp(user.email, code, "email");
 
-    // Sign OTP token with purpose claim to prevent token type confusion
+    // Issue a dedicated, short-lived token for OTP verification
     const otpToken = this.jwt.sign(
       { sub: user.id, email: user.email, purpose: "otp_verify" },
       { expiresIn: "10m" }
@@ -164,6 +164,7 @@ export class AuthService {
     let userId: string;
     try {
       const payload = this.jwt.verify(dto.token);
+      // Reject if this isn't an OTP-specific token
       if (payload.purpose !== "otp_verify") {
         throw new BadRequestException("Invalid token type");
       }
@@ -210,7 +211,7 @@ export class AuthService {
     const code = await this.otpService.generate(user.id, "VERIFY_EMAIL");
     await this.otpService.sendOtp(user.email, code, "email");
 
-    // Sign OTP token with purpose claim
+    // Issue a new dedicated OTP verification token
     const otpToken = this.jwt.sign(
       { sub: user.id, email: user.email, purpose: "otp_verify" },
       { expiresIn: "10m" }
