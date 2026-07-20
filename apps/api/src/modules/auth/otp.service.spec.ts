@@ -116,26 +116,47 @@ describe("OtpService", () => {
   });
 
   describe("sendOtp", () => {
-    it("should send OTP via email", async () => {
-      const consoleSpy = jest.spyOn(console, "log").mockImplementation();
+    it("should send OTP via email in non-production", async () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+
+      const loggerSpy = jest.spyOn((service as any).logger, "log").mockImplementation();
 
       await service.sendOtp("test@example.com", "123456", "email");
 
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(loggerSpy).toHaveBeenCalledWith(
         expect.stringContaining("123456"),
       );
-      consoleSpy.mockRestore();
+      loggerSpy.mockRestore();
+      process.env.NODE_ENV = originalEnv;
     });
 
-    it("should send OTP via SMS", async () => {
-      const consoleSpy = jest.spyOn(console, "log").mockImplementation();
+    it("should send OTP via SMS in non-production", async () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+
+      const loggerSpy = jest.spyOn((service as any).logger, "log").mockImplementation();
 
       await service.sendOtp("+95912345678", "123456", "sms");
 
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(loggerSpy).toHaveBeenCalledWith(
         expect.stringContaining("123456"),
       );
-      consoleSpy.mockRestore();
+      loggerSpy.mockRestore();
+      process.env.NODE_ENV = originalEnv;
+    });
+
+    it("should not log OTP in production", async () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "production";
+
+      const loggerSpy = jest.spyOn((service as any).logger, "log").mockImplementation();
+
+      await service.sendOtp("test@example.com", "123456", "email");
+
+      expect(loggerSpy).not.toHaveBeenCalled();
+      loggerSpy.mockRestore();
+      process.env.NODE_ENV = originalEnv;
     });
   });
 });
