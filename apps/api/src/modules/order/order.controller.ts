@@ -48,10 +48,11 @@ export class OrderController {
     @Query("page") page?: string,
     @Query("limit") limit?: string,
   ) {
+    const take = Math.min(parseInt(limit) || 20, 100);
     return this.orderService.getMyOrders(
       user.id,
       page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
+      take,
     );
   }
 
@@ -77,10 +78,11 @@ export class OrderController {
     @Query("page") page?: string,
     @Query("limit") limit?: string,
   ) {
+    const take = Math.min(parseInt(limit) || 20, 100);
     return this.orderService.getSellerOrders(
       user.id,
       page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
+      take,
     );
   }
 
@@ -111,9 +113,10 @@ export class OrderController {
     const orderStatus = status && validStatuses.includes(status as OrderStatus)
       ? (status as OrderStatus)
       : undefined;
+    const take = Math.min(parseInt(limit) || 20, 100);
     return this.orderService.getAllOrders(
       page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
+      take,
       orderStatus,
     );
   }

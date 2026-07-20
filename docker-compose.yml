@@ -4,15 +4,15 @@ services:
     container_name: crossmart-postgres
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     environment:
-      POSTGRES_USER: crossmart
-      POSTGRES_PASSWORD: crossmart_dev
-      POSTGRES_DB: crossmart
+      POSTGRES_USER: ${POSTGRES_USER:-crossmart}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-crossmart_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-crossmart}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U crossmart"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-crossmart}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,11 +22,12 @@ services:
     container_name: crossmart-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD:-crossmart_redis_dev}
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-crossmart_redis_dev}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,9 +37,9 @@ services:
     container_name: crossmart-meilisearch
     restart: unless-stopped
     ports:
-      - "7700:7700"
+      - "127.0.0.1:7700:7700"
     environment:
-      MEILI_MASTER_KEY: crossmart_meili_dev_key
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-crossmart_meili_dev_key}
       MEILI_ENV: development
     volumes:
       - meilisearch_data:/meili_data

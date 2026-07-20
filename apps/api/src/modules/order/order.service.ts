@@ -87,7 +87,7 @@ export class OrderService {
       throw new NotFoundException("Address not found");
     }
 
-    // Validate stock and group items by seller
+    // Group items by seller (stock validation happens inside the transaction)
     const sellerGroups = new Map<
       string,
       Array<{
@@ -104,18 +104,6 @@ export class OrderService {
       if (item.product.status !== "APPROVED") {
         throw new BadRequestException(
           `Product "${item.product.name}" is no longer available`,
-        );
-      }
-
-      // Check stock (use variant stock if applicable)
-      let availableStock = item.product.stock;
-      if (item.variantId && item.variant) {
-        availableStock = item.variant.stock;
-      }
-
-      if (availableStock < item.quantity) {
-        throw new BadRequestException(
-          `Insufficient stock for "${item.product.name}". Available: ${availableStock}`,
         );
       }
 
@@ -175,18 +163,28 @@ export class OrderService {
           },
         });
 
-        // Deduct stock per item
+        // Deduct stock atomically — the WHERE guard prevents overselling
         for (const item of items) {
           if (item.variantId) {
-            await tx.productVariant.update({
-              where: { id: item.variantId },
+            const result = await tx.productVariant.updateMany({
+              where: { id: item.variantId, stock: { gte: item.quantity } },
               data: { stock: { decrement: item.quantity } },
             });
+            if (result.count === 0) {
+              throw new BadRequestException(
+                `Insufficient stock for "${item.name}". Please reduce quantity or try again.`,
+              );
+            }
           } else {
-            await tx.product.update({
-              where: { id: item.productId },
+            const result = await tx.product.updateMany({
+              where: { id: item.productId, stock: { gte: item.quantity } },
               data: { stock: { decrement: item.quantity } },
             });
+            if (result.count === 0) {
+              throw new BadRequestException(
+                `Insufficient stock for "${item.name}". Please reduce quantity or try again.`,
+              );
+            }
           }
         }
 

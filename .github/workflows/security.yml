@@ -30,7 +30,6 @@ jobs:
     name: secrets (gitleaks)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true          # ch-8: remove to enforce
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -38,8 +37,7 @@ jobs:
       - name: gitleaks (secrets scan)
         # Run the gitleaks Docker image directly, NOT gitleaks-action@v2 — the Action
         # demands a paid GITLEAKS_LICENSE for ORGANIZATION accounts (even public repos).
-        # The image has no license gate. Exits non-zero on findings; continue-on-error
-        # keeps the job green (advisory). Findings appear in the run logs.
+        # The image has no license gate. Exits non-zero on findings.
         run: |
           docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.18.4 \
             detect --source /repo --redact --verbose
@@ -50,7 +48,6 @@ jobs:
     name: sast (semgrep)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true          # ch-8: remove to enforce
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
@@ -64,6 +61,4 @@ jobs:
       - name: Run semgrep (community rules)
         run: semgrep scan --config=auto --error --skip-unknown-extensions .
         # --config=auto pulls community rules for the languages it detects.
-        # --error exits non-zero on findings; continue-on-error keeps the job green,
-        # so findings are REPORTED IN THE RUN LOGS (open the step to read them).
-        # Expect some false positives — triaging them is the lesson.
+        # --error exits non-zero on findings.

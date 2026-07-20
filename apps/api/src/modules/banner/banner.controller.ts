@@ -44,9 +44,10 @@ export class BannerController {
     @Query("page") page?: string,
     @Query("limit") limit?: string,
   ) {
+    const take = Math.min(parseInt(limit) || 20, 100);
     return this.bannerService.adminGetAllBanners(
       page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
+      take,
     );
   }
 
