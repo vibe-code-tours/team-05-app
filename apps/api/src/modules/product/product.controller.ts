@@ -46,9 +46,10 @@ export class ProductController {
     @Query("type") type?: string,
     @Query("search") search?: string,
   ) {
+    const take = Math.min(parseInt(limit) || 20, 100);
     return this.productService.findAll({
       page: page ? parseInt(page) : 1,
-      limit: limit ? parseInt(limit) : 20,
+      limit: take,
       category,
       type,
       search,
@@ -65,10 +66,11 @@ export class ProductController {
     @Query("page") page?: string,
     @Query("limit") limit?: string,
   ) {
+    const take = Math.min(parseInt(limit) || 20, 100);
     return this.productService.findMyProducts(
       user.id,
       page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
+      take,
     );
   }
 
@@ -83,9 +85,10 @@ export class ProductController {
     @Query("limit") limit?: string,
     @Query("status") status?: string,
   ) {
+    const take = Math.min(parseInt(limit) || 20, 100);
     return this.productService.findAllForAdmin({
       page: page ? parseInt(page) : 1,
-      limit: limit ? parseInt(limit) : 20,
+      limit: take,
       status,
     });
   }

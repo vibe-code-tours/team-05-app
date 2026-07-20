@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { Home, ChevronRight, Loader2, AlertCircle, PackageX } from 'lucide-react';
+import { useState, useCallback, useMemo, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Home, ChevronRight, Loader2, AlertCircle, PackageX, Zap } from 'lucide-react';
 import { PublicLayout } from '@/components/layout/public-layout';
 import { FilterSidebar, Filters } from '@/components/products/filter-sidebar';
 import { FilterToggleButton, FilterOverlay } from '@/components/products';
@@ -43,7 +44,8 @@ const ITEMS_PER_PAGE = 20;
 function buildApiFilters(
   filters: Filters,
   sortBy: string,
-  currentPage: number
+  currentPage: number,
+  isDeals: boolean
 ): ProductFilters {
   const apiFilters: ProductFilters = {
     page: currentPage,
@@ -66,7 +68,10 @@ function buildApiFilters(
     apiFilters.maxPrice = Number(filters.priceMax);
   }
 
-  if (filters.productType !== 'all') {
+  // Deals page filters for PROMOTION products only
+  if (isDeals) {
+    apiFilters.type = 'PROMOTION';
+  } else if (filters.productType !== 'all') {
     apiFilters.type = filters.productType === 'in-stock' ? 'IN_STOCK' : 'CARGO';
   }
 
@@ -78,12 +83,30 @@ function buildApiFilters(
 }
 
 export default function ProductsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <ProductsContent />
+    </Suspense>
+  );
+}
+
+function ProductsContent() {
+  const searchParams = useSearchParams();
+  const isDeals = searchParams.get('sort') === 'deals';
+
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [sortBy, setSortBy] = useState('relevance');
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
 
-  const apiFilters = buildApiFilters(filters, sortBy, currentPage);
+  const apiFilters = useMemo(
+    () => buildApiFilters(filters, sortBy, currentPage, isDeals),
+    [filters, sortBy, currentPage, isDeals]
+  );
   const { data: response, isLoading, error } = useProducts(apiFilters);
   const { data: categoriesResponse } = useCategories();
   const { data: brandsResponse } = useBrands();
@@ -162,7 +185,14 @@ export default function ProductsPage() {
               </li>
               <li className="flex items-center gap-2">
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                <span className="text-foreground font-medium">Products</span>
+                {isDeals ? (
+                  <span className="text-foreground font-medium flex items-center gap-1.5">
+                    <Zap className="w-4 h-4 text-orange-500" />
+                    Deals
+                  </span>
+                ) : (
+                  <span className="text-foreground font-medium">Products</span>
+                )}
               </li>
             </ol>
           </div>
@@ -217,7 +247,7 @@ export default function ProductsPage() {
                         </span>{' '}
                         of{' '}
                         <span className="font-medium text-foreground">{totalProducts}</span>{' '}
-                        products
+                        {isDeals ? 'deals' : 'products'}
                       </>
                     )}
                   </div>

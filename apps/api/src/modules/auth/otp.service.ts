@@ -52,10 +52,10 @@ export class OtpService {
       throw new ServiceUnavailableException("Database not available");
     }
 
+    // Find the most recent unused OTP of this type
     const otp = await this.prisma.otpCode.findFirst({
       where: {
         userId,
-        code,
         type,
         used: false,
         expiresAt: { gt: new Date() },
@@ -67,7 +67,29 @@ export class OtpService {
       return { success: false, message: "Invalid or expired OTP code" };
     }
 
-    // Mark as used
+    // Check if max attempts exceeded (5 attempts)
+    const MAX_ATTEMPTS = 5;
+    if (otp.attempts >= MAX_ATTEMPTS) {
+      // Mark as used to prevent further attempts
+      await this.prisma.otpCode.update({
+        where: { id: otp.id },
+        data: { used: true },
+      });
+      return { success: false, message: "OTP code locked due to too many failed attempts. Please request a new code." };
+    }
+
+    // Increment attempts
+    await this.prisma.otpCode.update({
+      where: { id: otp.id },
+      data: { attempts: { increment: 1 } },
+    });
+
+    // Check if code matches
+    if (otp.code !== code) {
+      return { success: false, message: "Invalid OTP code" };
+    }
+
+    // Mark as used on success
     await this.prisma.otpCode.update({
       where: { id: otp.id },
       data: { used: true },
@@ -81,6 +103,8 @@ export class OtpService {
    */
   async sendOtp(identifier: string, code: string, channel: "email" | "sms" = "email"): Promise<void> {
     // TODO: Integrate with email/SMS provider (e.g., Twilio, SendGrid, Resend)
-    console.log(`📧 OTP [${channel}] to ${identifier}: ${code}`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`📧 OTP [${channel}] to ${identifier}: ${code}`);
+    }
   }
 }
