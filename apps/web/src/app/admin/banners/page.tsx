@@ -147,7 +147,7 @@ function BannerPreview({
       {banner.imageUrl ? (
         <Image
           src={banner.imageUrl}
-          alt={banner.title}
+          alt={banner.title || "Banner image"}
           fill
           className="object-cover"
           sizes="(max-width: 768px) 100vw, 50vw"
@@ -483,14 +483,12 @@ export default function AdminBannersPage() {
                   {/* Banner image preview */}
                   <div className="relative h-24 w-40 flex-shrink-0 overflow-hidden rounded-md bg-muted">
                     {banner.image ? (
-                      <img
+                      <Image
                         src={banner.image}
-                        alt={banner.title}
-                        className="h-full w-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = "none";
-                        }}
+                        alt={banner.title || "Banner preview"}
+                        fill
+                        className="object-cover"
+                        sizes="160px"
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">

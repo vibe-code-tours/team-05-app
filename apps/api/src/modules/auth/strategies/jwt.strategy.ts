@@ -8,6 +8,8 @@ export interface JwtPayload {
   sub: string;
   email: string;
   role: string;
+  type?: string;
+  purpose?: string;
 }
 
 @Injectable()
@@ -25,6 +27,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
+    // Reject refresh tokens and OTP tokens used as Bearer tokens
+    if (payload.type === "refresh" || payload.purpose) {
+      throw new UnauthorizedException("Invalid token type for API access");
+    }
+
     if (!payload.sub) {
       throw new UnauthorizedException();
     }

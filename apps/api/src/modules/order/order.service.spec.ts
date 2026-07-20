@@ -122,7 +122,9 @@ describe("OrderService", () => {
               seller: { id: mockSellerId, name: "Test Seller" },
             }),
           },
-          product: { update: jest.fn() },
+          product: {
+            updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+          },
           cartItem: { deleteMany: jest.fn() },
         };
         return fn(tx);
@@ -181,7 +183,7 @@ describe("OrderService", () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it("should throw if insufficient stock", async () => {
+    it("should throw if insufficient stock (atomic guard)", async () => {
       const cart = {
         ...mockCart,
         items: [
@@ -193,13 +195,30 @@ describe("OrderService", () => {
       };
       prisma.cart.findUnique.mockResolvedValue(cart);
       prisma.address.findFirst.mockResolvedValue(mockAddress);
+      prisma.$transaction.mockImplementation(async (fn: any) => {
+        const tx = {
+          order: {
+            create: jest.fn().mockResolvedValue({
+              ...mockOrder,
+              items: [{ id: "item-1" }],
+              shippingAddress: mockAddress,
+              seller: { id: mockSellerId, name: "Test Seller" },
+            }),
+          },
+          product: {
+            updateMany: jest.fn().mockResolvedValue({ count: 0 }), // stock guard failed
+          },
+          cartItem: { deleteMany: jest.fn() },
+        };
+        return fn(tx);
+      });
 
       await expect(
         service.createOrder(mockBuyerId, { addressId: mockAddressId }),
       ).rejects.toThrow(BadRequestException);
     });
 
-    it("should check variant stock when variantId is present", async () => {
+    it("should check variant stock atomically when variantId is present", async () => {
       const cart = {
         ...mockCart,
         items: [
@@ -208,12 +227,29 @@ describe("OrderService", () => {
             variantId: "variant-123",
             quantity: 5,
             product: mockProduct,
-            variant: { stock: 3 }, // less than quantity
+            variant: { stock: 3 },
           },
         ],
       };
       prisma.cart.findUnique.mockResolvedValue(cart);
       prisma.address.findFirst.mockResolvedValue(mockAddress);
+      prisma.$transaction.mockImplementation(async (fn: any) => {
+        const tx = {
+          order: {
+            create: jest.fn().mockResolvedValue({
+              ...mockOrder,
+              items: [{ id: "item-1" }],
+              shippingAddress: mockAddress,
+              seller: { id: mockSellerId, name: "Test Seller" },
+            }),
+          },
+          productVariant: {
+            updateMany: jest.fn().mockResolvedValue({ count: 0 }), // stock guard failed
+          },
+          cartItem: { deleteMany: jest.fn() },
+        };
+        return fn(tx);
+      });
 
       await expect(
         service.createOrder(mockBuyerId, { addressId: mockAddressId }),
