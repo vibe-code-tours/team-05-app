@@ -5,3 +5,6 @@ export { ProductCard } from './product-card';
 export type { Product } from './product-card';
 export { CategoryGrid } from './category-grid';
 export { NewArrivals } from './new-arrivals';
+export { CargoShowcase } from './cargo-showcase';
+export { WhyChooseUs } from './why-choose-us';
+export { Testimonials } from './testimonials';
