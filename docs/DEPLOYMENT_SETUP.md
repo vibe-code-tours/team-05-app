@@ -128,7 +128,7 @@ postgresql://postgres.xxxxxxxxxxxx:your-password@aws-0-ap-southeast-1.pooler.sup
 1. Click "New Project"
 2. Select "Deploy from GitHub repo"
 3. Authorize Railway to access your repos
-4. Select `team-05-app`
+4. Select `vibe-code-tours/team-05-app`
 5. Click "Deploy"
 
 ### 4.3 Configure Service
@@ -182,7 +182,7 @@ CORS_ORIGINS=https://your-app.vercel.app
 ### 5.2 Import Project
 
 1. Click "Add New..." → "Project"
-2. Import `team-05-app`
+2. Import `vibe-code-tours/team-05-app` (the org repo, NOT your personal fork)
 3. Configure:
    - **Framework Preset:** Next.js
    - **Root Directory:** `apps/web`
