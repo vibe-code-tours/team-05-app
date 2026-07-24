@@ -1,22 +1,17 @@
-# Architecture — Team {{PROJECT_NAME}}
+# Architecture — CrossMart (Team-05 App)
 
 > One page. Keep it true as the project grows. A teammate should be able to read
 > this and find their way around in 5 minutes.
 
 ## What it does
-<!-- One paragraph: the product and the real user it serves. -->
+CrossMart is a cross-border marketplace connecting Myanmar buyers with sellers from Thailand/Bangkok. It supports product listings, cargo tracking, payments, and multi-role portals (Admin, Seller, Client).
+
+**Source Code:** [github.com/vibe-code-tours/team-05-app](https://github.com/vibe-code-tours/team-05-app)
 
 ## Diagram
-<!-- Boxes and arrows. Text is fine. Example:
-
-  [ Browser UI ] --> [ API / server ] --> [ Database ]
-                          |
-                          v
-                   [ AI / LLM proxy ]
--->
 
 ```
-[ frontend ] --> [ backend ] --> [ data ]
+[ Browser UI ] --> [ API / server ] --> [ data ]
                      |
                      v
                [ AI / LLM proxy ]
@@ -25,15 +20,22 @@
 ## Where things live
 | Path | What |
 |---|---|
-| `src/` (or `app/`) | application code |
-| `tests/` | tests |
+| `apps/web/` | Next.js frontend (React 19, TailwindCSS, shadcn/ui) |
+| `apps/api/` | NestJS backend (REST API, WebSocket) |
+| `packages/shared/` | Shared TypeScript types and utilities |
+| `docs/` | Architecture, deployment, decisions |
 | `.github/workflows/` | CI + security |
-| `docs/` | this file, demo script, decisions |
+| `.claude/` | AI development framework (agents, skills, workflows) |
 
 ## External services
-<!-- LLM proxy, DB, auth, hosting/deploy target, analytics. Which keys they need
-     (names only — real values live in .env / GitHub Secrets). -->
+| Service | Use | Required Env Vars |
+|---|---|---|
+| Supabase | PostgreSQL database + Auth | `DATABASE_URL`, `SUPABASE_*` |
+| Upstash Redis | Cache + Queue + Sessions | `REDIS_URL` |
+| Cloudflare R2 | Object storage (images, files) | `R2_*` |
+| Vercel | Frontend hosting (Next.js) | `VERCEL_TOKEN` |
+| Railway | Backend hosting (NestJS Docker) | — (dashboard config) |
+| Cloudflare | CDN, DNS, WAF | `CLOUDFLARE_API_TOKEN` |
 
 ## How to run
-<!-- Point to the README Quickstart; don't duplicate it here. -->
 See the [README](../README.md) Quickstart.
