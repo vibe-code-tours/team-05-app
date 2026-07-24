@@ -14,11 +14,11 @@ interface PromoBannerProps {
 
 const variantStyles = {
   default: {
-    gradient: 'from-rose-500 via-pink-500 to-fuchsia-500',
-    borderGradient: 'from-rose-400 via-pink-400 to-fuchsia-400',
+    gradient: 'from-indigo-600 via-violet-600 to-purple-700',
+    borderGradient: 'from-indigo-400 via-violet-400 to-purple-500',
     icon: <Tag className="h-5 w-5" />,
     chip: 'bg-white/20',
-    floatingColor: 'bg-rose-300',
+    floatingColor: 'bg-indigo-300',
   },
   discount: {
     gradient: 'from-emerald-500 via-green-500 to-teal-500',

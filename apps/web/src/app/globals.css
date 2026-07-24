@@ -7,10 +7,11 @@
   --color-card-foreground: oklch(0.145 0 0);
   --color-popover: oklch(1 0 0);
   --color-popover-foreground: oklch(0.145 0 0);
-  --color-primary: #e11d48;
+  /* ── Primary: vibrant indigo/purple per UI/UX guidelines ── */
+  --color-primary: hsl(250, 85%, 60%);
   --color-primary-foreground: oklch(1 0 0);
-  --color-primary-hover: #be123c;
-  --color-primary-light: #fff1f2;
+  --color-primary-hover: hsl(250, 85%, 52%);
+  --color-primary-light: hsl(250, 85%, 97%);
   --color-secondary: oklch(0.97 0.004 240);
   --color-secondary-foreground: oklch(0.205 0 0);
   --color-muted: oklch(0.97 0.004 240);
@@ -25,7 +26,7 @@
   --color-warning-foreground: oklch(1 0 0);
   --color-border: oklch(0.922 0 0);
   --color-input: oklch(0.922 0 0);
-  --color-ring: #e11d48;
+  --color-ring: hsl(250, 85%, 60%);
   --color-chart-1: oklch(0.646 0.222 41.116);
   --color-chart-2: oklch(0.6 0.118 184.714);
   --color-chart-3: oklch(0.398 0.07 227.392);
@@ -142,8 +143,8 @@
 
 /* Glow pulse for CTA buttons */
 @keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(225, 29, 72, 0.3), 0 0 60px rgba(225, 29, 72, 0.1); }
-  50% { box-shadow: 0 0 30px rgba(225, 29, 72, 0.5), 0 0 80px rgba(225, 29, 72, 0.2); }
+  0%, 100% { box-shadow: 0 0 20px hsl(250 85% 60% / 0.3), 0 0 60px hsl(250 85% 60% / 0.1); }
+  50% { box-shadow: 0 0 30px hsl(250 85% 60% / 0.5), 0 0 80px hsl(250 85% 60% / 0.2); }
 }
 
 /* Floating product card entrance */
@@ -180,6 +181,44 @@
   50% { transform: translateY(-50px) translateX(-10px) scale(0.8); opacity: 0.4; }
   75% { transform: translateY(-30px) translateX(20px) scale(1.1); opacity: 0.8; }
   100% { transform: translateY(0) translateX(0) scale(1); opacity: 0.6; }
+}
+
+/* ═══ New Section Animations ═══ */
+
+/* Cargo path draw — SVG line stroke */
+@keyframes cargo-path {
+  from { stroke-dashoffset: 600; }
+  to { stroke-dashoffset: 0; }
+}
+
+/* Slide in from left for cargo steps */
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Slide in from right */
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Shimmer line — sweeping light */
+@keyframes shimmer-line {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+/* Count up reveal */
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(20px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Ping glow dot */
+@keyframes ping-glow {
+  0% { transform: scale(1); opacity: 1; }
+  75%, 100% { transform: scale(2.5); opacity: 0; }
 }
 
 /* Reduced motion support */
