@@ -76,20 +76,7 @@ interface UIOrder {
   deliveredAt?: string;
 }
 
-// ── Mapping ───────────────────────────────────────────────────────────────
-
-function normalizeStatus(raw: string): SellerOrderStatus {
-  const upper = raw.toUpperCase();
-  // Map backend OrderStatus enum to seller UI statuses
-  if (["PENDING_PAYMENT", "PAYMENT_SUBMITTED", "PAYMENT_REJECTED"].includes(upper)) return "pending";
-  if (upper === "PAYMENT_CONFIRMED") return "confirmed";
-  if (upper === "PROCESSING") return "processing";
-  if (upper === "PACKING") return "packing";
-  if (["IN_CARGO", "OUT_FOR_DELIVERY"].includes(upper)) return "shipped";
-  if (["DELIVERED", "COMPLETED"].includes(upper)) return "delivered";
-  if (["CANCELLED", "REFUNDED"].includes(upper)) return "cancelled";
-  return "pending";
-}
+import { mapBackendToUiStatus, STATUS_MAP_UI_TO_BACKEND } from "@/lib/utils/order-status";
 
 function mapApiOrderToUI(apiOrder: ApiSellerOrder): UIOrder {
   return {
@@ -108,7 +95,7 @@ function mapApiOrderToUI(apiOrder: ApiSellerOrder): UIOrder {
     })),
     total: Number(apiOrder.total),
     currency: "MMK",
-    status: normalizeStatus(apiOrder.status),
+    status: mapBackendToUiStatus(apiOrder.status),
     isCargo: false,
     createdAt: apiOrder.createdAt,
     version: apiOrder.version ?? 0,
@@ -149,19 +136,7 @@ const nextStatusMap: Partial<Record<SellerOrderStatus, SellerOrderStatus[]>> = {
   packing: ["shipped"],
 };
 
-/**
- * Maps the seller UI status label to the actual backend OrderStatus enum value.
- * Never use .toUpperCase() directly — UI labels don't match the backend enum.
- */
-const STATUS_MAP_UI_TO_BACKEND: Record<SellerOrderStatus, string> = {
-  pending:    "PENDING_PAYMENT",     // not directly sent; here for completeness
-  confirmed:  "PAYMENT_CONFIRMED",
-  processing: "PROCESSING",
-  packing:    "PACKING",
-  shipped:    "IN_CARGO",
-  delivered:  "DELIVERED",
-  cancelled:  "CANCELLED",
-};
+
 
 
 // ── Helpers ───────────────────────────────────────────────────────────────

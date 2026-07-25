@@ -26,23 +26,45 @@ import { cn, formatPrice } from '@/lib/utils';
 import { useOrder } from '@/lib/services/order.service';
 import type { Order as ApiOrder } from '@/lib/services/order.service';
 import type { Order, OrderStatus } from '@/types/order';
+import { mapBackendToUiStatus } from '@/lib/utils/order-status';
 
 const STATUS_CONFIG: Record<
   OrderStatus,
   {
     label: string;
-    variant: 'warning' | 'default' | 'success' | 'destructive';
+    variant: 'warning' | 'default' | 'success' | 'destructive' | 'secondary';
     icon: typeof Clock;
     color: string;
     bgColor: string;
   }
 > = {
-  processing: {
-    label: 'Processing',
+  pending: {
+    label: 'Pending',
     variant: 'warning',
     icon: Clock,
     color: 'text-yellow-600',
     bgColor: 'bg-yellow-100',
+  },
+  confirmed: {
+    label: 'Confirmed',
+    variant: 'secondary',
+    icon: CheckCircle,
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-100',
+  },
+  processing: {
+    label: 'Processing',
+    variant: 'default',
+    icon: Loader2,
+    color: 'text-slate-600',
+    bgColor: 'bg-slate-100',
+  },
+  packing: {
+    label: 'Packing',
+    variant: 'default',
+    icon: Package,
+    color: 'text-slate-600',
+    bgColor: 'bg-slate-100',
   },
   shipped: {
     label: 'Shipped',
@@ -67,37 +89,12 @@ const STATUS_CONFIG: Record<
   },
 };
 
-function mapApiStatusToDisplayStatus(
-  apiStatus: ApiOrder['status']
-): OrderStatus {
-  switch (apiStatus) {
-    case 'PENDING_PAYMENT':
-    case 'PAYMENT_SUBMITTED':
-    case 'PAYMENT_CONFIRMED':
-    case 'PAYMENT_REJECTED':
-    case 'PROCESSING':
-    case 'PACKING':
-    case 'IN_CARGO':
-      return 'processing';
-    case 'OUT_FOR_DELIVERY':
-      return 'shipped';
-    case 'DELIVERED':
-    case 'COMPLETED':
-      return 'delivered';
-    case 'CANCELLED':
-    case 'REFUNDED':
-      return 'cancelled';
-    default:
-      return 'processing';
-  }
-}
-
 function mapApiOrderToUiOrder(apiOrder: ApiOrder): Order {
   return {
     id: apiOrder.id,
     orderNumber: apiOrder.orderNumber,
     date: apiOrder.createdAt,
-    status: mapApiStatusToDisplayStatus(apiOrder.status),
+    status: mapBackendToUiStatus(apiOrder.status),
     total: Number(apiOrder.total),
     currency: 'MMK',
     isCargo: false,
