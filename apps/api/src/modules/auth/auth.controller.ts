@@ -4,12 +4,17 @@ import { Throttle } from "@nestjs/throttler";
 import { AuthService } from "./auth.service";
 import { RegisterDto, LoginDto, VerifyOtpDto, RefreshTokenDto } from "./dto/auth.dto";
 import { ResendOtpDto } from "./dto/resend-otp.dto";
+import { SupabaseAuthDto } from "./dto/supabase-auth.dto";
 import { Public } from "../../common/decorators/public.decorator";
+import { SupabaseAuthService } from "./supabase-auth.service";
 
 @ApiTags("Auth")
 @Controller("auth")
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private supabaseAuthService: SupabaseAuthService,
+  ) {}
 
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60000 } })
@@ -51,6 +56,17 @@ export class AuthController {
   @ApiResponse({ status: 200, description: "OTP resent (if user exists)" })
   resendOtp(@Body() dto: ResendOtpDto) {
     return this.authService.resendOtp(dto.email);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post("supabase")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Authenticate with Supabase (Google OAuth)" })
+  @ApiResponse({ status: 200, description: "Authenticated, JWT tokens returned" })
+  @ApiResponse({ status: 401, description: "Invalid Supabase session" })
+  supabaseAuth(@Body() dto: SupabaseAuthDto) {
+    return this.supabaseAuthService.authenticate(dto.accessToken);
   }
 
   @Public()

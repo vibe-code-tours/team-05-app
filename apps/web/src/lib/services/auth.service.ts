@@ -12,6 +12,10 @@ export interface AuthResponse {
   refreshToken: string;
 }
 
+export interface SupabaseAuthInput {
+  accessToken: string;
+}
+
 export interface RegisterResponse {
   user: User;
   requiresVerification: boolean;
@@ -48,6 +52,9 @@ export const authApi = {
 
   resendOtp: (email: string) =>
     api.post<{ message: string; otpToken?: string }>("/auth/resend-otp", { email }),
+
+  supabaseAuth: (data: SupabaseAuthInput) =>
+    api.post<AuthResponse>("/auth/supabase", data),
 };
 
 // React Query hooks
@@ -117,6 +124,21 @@ export function useResendOtp() {
       if (response.data?.otpToken) {
         useAuthStore.setState({ otpToken: response.data.otpToken });
       }
+    },
+  });
+}
+
+export function useSupabaseAuth() {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: authApi.supabaseAuth,
+    onSuccess: (response) => {
+      const { user, accessToken } = response.data;
+      useAuthStore.getState().login(user, accessToken);
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      router.push(getPostLoginPath(user.role));
     },
   });
 }
