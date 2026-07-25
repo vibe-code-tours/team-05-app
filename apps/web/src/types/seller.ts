@@ -35,15 +35,9 @@ export interface SellerProduct {
   createdAt: string;
   updatedAt: string;
 }
+import type { OrderStatus } from "./order";
 
-export type SellerOrderStatus =
-  | "pending"
-  | "confirmed"
-  | "processing"
-  | "packing"
-  | "shipped"
-  | "delivered"
-  | "cancelled";
+export type SellerOrderStatus = OrderStatus;
 
 export interface SellerOrderItem {
   id: string;

@@ -1,4 +1,11 @@
-export type OrderStatus = 'processing' | 'shipped' | 'delivered' | 'cancelled';
+export type OrderStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'processing'
+  | 'packing'
+  | 'shipped'
+  | 'delivered'
+  | 'cancelled';
 
 export type CargoMilestone =
   | 'ORDER_PLACED'
