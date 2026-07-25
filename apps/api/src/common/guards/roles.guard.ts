@@ -49,6 +49,15 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('No role assigned to user');
     }
 
+    if (user.status === "PENDING_VERIFICATION" && user.role === "SELLER") {
+      // Pending sellers are treated as CLIENTS for route access.
+      if (!requiredRoles.includes("CLIENT")) {
+        this.logger.warn(`Pending Seller ${user.id} attempted to access route requiring ${requiredRoles.join(' or ')}`);
+        throw new ForbiddenException('Seller application is pending approval');
+      }
+      return true; // Let them access CLIENT routes
+    }
+
     const hasRole = requiredRoles.some((role) => user.role === role);
 
     if (!hasRole) {

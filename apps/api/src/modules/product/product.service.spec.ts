@@ -7,6 +7,8 @@ import {
 import { ProductService } from "./product.service";
 import { PrismaService } from "../../config/prisma.service";
 
+import { NotificationService } from "../notification/notification.service";
+
 describe("ProductService", () => {
   let service: ProductService;
   let prisma: Record<string, any>;
@@ -56,6 +58,7 @@ describe("ProductService", () => {
       providers: [
         ProductService,
         { provide: PrismaService, useValue: prisma },
+        { provide: NotificationService, useValue: { create: jest.fn() } },
       ],
     }).compile();
 

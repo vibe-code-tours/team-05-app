@@ -6,6 +6,8 @@ import {
 import { SellerService } from "./seller.service";
 import { PrismaService } from "../../config/prisma.service";
 
+import { NotificationService } from "../notification/notification.service";
+
 describe("SellerService", () => {
   let service: SellerService;
   let prisma: Record<string, any>;
@@ -42,6 +44,7 @@ describe("SellerService", () => {
       providers: [
         SellerService,
         { provide: PrismaService, useValue: prisma },
+        { provide: NotificationService, useValue: { create: jest.fn() } },
       ],
     }).compile();
 
