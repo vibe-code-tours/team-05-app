@@ -76,9 +76,22 @@ export function useLogin() {
       const { user, accessToken } = response.data;
       useAuthStore.getState().login(user, accessToken);
       queryClient.invalidateQueries({ queryKey: ["user"] });
-      router.push("/");
+      // Redirect based on role
+      router.push(getPostLoginPath(user.role));
     },
   });
+}
+
+/** Map user role to post-login redirect path. */
+function getPostLoginPath(role: string): string {
+  switch (role) {
+    case "ADMIN":
+      return "/admin";
+    case "SELLER":
+      return "/seller";
+    default:
+      return "/";
+  }
 }
 
 export function useVerifyOtp() {
@@ -91,7 +104,7 @@ export function useVerifyOtp() {
       const { user, accessToken } = response.data;
       useAuthStore.getState().login(user, accessToken);
       queryClient.invalidateQueries({ queryKey: ["user"] });
-      router.push("/");
+      router.push(getPostLoginPath(user.role));
     },
   });
 }

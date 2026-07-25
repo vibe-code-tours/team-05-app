@@ -32,3 +32,6 @@ docker-compose.override.yml
 .vercel
 .env*
 __pycache__/
+
+# AI framework
+.claude/worktrees/
