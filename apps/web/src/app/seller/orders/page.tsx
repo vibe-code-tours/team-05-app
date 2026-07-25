@@ -70,6 +70,8 @@ interface UIOrder {
   status: SellerOrderStatus;
   isCargo: boolean;
   createdAt: string;
+  /** Optimistic-locking version — required by the backend status update endpoint */
+  version: number;
   shippedAt?: string;
   deliveredAt?: string;
 }
@@ -77,10 +79,14 @@ interface UIOrder {
 // ── Mapping ───────────────────────────────────────────────────────────────
 
 function normalizeStatus(raw: string): SellerOrderStatus {
-  const lower = raw.toLowerCase();
-  if (["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"].includes(lower)) {
-    return lower as SellerOrderStatus;
-  }
+  const upper = raw.toUpperCase();
+  // Map backend OrderStatus enum to seller UI statuses
+  if (["PENDING_PAYMENT", "PAYMENT_SUBMITTED", "PAYMENT_REJECTED"].includes(upper)) return "pending";
+  if (upper === "PAYMENT_CONFIRMED") return "confirmed";
+  if (["PROCESSING", "PACKING"].includes(upper)) return "processing";
+  if (["IN_CARGO", "OUT_FOR_DELIVERY"].includes(upper)) return "shipped";
+  if (["DELIVERED", "COMPLETED"].includes(upper)) return "delivered";
+  if (["CANCELLED", "REFUNDED"].includes(upper)) return "cancelled";
   return "pending";
 }
 
@@ -88,20 +94,23 @@ function mapApiOrderToUI(apiOrder: ApiSellerOrder): UIOrder {
   return {
     id: apiOrder.id,
     orderNumber: apiOrder.orderNumber,
-    customerName: apiOrder.shippingAddress?.name ?? "Unknown Customer",
-    customerEmail: "",
+    // Seller order endpoint includes buyer relation
+    customerName: apiOrder.buyer?.name ?? apiOrder.shippingAddress?.name ?? "Unknown Customer",
+    customerEmail: apiOrder.buyer?.email ?? "",
     items: apiOrder.items.map((item) => ({
       id: item.id,
-      productName: item.product.name,
+      // Items store a snapshot of name/price at the time of ordering
+      productName: item.name,
       quantity: item.quantity,
-      unitPrice: item.product.price,
-      totalPrice: item.totalPrice,
+      unitPrice: Number(item.price),
+      totalPrice: Number(item.price) * item.quantity,
     })),
-    total: apiOrder.total,
+    total: Number(apiOrder.total),
     currency: "MMK",
     status: normalizeStatus(apiOrder.status),
     isCargo: false,
     createdAt: apiOrder.createdAt,
+    version: apiOrder.version ?? 0,
   };
 }
 
@@ -248,6 +257,7 @@ export default function SellerOrdersPage() {
       await updateStatusMutation.mutateAsync({
         id: statusTargetOrder.id,
         status: newStatus.toUpperCase(),
+        version: statusTargetOrder.version,
       });
       toast({
         title: "Status updated",

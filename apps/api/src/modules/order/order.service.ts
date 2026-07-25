@@ -216,6 +216,7 @@ export class OrderService {
         include: {
           items: { take: 3 },
           seller: { select: { id: true, name: true } },
+          shippingAddress: true,
         },
         skip,
         take: limit,

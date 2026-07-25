@@ -33,16 +33,32 @@ export interface SellerOrder {
   id: string;
   orderNumber: string;
   status: string;
+  version: number;
   items: {
     id: string;
-    product: { id: string; name: string; slug: string; price: number; images: string[] };
+    productId: string;
+    /** Name snapshotted at order creation time */
+    name: string;
+    /** Unit price snapshotted at order creation time */
+    price: number;
     quantity: number;
-    totalPrice: number;
   }[];
   subtotal: number;
   shippingFee: number;
+  tax: number;
   total: number;
-  shippingAddress: { name: string; phone: string; address: string; city: string; state: string; zipCode: string };
+  /** Address field names match Prisma Address model */
+  shippingAddress: {
+    id: string;
+    name: string;
+    phone: string;
+    street: string;
+    city: string;
+    district: string;
+    state?: string | null;
+    postalCode?: string | null;
+  };
+  buyer?: { id: string; name: string; email: string };
   createdAt: string;
 }
 
