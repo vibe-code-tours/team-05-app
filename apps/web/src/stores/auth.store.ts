@@ -39,6 +39,9 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         clearAuthCookie();
         set({ user: null, accessToken: null, otpToken: null, isAuthenticated: false });
+        if (typeof window !== 'undefined') {
+          window.location.href = 'https://team-05-app.vercel.app/';
+        }
       },
 
       updateUser: (partial) =>

@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     storeLogout();
     setUser(null);
-    router.push('/login');
+    window.location.href = 'https://team-05-app.vercel.app/';
   };
 
   const clearAuth = () => {
