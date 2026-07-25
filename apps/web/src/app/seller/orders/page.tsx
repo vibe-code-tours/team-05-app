@@ -153,7 +153,7 @@ const nextStatusMap: Partial<Record<SellerOrderStatus, SellerOrderStatus[]>> = {
  * Maps the seller UI status label to the actual backend OrderStatus enum value.
  * Never use .toUpperCase() directly — UI labels don't match the backend enum.
  */
-const UI_TO_BACKEND_STATUS: Record<SellerOrderStatus, string> = {
+const STATUS_MAP_UI_TO_BACKEND: Record<SellerOrderStatus, string> = {
   pending:    "PENDING_PAYMENT",     // not directly sent; here for completeness
   confirmed:  "PAYMENT_CONFIRMED",
   processing: "PROCESSING",
@@ -275,7 +275,7 @@ export default function SellerOrdersPage() {
       await updateStatusMutation.mutateAsync({
         id: statusTargetOrder.id,
         // Map UI status to the real backend OrderStatus enum value
-        status: UI_TO_BACKEND_STATUS[newStatus],
+        status: STATUS_MAP_UI_TO_BACKEND[newStatus],
         version: statusTargetOrder.version,
       });
       toast({
