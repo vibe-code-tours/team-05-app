@@ -35,7 +35,7 @@ export default function NewProductPage() {
     name: "",
     description: "",
     price: "",
-    categoryId: "",
+    categorySlug: "",
     stock: "",
   });
 
@@ -114,7 +114,7 @@ export default function NewProductPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.price || !formData.stock || !formData.categoryId) {
+    if (!formData.name || !formData.price || !formData.stock || !formData.categorySlug) {
       toast({
         title: "Missing required fields",
         description: "Please fill in name, price, stock, and category.",
@@ -128,7 +128,7 @@ export default function NewProductPage() {
         description: formData.description,
         price: Number(formData.price),
         stock: Number(formData.stock),
-        categoryId: formData.categoryId,
+        categorySlug: formData.categorySlug,
         type: "IN_STOCK",
         images: imageUrls.filter((u) => !u.startsWith("blob:")).map((url, i) => ({ url, order: i })),
         variants: variants.map((v) => ({ 
@@ -421,15 +421,15 @@ export default function NewProductPage() {
               </CardHeader>
               <CardContent>
                 <select
-                  name="categoryId"
-                  value={formData.categoryId}
+                  name="categorySlug"
+                  value={formData.categorySlug}
                   onChange={handleInputChange}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   required
                 >
                   <option value="">Select a category</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
+                  {categories.map((cat: { id: string; slug: string; name: string }) => (
+                    <option key={cat.id} value={cat.slug}>
                       {cat.name}
                     </option>
                   ))}

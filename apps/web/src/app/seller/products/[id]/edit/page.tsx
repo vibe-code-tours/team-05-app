@@ -90,7 +90,7 @@ export default function EditProductPage() {
     name: "",
     description: "",
     price: "",
-    categoryId: "",
+    categorySlug: "",
     stock: "",
   });
 
@@ -109,7 +109,7 @@ export default function EditProductPage() {
         name: product.name,
         description: "",
         price: product.price.toString(),
-        categoryId: product.category?.id ?? "",
+        categorySlug: product.category?.slug ?? "",
         stock: product.stock.toString(),
       });
       if (product.images?.length) {
@@ -201,7 +201,7 @@ export default function EditProductPage() {
           description: formData.description,
           price: Number(formData.price),
           stock: Number(formData.stock),
-          categoryId: formData.categoryId,
+          categorySlug: formData.categorySlug,
           images: imageUrls.filter((u) => !u.startsWith("blob:")).map((url, i) => ({ url, order: i })),
           variants: variants.map((v) => ({ 
             sku: `${formData.name.substring(0,3).toUpperCase()}-${v.type.substring(0,1).toUpperCase()}-${v.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()}`,
@@ -514,8 +514,8 @@ export default function EditProductPage() {
               </CardHeader>
               <CardContent>
                 <select
-                  name="categoryId"
-                  value={formData.categoryId}
+                  name="categorySlug"
+                  value={formData.categorySlug}
                   onChange={handleInputChange}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   required

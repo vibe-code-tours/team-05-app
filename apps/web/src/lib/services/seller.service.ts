@@ -51,7 +51,7 @@ export interface CreateProductInput {
   description: string;
   price: number;
   stock: number;
-  categoryId: string;
+  categorySlug: string;
   type: string;
   images?: { url: string; alt?: string; order?: number }[];
   variants?: { sku: string; price?: number; stock?: number; attributes: Record<string, any> }[];
