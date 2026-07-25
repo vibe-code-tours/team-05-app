@@ -19,22 +19,38 @@ export const CARGO_MILESTONES = [
 
 export type CargoMilestone = (typeof CARGO_MILESTONES)[number];
 
+export interface CargoHistoryEntry {
+  id: string;
+  shipmentId: string;
+  milestone: CargoMilestone;
+  location: string | null;
+  notes: string | null;
+  recordedBy: string | null;
+  timestamp: string;
+}
+
 export interface CargoShipment {
   id: string;
   orderId: string;
   trackingNumber: string;
   carrier: string;
-  milestone: CargoMilestone;
-  status: "PREPARING" | "IN_TRANSIT" | "CUSTOMS" | "DELIVERED";
   origin: string;
-  destination: string;
-  estimatedArrival: string;
-  milestones: {
-    milestone: CargoMilestone;
-    timestamp: string;
-    notes?: string;
-  }[];
+  currentMilestone: CargoMilestone;
+  estimatedArrival: string | null;
   createdAt: string;
+  updatedAt: string;
+  history: CargoHistoryEntry[];
+  order?: {
+    shippingAddress?: {
+      id?: string;
+      name?: string;
+      phone?: string;
+      address?: string;
+      city: string;
+      state: string;
+      zipCode?: string;
+    };
+  };
 }
 
 // ── API calls ──────────────────────────────────────────────────────────────
@@ -58,6 +74,15 @@ export function useCargoByOrder(orderId: string) {
     queryKey: ["cargo", "order", orderId],
     queryFn: () => cargoApi.getByOrder(orderId),
     enabled: !!orderId,
+  });
+}
+
+export function useCargoByTracking(trackingNumber: string) {
+  return useQuery({
+    queryKey: ["cargo", "track", trackingNumber],
+    queryFn: () => cargoApi.getByTracking(trackingNumber),
+    enabled: !!trackingNumber,
+    retry: false,
   });
 }
 
