@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useLogin } from '@/lib/services/auth.service'
+import { getSupabaseClient } from '@/lib/supabase'
 
 interface LoginForm {
   email: string
@@ -240,7 +241,13 @@ export default function LoginPage() {
               variant="outline"
               className="h-11 rounded-xl border-gray-200 hover:bg-gray-50 transition-all text-gray-700 font-medium"
               disabled={isLoading}
-              onClick={() => console.log('Google login')}
+              onClick={() => {
+                  const supabase = getSupabaseClient();
+                  supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: { redirectTo: `${window.location.origin}/auth/callback` },
+                  });
+                }}
             >
               <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                 <path
