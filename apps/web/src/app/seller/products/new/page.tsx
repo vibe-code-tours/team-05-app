@@ -130,8 +130,13 @@ export default function NewProductPage() {
         stock: Number(formData.stock),
         categoryId: formData.categoryId,
         type: "IN_STOCK",
-        images: imageUrls.filter((u) => !u.startsWith("blob:")),
-        variants: variants.map((v) => ({ type: v.type, value: v.value })),
+        images: imageUrls.filter((u) => !u.startsWith("blob:")).map((url, i) => ({ url, order: i })),
+        variants: variants.map((v) => ({ 
+          sku: `${formData.name.substring(0,3).toUpperCase()}-${v.type.substring(0,1).toUpperCase()}-${v.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()}`,
+          attributes: { [v.type]: v.value },
+          price: Number(formData.price),
+          stock: Number(formData.stock)
+        })),
       },
       {
         onSuccess: () => {

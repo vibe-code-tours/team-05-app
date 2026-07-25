@@ -113,7 +113,14 @@ export default function EditProductPage() {
         stock: product.stock.toString(),
       });
       if (product.images?.length) {
-        setImageUrls([...product.images]);
+        setImageUrls(product.images.map((img: any) => typeof img === 'string' ? img : img.url));
+      }
+      if ((product as any).variants?.length) {
+        setVariants((product as any).variants.map((v: any) => {
+          const type = Object.keys(v.attributes || {})[0] || 'size';
+          const value = v.attributes?.[type] || '';
+          return { type: type as "size" | "color", value };
+        }));
       }
       setInitialized(true);
     }
@@ -195,8 +202,13 @@ export default function EditProductPage() {
           price: Number(formData.price),
           stock: Number(formData.stock),
           categoryId: formData.categoryId,
-          images: imageUrls.filter((u) => !u.startsWith("blob:")),
-          variants: variants.map((v) => ({ type: v.type, value: v.value })),
+          images: imageUrls.filter((u) => !u.startsWith("blob:")).map((url, i) => ({ url, order: i })),
+          variants: variants.map((v) => ({ 
+            sku: `${formData.name.substring(0,3).toUpperCase()}-${v.type.substring(0,1).toUpperCase()}-${v.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()}`,
+            attributes: { [v.type]: v.value },
+            price: Number(formData.price),
+            stock: Number(formData.stock)
+          })),
         },
       },
       {

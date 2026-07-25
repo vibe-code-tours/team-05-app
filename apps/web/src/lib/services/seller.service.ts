@@ -53,8 +53,8 @@ export interface CreateProductInput {
   stock: number;
   categoryId: string;
   type: string;
-  images?: string[];
-  variants?: { type: string; value: string; price?: number; stock?: number }[];
+  images?: { url: string; alt?: string; order?: number }[];
+  variants?: { sku: string; price?: number; stock?: number; attributes: Record<string, any> }[];
 }
 
 export type UpdateProductInput = Partial<CreateProductInput>;
