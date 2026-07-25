@@ -130,24 +130,29 @@ export class AuthService {
     }
 
     if (user.status === "PENDING_VERIFICATION") {
-      // Resend OTP if not verified
-      const code = await this.otpService.generate(user.id, "VERIFY_EMAIL");
-      await this.otpService.sendOtp(user.email, code, "email");
+      if (user.role === "SELLER") {
+        // This is a pending seller waiting for admin approval. Let them log in.
+        // The RolesGuard will restrict their access appropriately.
+      } else {
+        // Resend OTP if not verified
+        const code = await this.otpService.generate(user.id, "VERIFY_EMAIL");
+        await this.otpService.sendOtp(user.email, code, "email");
 
-      // Sign OTP token with purpose claim
-      const otpToken = this.jwt.sign(
-        { sub: user.id, email: user.email, purpose: "otp_verify" },
-        { expiresIn: "10m" }
-      );
+        // Sign OTP token with purpose claim
+        const otpToken = this.jwt.sign(
+          { sub: user.id, email: user.email, purpose: "otp_verify" },
+          { expiresIn: "10m" }
+        );
 
-      return {
-        success: false,
-        message: "Please verify your email first. A new OTP has been sent.",
-        data: { requiresVerification: true, email: user.email, otpToken },
-      };
+        return {
+          success: false,
+          message: "Please verify your email first. A new OTP has been sent.",
+          data: { requiresVerification: true, email: user.email, otpToken },
+        };
+      }
     }
 
-    if (user.status !== "ACTIVE") {
+    if (user.status !== "ACTIVE" && !(user.role === "SELLER" && user.status === "PENDING_VERIFICATION")) {
       throw new UnauthorizedException(`Account is ${user.status.toLowerCase()}`);
     }
 
@@ -252,7 +257,8 @@ export class AuthService {
       throw new UnauthorizedException("Refresh token expired");
     }
 
-    if (session.user.status !== "ACTIVE") {
+    const isPendingSeller = session.user.role === "SELLER" && session.user.status === "PENDING_VERIFICATION";
+    if (session.user.status !== "ACTIVE" && !isPendingSeller) {
       throw new UnauthorizedException("Account is not active");
     }
 

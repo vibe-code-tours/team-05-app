@@ -41,10 +41,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       select: { id: true, email: true, role: true, status: true },
     });
 
-    if (!user || user.status !== "ACTIVE") {
+    const isActive = user.status === "ACTIVE";
+    const isPendingSeller = user.role === "SELLER" && user.status === "PENDING_VERIFICATION";
+
+    if (!user || (!isActive && !isPendingSeller)) {
       throw new UnauthorizedException("User not found or inactive");
     }
 
-    return { id: user.id, email: user.email, role: user.role };
+    return { id: user.id, email: user.email, role: user.role, status: user.status };
   }
 }
