@@ -185,28 +185,21 @@ function OrderConfirmationContent() {
             {order.items.map((item) => (
               <div key={item.id} className="flex items-center gap-4">
                 <div className="w-16 h-16 bg-muted rounded-lg overflow-hidden flex-shrink-0">
-                  {item.product.images[0] ? (
-                    <img
-                      src={item.product.images[0]}
-                      alt={item.product.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Package className="w-6 h-6 text-muted-foreground" />
-                    </div>
-                  )}
+                  {/* OrderItem stores a name/price snapshot; no product images available on list */}
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Package className="w-6 h-6 text-muted-foreground" />
+                  </div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">
-                    {item.product.name}
+                    {item.name}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     Qty: {item.quantity}
                   </p>
                 </div>
                 <p className="text-sm font-semibold text-foreground flex-shrink-0">
-                  {formatPrice(item.totalPrice)}
+                  {formatPrice(Number(item.price) * item.quantity)}
                 </p>
               </div>
             ))}
@@ -247,10 +240,12 @@ function OrderConfirmationContent() {
                 <p className="font-medium text-foreground">
                   {order.shippingAddress.name}
                 </p>
-                <p>{order.shippingAddress.address}</p>
+                {/* Prisma Address uses 'street', not 'address' */}
+                <p>{order.shippingAddress.street}</p>
                 <p>
-                  {order.shippingAddress.city}, {order.shippingAddress.state}{' '}
-                  {order.shippingAddress.zipCode}
+                  {order.shippingAddress.city},{' '}
+                  {order.shippingAddress.district}{' '}
+                  {order.shippingAddress.postalCode ?? ''}
                 </p>
                 {order.shippingAddress.phone && (
                   <p>{order.shippingAddress.phone}</p>
@@ -276,19 +271,25 @@ function OrderConfirmationContent() {
                   <p className="font-medium text-foreground">Payment Status</p>
                   <Badge
                     variant={
-                      order.paymentStatus === 'PAID'
+                      order.status === 'PAYMENT_CONFIRMED' || order.status === 'PROCESSING' ||
+                      order.status === 'PACKING' || order.status === 'IN_CARGO' ||
+                      order.status === 'OUT_FOR_DELIVERY' || order.status === 'DELIVERED' ||
+                      order.status === 'COMPLETED'
                         ? 'default'
-                        : order.paymentStatus === 'REFUNDED'
+                        : order.status === 'REFUNDED'
                           ? 'destructive'
                           : 'secondary'
                     }
                     className="mt-1"
                   >
-                    {order.paymentStatus === 'PAID'
+                    {order.status === 'PAYMENT_CONFIRMED' || order.status === 'PROCESSING' ||
+                     order.status === 'PACKING' || order.status === 'IN_CARGO' ||
+                     order.status === 'OUT_FOR_DELIVERY' || order.status === 'DELIVERED' ||
+                     order.status === 'COMPLETED'
                       ? 'Paid'
-                      : order.paymentStatus === 'REFUNDED'
+                      : order.status === 'REFUNDED'
                         ? 'Refunded'
-                        : 'Pending'}
+                        : 'Pending Payment'}
                   </Badge>
                 </div>
               </div>

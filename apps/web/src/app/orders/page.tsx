@@ -82,15 +82,21 @@ function mapApiStatusToDisplayStatus(
   apiStatus: ApiOrder['status']
 ): OrderStatus {
   switch (apiStatus) {
-    case 'PENDING':
-    case 'CONFIRMED':
+    case 'PENDING_PAYMENT':
+    case 'PAYMENT_SUBMITTED':
+    case 'PAYMENT_CONFIRMED':
+    case 'PAYMENT_REJECTED':
     case 'PROCESSING':
+    case 'PACKING':
+    case 'IN_CARGO':
       return 'processing';
-    case 'SHIPPED':
+    case 'OUT_FOR_DELIVERY':
       return 'shipped';
     case 'DELIVERED':
+    case 'COMPLETED':
       return 'delivered';
     case 'CANCELLED':
+    case 'REFUNDED':
       return 'cancelled';
     default:
       return 'processing';
@@ -103,21 +109,24 @@ function mapApiOrderToUiOrder(apiOrder: ApiOrder): Order {
     orderNumber: apiOrder.orderNumber,
     date: apiOrder.createdAt,
     status: mapApiStatusToDisplayStatus(apiOrder.status),
-    total: apiOrder.total,
+    total: Number(apiOrder.total),
     currency: 'MMK',
     isCargo: false,
     items: apiOrder.items.map((item) => ({
       id: item.id,
-      name: item.product.name,
-      price: item.product.price,
+      // Items store a snapshot of name/price at the time of ordering
+      name: item.name,
+      price: Number(item.price),
       quantity: item.quantity,
-      image: item.product.images?.[0] || '/placeholder.png',
+      image: '/placeholder.png',
     })),
     shippingAddress: {
-      name: apiOrder.shippingAddress.name,
-      line1: apiOrder.shippingAddress.address,
-      city: apiOrder.shippingAddress.city,
-      postalCode: apiOrder.shippingAddress.zipCode || '',
+      name: apiOrder.shippingAddress?.name ?? '',
+      // Prisma Address uses 'street', not 'address'
+      line1: apiOrder.shippingAddress?.street ?? '',
+      city: apiOrder.shippingAddress?.city ?? '',
+      // Prisma Address uses 'postalCode', not 'zipCode'
+      postalCode: apiOrder.shippingAddress?.postalCode ?? '',
       country: 'Myanmar',
     },
   };

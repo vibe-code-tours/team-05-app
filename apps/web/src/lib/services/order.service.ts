@@ -1,37 +1,53 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
-// Types
+// Types — mirror the actual Prisma schema
 export interface OrderItem {
   id: string;
-  product: {
-    id: string;
-    name: string;
-    slug: string;
-    price: number;
-    images: string[];
-  };
+  productId: string;
+  variantId?: string | null;
+  /** Name snapshotted at order creation time */
+  name: string;
+  /** Price snapshotted at order creation time */
+  price: number;
   quantity: number;
-  totalPrice: number;
 }
 
 export interface Order {
   id: string;
   orderNumber: string;
-  status: "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+  /** Matches backend OrderStatus enum */
+  status:
+    | "PENDING_PAYMENT"
+    | "PAYMENT_SUBMITTED"
+    | "PAYMENT_CONFIRMED"
+    | "PAYMENT_REJECTED"
+    | "PROCESSING"
+    | "PACKING"
+    | "IN_CARGO"
+    | "OUT_FOR_DELIVERY"
+    | "DELIVERED"
+    | "COMPLETED"
+    | "CANCELLED"
+    | "REFUNDED";
   items: OrderItem[];
   subtotal: number;
   shippingFee: number;
+  tax: number;
   total: number;
+  notes?: string | null;
+  /** Shipping address — field names match Prisma Address model */
   shippingAddress: {
+    id: string;
     name: string;
     phone: string;
-    address: string;
+    street: string;
     city: string;
-    state: string;
-    zipCode: string;
+    district: string;
+    state?: string | null;
+    postalCode?: string | null;
   };
-  paymentStatus: "PENDING" | "PAID" | "REFUNDED";
+  seller?: { id: string; name: string };
   createdAt: string;
   updatedAt: string;
 }
