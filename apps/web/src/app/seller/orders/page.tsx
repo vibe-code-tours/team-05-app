@@ -139,10 +139,24 @@ const statusTabs = [
 ];
 
 const nextStatusMap: Partial<Record<SellerOrderStatus, SellerOrderStatus[]>> = {
-  pending: ["confirmed", "cancelled"],
+  // 'pending' covers PENDING_PAYMENT (COD) — can go straight to processing or cancel
+  pending: ["processing", "cancelled"],
   confirmed: ["processing", "cancelled"],
   processing: ["shipped", "cancelled"],
   shipped: ["delivered"],
+};
+
+/**
+ * Maps the seller UI status label to the actual backend OrderStatus enum value.
+ * Never use .toUpperCase() directly — UI labels don't match the backend enum.
+ */
+const UI_TO_BACKEND_STATUS: Record<SellerOrderStatus, string> = {
+  pending:    "PENDING_PAYMENT",     // not directly sent; here for completeness
+  confirmed:  "PAYMENT_CONFIRMED",
+  processing: "PROCESSING",
+  shipped:    "IN_CARGO",
+  delivered:  "DELIVERED",
+  cancelled:  "CANCELLED",
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -256,7 +270,8 @@ export default function SellerOrdersPage() {
     try {
       await updateStatusMutation.mutateAsync({
         id: statusTargetOrder.id,
-        status: newStatus.toUpperCase(),
+        // Map UI status to the real backend OrderStatus enum value
+        status: UI_TO_BACKEND_STATUS[newStatus],
         version: statusTargetOrder.version,
       });
       toast({
