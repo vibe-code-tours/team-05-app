@@ -37,8 +37,8 @@ export interface Order {
 }
 
 export interface CreateOrderInput {
-  shippingAddressId: string;
-  note?: string;
+  addressId: string;
+  notes?: string;
 }
 
 // API calls
