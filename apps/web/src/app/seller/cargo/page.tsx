@@ -136,14 +136,13 @@ function deriveLocationFromMilestone(milestone: CargoMilestoneStatus): string {
 }
 
 function mapApiShipmentToUI(apiShipment: ApiCargoShipment): UIShipment {
-  const currentMilestoneIdx = CARGO_MILESTONES.indexOf(apiShipment.milestone);
   const completedMilestoneSet = new Set(
-    apiShipment.milestones.map((m) => m.milestone)
+    apiShipment.history.map((m) => m.milestone)
   );
 
   const uiMilestones: UICargoMilestone[] = CARGO_MILESTONES.map((ms) => {
-    const apiMilestone = apiShipment.milestones.find((m) => m.milestone === ms);
-    const isCurrent = ms === apiShipment.milestone;
+    const apiMilestone = apiShipment.history.find((m) => m.milestone === ms);
+    const isCurrent = ms === apiShipment.currentMilestone;
     const isCompleted = completedMilestoneSet.has(ms) && !isCurrent;
 
     return {
@@ -155,24 +154,34 @@ function mapApiShipmentToUI(apiShipment: ApiCargoShipment): UIShipment {
     };
   });
 
-  const lastMilestone = apiShipment.milestones[apiShipment.milestones.length - 1];
-  const currentLocation = lastMilestone?.notes ?? deriveLocationFromMilestone(normalizeMilestoneStatus(apiShipment.milestone));
+  const lastHistory = apiShipment.history[apiShipment.history.length - 1];
+  const currentLocation = lastHistory?.notes ?? deriveLocationFromMilestone(normalizeMilestoneStatus(apiShipment.currentMilestone));
+
+  const destination = apiShipment.order?.shippingAddress
+    ? `${apiShipment.order.shippingAddress.city}${apiShipment.order.shippingAddress.state ? `, ${apiShipment.order.shippingAddress.state}` : ''}, Myanmar`
+    : 'Myanmar';
+
+  const displayStatus = apiShipment.currentMilestone === 'DELIVERED' ? 'delivered'
+    : apiShipment.currentMilestone === 'CUSTOMS' ? 'customs'
+    : apiShipment.currentMilestone === 'OUT_FOR_DELIVERY' ? 'in_transit'
+    : apiShipment.currentMilestone === 'YGN_WAREHOUSE' ? 'in_transit'
+    : 'preparing';
 
   return {
     id: apiShipment.id,
     shipmentNumber: apiShipment.trackingNumber,
     orderNumber: apiShipment.orderId,
-    destination: apiShipment.destination,
-    status: normalizeShipmentStatus(apiShipment.status),
-    currentMilestone: normalizeMilestoneStatus(apiShipment.milestone),
+    destination,
+    status: displayStatus,
+    currentMilestone: normalizeMilestoneStatus(apiShipment.currentMilestone),
     currentLocation,
-    estimatedArrival: apiShipment.estimatedArrival,
+    estimatedArrival: apiShipment.estimatedArrival ?? '',
     weight: 0,
     weightUnit: "kg",
     itemCount: 0,
     milestones: uiMilestones,
     createdAt: apiShipment.createdAt,
-    updatedAt: lastMilestone?.timestamp ?? apiShipment.createdAt,
+    updatedAt: lastHistory?.timestamp ?? apiShipment.createdAt,
   };
 }
 

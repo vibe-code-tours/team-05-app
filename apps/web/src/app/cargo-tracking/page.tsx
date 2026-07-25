@@ -1,61 +1,31 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, Package, MapPin, Clock, Truck, CheckCircle, Loader2 } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Search, Package, MapPin, Clock, Truck, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
+import { useCargoByTracking } from '@/lib/services/cargo.service';
 
-// Mock cargo data for demo
-const MOCK_SHIPMENTS = [
-  {
-    trackingNumber: 'CM-2024-001',
-    status: 'IN_TRANSIT',
-    origin: 'Bangkok, Thailand',
-    destination: 'Yangon, Myanmar',
-    estimatedArrival: '2024-03-25',
-    carrier: 'Thai Express',
-    milestones: [
-      { milestone: 'ORDER_PLACED', label: 'Order Placed', timestamp: '2024-03-15T10:00:00Z', completed: true },
-      { milestone: 'PAYMENT_CONFIRMED', label: 'Payment Confirmed', timestamp: '2024-03-15T10:15:00Z', completed: true },
-      { milestone: 'WAITING_PURCHASE', label: 'Waiting for Purchase', timestamp: '2024-03-16T09:00:00Z', completed: true },
-      { milestone: 'PURCHASED', label: 'Purchased', timestamp: '2024-03-17T14:30:00Z', completed: true },
-      { milestone: 'PACKED', label: 'Packed', timestamp: '2024-03-18T11:00:00Z', completed: true },
-      { milestone: 'BKK_WAREHOUSE', label: 'Bangkok Warehouse', timestamp: '2024-03-19T08:00:00Z', completed: true },
-      { milestone: 'EXPORT_CLEARANCE', label: 'Export Clearance', timestamp: '2024-03-20T16:00:00Z', completed: true },
-      { milestone: 'AIR_CARGO', label: 'Air Cargo', timestamp: '2024-03-21T22:00:00Z', completed: true },
-      { milestone: 'CUSTOMS', label: 'Customs', timestamp: null, completed: false },
-      { milestone: 'YGN_WAREHOUSE', label: 'Yangon Warehouse', timestamp: null, completed: false },
-      { milestone: 'OUT_FOR_DELIVERY', label: 'Out for Delivery', timestamp: null, completed: false },
-      { milestone: 'DELIVERED', label: 'Delivered', timestamp: null, completed: false },
-    ],
-  },
-  {
-    trackingNumber: 'CM-2024-002',
-    status: 'DELIVERED',
-    origin: 'Bangkok, Thailand',
-    destination: 'Mandalay, Myanmar',
-    estimatedArrival: '2024-03-20',
-    carrier: 'Thai Express',
-    milestones: [
-      { milestone: 'ORDER_PLACED', label: 'Order Placed', timestamp: '2024-03-10T10:00:00Z', completed: true },
-      { milestone: 'PAYMENT_CONFIRMED', label: 'Payment Confirmed', timestamp: '2024-03-10T10:15:00Z', completed: true },
-      { milestone: 'WAITING_PURCHASE', label: 'Waiting for Purchase', timestamp: '2024-03-11T09:00:00Z', completed: true },
-      { milestone: 'PURCHASED', label: 'Purchased', timestamp: '2024-03-12T14:30:00Z', completed: true },
-      { milestone: 'PACKED', label: 'Packed', timestamp: '2024-03-13T11:00:00Z', completed: true },
-      { milestone: 'BKK_WAREHOUSE', label: 'Bangkok Warehouse', timestamp: '2024-03-14T08:00:00Z', completed: true },
-      { milestone: 'EXPORT_CLEARANCE', label: 'Export Clearance', timestamp: '2024-03-15T16:00:00Z', completed: true },
-      { milestone: 'AIR_CARGO', label: 'Air Cargo', timestamp: '2024-03-16T22:00:00Z', completed: true },
-      { milestone: 'CUSTOMS', label: 'Customs', timestamp: '2024-03-17T10:00:00Z', completed: true },
-      { milestone: 'YGN_WAREHOUSE', label: 'Yangon Warehouse', timestamp: '2024-03-18T14:00:00Z', completed: true },
-      { milestone: 'OUT_FOR_DELIVERY', label: 'Out for Delivery', timestamp: '2024-03-19T09:00:00Z', completed: true },
-      { milestone: 'DELIVERED', label: 'Delivered', timestamp: '2024-03-20T15:30:00Z', completed: true },
-    ],
-  },
-];
+// ── Constants ──────────────────────────────────────────────────────────────────
+
+const MILESTONE_SEQUENCE = [
+  'ORDER_PLACED',
+  'PAYMENT_CONFIRMED',
+  'WAITING_PURCHASE',
+  'PURCHASED',
+  'PACKED',
+  'BKK_WAREHOUSE',
+  'EXPORT_CLEARANCE',
+  'AIR_CARGO',
+  'CUSTOMS',
+  'YGN_WAREHOUSE',
+  'OUT_FOR_DELIVERY',
+  'DELIVERED',
+] as const;
 
 const MILESTONE_LABELS: Record<string, string> = {
   ORDER_PLACED: 'Order Placed',
@@ -72,6 +42,16 @@ const MILESTONE_LABELS: Record<string, string> = {
   DELIVERED: 'Delivered',
 };
 
+interface MilestoneDisplay {
+  milestone: string;
+  label: string;
+  timestamp: string | null;
+  location: string | null;
+  completed: boolean;
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
 function formatDate(timestamp: string | null): string {
   if (!timestamp) return '';
   try {
@@ -87,50 +67,167 @@ function formatDate(timestamp: string | null): string {
   }
 }
 
+function formatDateShort(date: Date | string | null | undefined): string {
+  if (!date) return 'N/A';
+  try {
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  } catch {
+    return String(date);
+  }
+}
+
+function getStatusBadge(milestone: string): { label: string; className: string } {
+  switch (milestone) {
+    case 'DELIVERED':
+      return { label: 'Delivered', className: 'bg-green-100 text-green-800' };
+    case 'CUSTOMS':
+      return { label: 'Customs', className: 'bg-yellow-100 text-yellow-800' };
+    case 'OUT_FOR_DELIVERY':
+      return { label: 'Out for Delivery', className: 'bg-blue-100 text-blue-800' };
+    case 'YGN_WAREHOUSE':
+      return { label: 'In Transit', className: 'bg-blue-100 text-blue-800' };
+    default:
+      return { label: 'In Transit', className: 'bg-blue-100 text-blue-800' };
+  }
+}
+
+/** Build the full 12-milestone timeline from API history + currentMilestone. */
+function buildMilestones(
+  history: Array<{ milestone: string; timestamp: string; location?: string | null }>,
+  currentMilestone: string,
+): MilestoneDisplay[] {
+  const currentIndex = MILESTONE_SEQUENCE.indexOf(currentMilestone as (typeof MILESTONE_SEQUENCE)[number]);
+  const historyMap = new Map(history.map((h) => [h.milestone, h]));
+
+  return MILESTONE_SEQUENCE.map((milestone, index) => {
+    const entry = historyMap.get(milestone);
+    const isCompleted = index <= currentIndex;
+    return {
+      milestone,
+      label: MILESTONE_LABELS[milestone] || milestone,
+      timestamp: entry?.timestamp ?? null,
+      location: entry?.location ?? null,
+      completed: isCompleted,
+    };
+  });
+}
+
+// ── Components ─────────────────────────────────────────────────────────────────
+
+function InitialState({ onTrackDemo }: { onTrackDemo: (tn: string) => void }) {
+  return (
+    <Card className="bg-muted/30">
+      <CardContent className="pt-6 text-center">
+        <p className="text-sm text-muted-foreground mb-3">
+          Enter a tracking number above to track your shipment.
+        </p>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => onTrackDemo('CM-2024-001')}>
+            Try CM-2024-001
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => onTrackDemo('CM-2024-002')}>
+            Try CM-2024-002
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LoadingState() {
+  return (
+    <Card>
+      <CardContent className="p-8 text-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />
+        <p className="mt-3 text-sm text-muted-foreground">Looking up your shipment...</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ErrorState({ message }: { message: string }) {
+  return (
+    <Card>
+      <CardContent className="p-8 text-center">
+        <div className="flex justify-center mb-3">
+          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+            <AlertCircle className="h-6 w-6 text-red-600" />
+          </div>
+        </div>
+        <h3 className="text-base font-semibold text-foreground mb-1">Shipment Not Found</h3>
+        <p className="text-sm text-muted-foreground max-w-md mx-auto">{message}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Main Page ──────────────────────────────────────────────────────────────────
+
 export default function CargoTrackingPage() {
   const [trackingNumber, setTrackingNumber] = useState('');
-  const [searchedShipment, setSearchedShipment] = useState<typeof MOCK_SHIPMENTS[0] | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
-  const [error, setError] = useState('');
+  const [searchedTrackingNumber, setSearchedTrackingNumber] = useState('');
 
+  const {
+    data: apiResponse,
+    isLoading,
+    isFetching,
+    error,
+  } = useCargoByTracking(searchedTrackingNumber);
+
+  // Reset when user clears input or changes it
   const handleSearch = () => {
-    if (!trackingNumber.trim()) {
-      setError('Please enter a tracking number');
-      return;
-    }
-
-    setIsSearching(true);
-    setError('');
-    setSearchedShipment(null);
-
-    // Simulate API call
-    setTimeout(() => {
-      const found = MOCK_SHIPMENTS.find(
-        (s) => s.trackingNumber.toLowerCase() === trackingNumber.toLowerCase()
-      );
-
-      if (found) {
-        setSearchedShipment(found);
-        setError('');
-      } else {
-        setError('No shipment found with this tracking number. Try: CM-2024-001 or CM-2024-002');
-      }
-      setIsSearching(false);
-    }, 1000);
+    if (!trackingNumber.trim()) return;
+    setSearchedTrackingNumber(trackingNumber.trim());
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'DELIVERED':
-        return 'bg-green-100 text-green-800';
-      case 'IN_TRANSIT':
-        return 'bg-blue-100 text-blue-800';
-      case 'CUSTOMS':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const handleTryDemo = (tn: string) => {
+    setTrackingNumber(tn);
+    setSearchedTrackingNumber(tn);
   };
+
+  // Build display model from API response
+  const shipment = useMemo(() => {
+    if (!apiResponse?.data) return null;
+    const d = apiResponse.data;
+
+    const history = d.history ?? [];
+    const currentMilestone = d.currentMilestone ?? 'ORDER_PLACED';
+    const milestones = buildMilestones(history, currentMilestone);
+
+    // Derive destination from the order's shipping address
+    const addr = d.order?.shippingAddress;
+    const destination = addr
+      ? `${addr.city}${addr.state ? `, ${addr.state}` : ''}, Myanmar`
+      : 'Myanmar';
+
+    return {
+      trackingNumber: d.trackingNumber,
+      carrier: d.carrier,
+      origin: d.origin,
+      destination,
+      estimatedArrival: d.estimatedArrival,
+      currentMilestone,
+      milestones,
+    };
+  }, [apiResponse]);
+
+  const statusBadge = shipment ? getStatusBadge(shipment.currentMilestone) : null;
+  const completedCount = shipment?.milestones.filter((m) => m.completed).length ?? 0;
+  const totalCount = MILESTONE_SEQUENCE.length;
+  const progressPct = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+  // Determine if we're in a loading state
+  const isSearching = isLoading || isFetching;
+  const searchError =
+    error && searchedTrackingNumber
+      ? (error as any)?.response?.data?.message ||
+        (error as any)?.message ||
+        'No shipment found with this tracking number.'
+      : '';
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -155,12 +252,11 @@ export default function CargoTrackingPage() {
                   value={trackingNumber}
                   onChange={(e) => {
                     setTrackingNumber(e.target.value);
-                    setError('');
                   }}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   className="flex-1"
                 />
-                <Button onClick={handleSearch} disabled={isSearching}>
+                <Button onClick={handleSearch} disabled={isSearching || !trackingNumber.trim()}>
                   {isSearching ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
@@ -169,24 +265,33 @@ export default function CargoTrackingPage() {
                   Track
                 </Button>
               </div>
-              {error && (
-                <p className="mt-3 text-sm text-red-600">{error}</p>
+              {searchError && (
+                <p className="mt-3 text-sm text-red-600">{searchError}</p>
               )}
             </CardContent>
           </Card>
 
-          {/* Search Result */}
-          {searchedShipment && (
+          {/* Results or initial state */}
+          {isSearching && <LoadingState />}
+
+          {!isSearching && searchError && <ErrorState message={searchError} />}
+
+          {!isSearching && !searchError && shipment && (
             <Card>
               <CardHeader>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
+                  <div className="flex items-center gap-2">
                     <Truck className="h-5 w-5" />
-                    {searchedShipment.trackingNumber}
-                  </CardTitle>
-                  <Badge className={getStatusColor(searchedShipment.status)}>
-                    {searchedShipment.status.replace('_', ' ')}
-                  </Badge>
+                    <CardTitle className="text-lg">{shipment.trackingNumber}</CardTitle>
+                    {shipment.carrier && (
+                      <span className="text-sm text-muted-foreground ml-1">
+                        ({shipment.carrier})
+                      </span>
+                    )}
+                  </div>
+                  {statusBadge && (
+                    <Badge className={statusBadge.className}>{statusBadge.label}</Badge>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -196,30 +301,32 @@ export default function CargoTrackingPage() {
                     <MapPin className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-xs text-muted-foreground">From</p>
-                      <p className="text-sm font-medium">{searchedShipment.origin}</p>
+                      <p className="text-sm font-medium">{shipment.origin}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-xs text-muted-foreground">To</p>
-                      <p className="text-sm font-medium">{searchedShipment.destination}</p>
+                      <p className="text-sm font-medium">{shipment.destination}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-xs text-muted-foreground">ETA</p>
-                      <p className="text-sm font-medium">{searchedShipment.estimatedArrival}</p>
+                      <p className="text-sm font-medium">
+                        {formatDateShort(shipment.estimatedArrival)}
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Timeline */}
                 <div className="relative">
-                  {searchedShipment.milestones.map((event, index) => {
-                    const isLast = index === searchedShipment.milestones.length - 1;
-                    const isCompleted = event.completed;
+                  {shipment.milestones.map((event, index) => {
+                    const isLast = index === totalCount - 1;
+                    const nextCompleted = index < totalCount - 1 && shipment.milestones[index + 1]?.completed;
 
                     return (
                       <div key={event.milestone} className="relative flex gap-4 pb-6 last:pb-0">
@@ -227,11 +334,11 @@ export default function CargoTrackingPage() {
                         {!isLast && (
                           <div
                             className={`absolute left-[19px] top-[40px] h-[calc(100%-40px)] w-0.5 ${
-                              isCompleted && searchedShipment.milestones[index + 1]?.completed
+                              event.completed && nextCompleted
                                 ? 'bg-green-500'
-                                : isCompleted && !searchedShipment.milestones[index + 1]?.completed
-                                ? 'bg-gradient-to-b from-green-500 to-gray-300'
-                                : 'bg-gray-300'
+                                : event.completed && !nextCompleted
+                                  ? 'bg-gradient-to-b from-green-500 to-gray-300'
+                                  : 'bg-gray-300'
                             }`}
                           />
                         )}
@@ -240,12 +347,12 @@ export default function CargoTrackingPage() {
                         <div className="relative z-10 flex-shrink-0">
                           <div
                             className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                              isCompleted
+                              event.completed
                                 ? 'bg-green-500 text-white shadow-md'
                                 : 'bg-gray-200 text-gray-400'
                             }`}
                           >
-                            {isCompleted ? (
+                            {event.completed ? (
                               <CheckCircle className="h-5 w-5" />
                             ) : (
                               <Clock className="h-5 w-5" />
@@ -258,10 +365,10 @@ export default function CargoTrackingPage() {
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                             <span
                               className={`font-medium ${
-                                isCompleted ? 'text-foreground' : 'text-muted-foreground'
+                                event.completed ? 'text-foreground' : 'text-muted-foreground'
                               }`}
                             >
-                              {MILESTONE_LABELS[event.milestone] || event.milestone}
+                              {event.label}
                             </span>
                             {event.timestamp && (
                               <span className="text-sm text-muted-foreground whitespace-nowrap">
@@ -269,7 +376,10 @@ export default function CargoTrackingPage() {
                               </span>
                             )}
                           </div>
-                          {!event.timestamp && !isCompleted && (
+                          {event.location && (
+                            <p className="text-sm text-muted-foreground">{event.location}</p>
+                          )}
+                          {!event.completed && !event.timestamp && (
                             <p className="mt-0.5 text-sm text-gray-400">Pending</p>
                           )}
                         </div>
@@ -283,19 +393,13 @@ export default function CargoTrackingPage() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Progress</span>
                     <span className="font-medium">
-                      {searchedShipment.milestones.filter((m) => m.completed).length} / {searchedShipment.milestones.length} milestones
+                      {completedCount} / {totalCount} milestones
                     </span>
                   </div>
                   <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-green-500 transition-all duration-500"
-                      style={{
-                        width: `${
-                          (searchedShipment.milestones.filter((m) => m.completed).length /
-                            searchedShipment.milestones.length) *
-                          100
-                        }%`,
-                      }}
+                      style={{ width: `${progressPct}%` }}
                     />
                   </div>
                 </div>
@@ -303,15 +407,9 @@ export default function CargoTrackingPage() {
             </Card>
           )}
 
-          {/* Demo Info */}
-          {!searchedShipment && !isSearching && (
-            <Card className="bg-muted/30">
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground text-center">
-                  Demo tracking numbers: <strong>CM-2024-001</strong> (In Transit) or <strong>CM-2024-002</strong> (Delivered)
-                </p>
-              </CardContent>
-            </Card>
+          {/* Initial state before any search */}
+          {!searchedTrackingNumber && !isSearching && (
+            <InitialState onTrackDemo={handleTryDemo} />
           )}
         </div>
       </main>
