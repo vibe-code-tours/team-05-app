@@ -194,8 +194,8 @@ export default function CheckoutPage() {
 
     try {
       const orderResponse = await createOrderMutation.mutateAsync({
-        shippingAddressId: selectedAddressId,
-        note: `Payment method: ${paymentMethod}`,
+        addressId: selectedAddressId,
+        notes: `Payment method: ${paymentMethod}`,
       })
 
       toast({ title: 'Order placed!', description: 'Your order has been confirmed.' })
