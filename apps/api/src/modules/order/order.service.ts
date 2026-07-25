@@ -16,6 +16,7 @@ const BUYER_CANCEL_STATUSES = [
 ];
 
 const SELLER_TRANSITIONS: Record<string, string[]> = {
+  PENDING_PAYMENT: ["PROCESSING", "CANCELLED"], // Cash-on-delivery orders skip payment confirmation
   PAYMENT_CONFIRMED: ["PROCESSING", "CANCELLED"],
   PROCESSING: ["PACKING", "CANCELLED"],
   PACKING: ["IN_CARGO"],
