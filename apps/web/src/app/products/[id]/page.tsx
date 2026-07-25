@@ -15,6 +15,10 @@ import { SellerCard } from '@/components/product-detail';
 import { RelatedProducts } from '@/components/product-detail';
 import { PublicLayout } from '@/components/layout/public-layout';
 import { useProduct, useProducts } from '@/lib/services/product.service';
+import { useAddToCart } from '@/lib/services/cart.service';
+import { useAuthStore } from '@/stores/auth.store';
+import { useCartStore } from '@/stores/cart.store';
+import { toast } from '@/components/ui/use-toast';
 
 // ── Local types for the full backend findBySlug response ───────────
 
@@ -118,6 +122,31 @@ function groupVariants(
   }
 
   return groups as { size?: { id: string; name: string; value: string; inStock: boolean }[]; color?: { id: string; name: string; value: string; inStock: boolean }[] };
+}
+
+/** Find variant ID matching the user's selected variant options. */
+function findMatchingVariantId(
+  variants: ProductVariant[],
+  selected: Record<string, string>,
+): string | undefined {
+  const entries = Object.entries(selected);
+  if (entries.length === 0) return undefined;
+
+  // Try to find a variant whose attributes match ALL selected options.
+  for (const v of variants) {
+    const attrs = v.attributes as unknown as Record<string, string>;
+    const allMatch = entries.every(([key, val]) => {
+      // Shape 1: {type, value} — single-attribute variant
+      if (attrs.type === key && attrs.value === val) return true;
+      // Shape 2: compound {size, color, ...} — attrs[key] === val
+      if (attrs[key] === val) return true;
+      return false;
+    });
+    if (allMatch && v.stock > 0) return v.id;
+  }
+
+  // Fallback: return first in-stock variant
+  return variants.find((v) => v.stock > 0)?.id;
 }
 
 // ── Loading skeleton ──────────────────────────────────────────────
@@ -253,14 +282,58 @@ export default function ProductDetailPage() {
       }));
   }, [relatedResponse?.data, product]);
 
+  // ── Cart mutations ────────────────────────────────────────────
+  const addToCartMutation = useAddToCart();
+  const isAuthenticated = useAuthStore((s) => !!s.accessToken);
+  const storeAddItem = useCartStore((s) => s.addItem);
+
   // ── Handlers ──────────────────────────────────────────────────
 
   const handleVariantChange = (type: string, value: string) => {
     setSelectedVariants((prev) => ({ ...prev, [type]: value }));
   };
 
-  const handleAddToCart = () => {
-    // TODO: integrate with cart store
+  const handleAddToCart = async () => {
+    if (!product) return;
+
+    // Find variant ID matching selected attributes (if any)
+    const selectedVariantId = findMatchingVariantId(product.variants, selectedVariants);
+
+    if (isAuthenticated) {
+      try {
+        await addToCartMutation.mutateAsync({
+          productId: product.id,
+          quantity,
+          variantId: selectedVariantId,
+        });
+        toast({
+          title: "Added to cart",
+          description: `${product.name} has been added to your cart.`,
+        });
+      } catch (err) {
+        toast({
+          title: "Failed to add to cart",
+          description: err instanceof Error ? err.message : "Something went wrong",
+          variant: "destructive",
+        });
+      }
+    } else {
+      // Guest user — add to local Zustand store
+      storeAddItem({
+        id: `guest-${Date.now()}`,
+        productId: product.id,
+        name: product.name,
+        price: Number(product.price),
+        image: imageUrls[0] || "/placeholder.png",
+        quantity,
+        stock: product.stock,
+        seller: product.seller.name,
+      });
+      toast({
+        title: "Added to cart",
+        description: `${product.name} has been added to your cart.`,
+      });
+    }
   };
 
   const handleBuyNow = () => {
