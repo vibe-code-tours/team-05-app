@@ -22,7 +22,8 @@ RUN npm run build
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nestjs && \
-    chown -R nestjs:nodejs /app
+    chown -R nestjs:nodejs /app && \
+    chmod +x /app/apps/api/start.sh
 
 WORKDIR /app
 USER nestjs
@@ -31,4 +32,4 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3001/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1) })"
 
-CMD ["dumb-init", "node", "apps/api/dist/src/main.js"]
+CMD ["/app/apps/api/start.sh"]

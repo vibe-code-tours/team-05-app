@@ -1,0 +1,45 @@
+name: deploy-frontend
+
+# Auto-deploy the frontend to Vercel when a PR merges to main,
+# but only if frontend files changed.
+
+on:
+  push:
+    branches: [main]
+    # Only trigger when frontend or dependency files change
+    paths:
+      - 'apps/web/**'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+# Kill a superseded deploy if another push lands while one is running
+concurrency:
+  group: deploy-frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy to Vercel
+        run: |
+          npx vercel deploy --prod \
+            --token=${{ secrets.VERCEL_TOKEN }} \
+            --scope=${{ vars.VERCEL_SCOPE }}
