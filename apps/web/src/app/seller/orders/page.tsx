@@ -76,7 +76,24 @@ interface UIOrder {
   deliveredAt?: string;
 }
 
+<<<<<<< HEAD
 import { mapBackendToUiStatus, STATUS_MAP_UI_TO_BACKEND } from "@/lib/utils/order-status";
+=======
+// ── Mapping ───────────────────────────────────────────────────────────────
+
+function normalizeStatus(raw: string): SellerOrderStatus {
+  const upper = raw.toUpperCase();
+  // Map backend OrderStatus enum to seller UI statuses
+  if (["PENDING_PAYMENT", "PAYMENT_SUBMITTED", "PAYMENT_REJECTED"].includes(upper)) return "pending";
+  if (upper === "PAYMENT_CONFIRMED") return "confirmed";
+  if (upper === "PROCESSING") return "processing";
+  if (upper === "PACKING") return "packing";
+  if (["IN_CARGO", "OUT_FOR_DELIVERY"].includes(upper)) return "shipped";
+  if (["DELIVERED", "COMPLETED"].includes(upper)) return "delivered";
+  if (["CANCELLED", "REFUNDED"].includes(upper)) return "cancelled";
+  return "pending";
+}
+>>>>>>> origin/main
 
 function mapApiOrderToUI(apiOrder: ApiSellerOrder): UIOrder {
   return {
