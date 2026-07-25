@@ -40,6 +40,7 @@ export type SellerOrderStatus =
   | "pending"
   | "confirmed"
   | "processing"
+  | "packing"
   | "shipped"
   | "delivered"
   | "cancelled";

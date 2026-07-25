@@ -83,7 +83,8 @@ function normalizeStatus(raw: string): SellerOrderStatus {
   // Map backend OrderStatus enum to seller UI statuses
   if (["PENDING_PAYMENT", "PAYMENT_SUBMITTED", "PAYMENT_REJECTED"].includes(upper)) return "pending";
   if (upper === "PAYMENT_CONFIRMED") return "confirmed";
-  if (["PROCESSING", "PACKING"].includes(upper)) return "processing";
+  if (upper === "PROCESSING") return "processing";
+  if (upper === "PACKING") return "packing";
   if (["IN_CARGO", "OUT_FOR_DELIVERY"].includes(upper)) return "shipped";
   if (["DELIVERED", "COMPLETED"].includes(upper)) return "delivered";
   if (["CANCELLED", "REFUNDED"].includes(upper)) return "cancelled";
@@ -123,6 +124,7 @@ const statusConfig: Record<
   pending: { label: "Pending", variant: "warning" },
   confirmed: { label: "Confirmed", variant: "secondary" },
   processing: { label: "Processing", variant: "default" },
+  packing: { label: "Packing", variant: "default" },
   shipped: { label: "Shipped", variant: "default" },
   delivered: { label: "Delivered", variant: "success" },
   cancelled: { label: "Cancelled", variant: "destructive" },
@@ -133,6 +135,7 @@ const statusTabs = [
   { value: "pending", label: "Pending" },
   { value: "confirmed", label: "Confirmed" },
   { value: "processing", label: "Processing" },
+  { value: "packing", label: "Packing" },
   { value: "shipped", label: "Shipped" },
   { value: "delivered", label: "Delivered" },
   { value: "cancelled", label: "Cancelled" },
@@ -142,8 +145,8 @@ const nextStatusMap: Partial<Record<SellerOrderStatus, SellerOrderStatus[]>> = {
   // 'pending' covers PENDING_PAYMENT (COD) — can go straight to processing or cancel
   pending: ["processing", "cancelled"],
   confirmed: ["processing", "cancelled"],
-  processing: ["shipped", "cancelled"],
-  shipped: ["delivered"],
+  processing: ["packing", "cancelled"],
+  packing: ["shipped"],
 };
 
 /**
@@ -154,6 +157,7 @@ const UI_TO_BACKEND_STATUS: Record<SellerOrderStatus, string> = {
   pending:    "PENDING_PAYMENT",     // not directly sent; here for completeness
   confirmed:  "PAYMENT_CONFIRMED",
   processing: "PROCESSING",
+  packing:    "PACKING",
   shipped:    "IN_CARGO",
   delivered:  "DELIVERED",
   cancelled:  "CANCELLED",
