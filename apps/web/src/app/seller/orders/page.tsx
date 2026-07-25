@@ -163,6 +163,19 @@ const STATUS_MAP_UI_TO_BACKEND: Record<SellerOrderStatus, string> = {
   cancelled:  "CANCELLED",
 };
 
+/**
+ * Maps the seller UI status label to the actual backend OrderStatus enum value.
+ * Never use .toUpperCase() directly — UI labels don't match the backend enum.
+ */
+const UI_TO_BACKEND_STATUS: Record<SellerOrderStatus, string> = {
+  pending:    "PENDING_PAYMENT",     // not directly sent; here for completeness
+  confirmed:  "PAYMENT_CONFIRMED",
+  processing: "PROCESSING",
+  shipped:    "IN_CARGO",
+  delivered:  "DELIVERED",
+  cancelled:  "CANCELLED",
+};
+
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 function formatDate(dateString: string): string {
