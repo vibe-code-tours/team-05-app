@@ -322,6 +322,9 @@ export class CargoService {
       where: { trackingNumber },
       include: {
         history: { orderBy: { timestamp: "asc" } },
+        order: {
+          select: { shippingAddress: true },
+        },
       },
     });
 

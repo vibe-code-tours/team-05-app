@@ -30,6 +30,7 @@ export interface Cart {
 export interface AddToCartInput {
   productId: string;
   quantity: number;
+  variantId?: string;
 }
 
 /** Input for updating a cart item quantity. */

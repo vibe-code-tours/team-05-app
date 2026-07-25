@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { OtpService } from "./otp.service";
+import { SupabaseAuthService } from "./supabase-auth.service";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { UserModule } from "../user/user.module";
 import type { StringValue } from "ms";
@@ -31,7 +32,7 @@ import type { StringValue } from "ms";
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, OtpService, JwtStrategy],
-  exports: [AuthService],
+  providers: [AuthService, OtpService, SupabaseAuthService, JwtStrategy],
+  exports: [AuthService, SupabaseAuthService],
 })
 export class AuthModule {}
