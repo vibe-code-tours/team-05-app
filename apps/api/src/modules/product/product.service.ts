@@ -146,7 +146,8 @@ export class ProductService {
         this.prisma.product.findMany({
           where: { sellerId },
           include: {
-            images: { take: 1, orderBy: { order: "asc" } },
+            images: { orderBy: { order: "asc" } },
+            variants: true,
             category: true,
             brand: true,
           },
@@ -298,6 +299,39 @@ export class ProductService {
         ...(dto.stock !== undefined && { stock: dto.stock }),
         ...(categoryId && { categoryId }),
         ...(brandId && { brandId }),
+        ...(dto.images && {
+          images: {
+            deleteMany: {},
+            create: dto.images.map((img, i) => ({
+              url: img.url,
+              alt: img.alt,
+              order: img.order ?? i,
+            })),
+          },
+        }),
+        ...(dto.variants && {
+          variants: {
+            deleteMany: {
+              sku: { notIn: dto.variants.map((v) => v.sku) },
+            },
+            upsert: dto.variants.map((v) => ({
+              where: {
+                productId_sku: { productId, sku: v.sku },
+              },
+              update: {
+                price: v.price,
+                stock: v.stock,
+                attributes: v.attributes,
+              },
+              create: {
+                sku: v.sku,
+                price: v.price,
+                stock: v.stock,
+                attributes: v.attributes,
+              },
+            })),
+          },
+        }),
         status: "PENDING", // Reset to pending on edit
       },
       include: {

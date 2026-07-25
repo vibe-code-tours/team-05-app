@@ -250,7 +250,7 @@ export default function SellerProductsPage() {
                 <div className="relative aspect-square overflow-hidden bg-muted">
                   {product.images?.[0] ? (
                     <img
-                      src={product.images[0]}
+                      src={typeof product.images[0] === 'string' ? product.images[0] : (product.images[0] as any).url}
                       alt={product.name}
                       className="h-full w-full object-cover transition-transform group-hover:scale-105"
                     />
@@ -334,7 +334,7 @@ export default function SellerProductsPage() {
                     <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
                       {product.images?.[0] ? (
                         <img
-                          src={product.images[0]}
+                          src={typeof product.images[0] === 'string' ? product.images[0] : (product.images[0] as any).url}
                           alt={product.name}
                           className="h-full w-full object-cover"
                         />
