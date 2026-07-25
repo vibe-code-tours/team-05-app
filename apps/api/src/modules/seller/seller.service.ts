@@ -6,13 +6,17 @@ import {
   Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../config/prisma.service";
+import { NotificationService } from "../notification/notification.service";
 import { RegisterSellerDto, ApproveSellerDto } from "./dto/seller.dto";
 
 @Injectable()
 export class SellerService {
   private readonly logger = new Logger(SellerService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationService: NotificationService
+  ) {}
 
   /**
    * CLIENT applies to become a SELLER
@@ -143,7 +147,17 @@ export class SellerService {
       },
     });
 
-    // TODO: Send notification to seller about approval/rejection
+    try {
+      await this.notificationService.create(
+        userId,
+        dto.status === "APPROVED" ? "Seller Application Approved" : "Seller Application Suspended",
+        `Your application to become a seller has been ${dto.status.toLowerCase()}.`,
+        "SELLER_APPLICATION",
+        { status: dto.status }
+      );
+    } catch (e) {
+      this.logger.error(`Failed to send notification: ${e.message}`);
+    }
 
     return {
       success: true,

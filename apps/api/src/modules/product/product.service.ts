@@ -8,6 +8,7 @@ import {
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../config/prisma.service";
+import { NotificationService } from "../notification/notification.service";
 import {
   CreateProductDto,
   UpdateProductDto,
@@ -18,7 +19,10 @@ import {
 export class ProductService {
   private readonly logger = new Logger(ProductService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationService: NotificationService
+  ) {}
 
   // ─── Public ──────────────────────────────────────────
 
@@ -441,7 +445,17 @@ export class ProductService {
       },
     });
 
-    // TODO: Send notification to seller about approval/rejection
+    try {
+      await this.notificationService.create(
+        updated.sellerId,
+        dto.status === "APPROVED" ? "Product Approved" : "Product Rejected",
+        `Your product "${updated.name}" has been ${dto.status.toLowerCase()}. ${dto.reason ? `Reason: ${dto.reason}` : ''}`,
+        "PRODUCT_STATUS",
+        { productId: updated.id, status: dto.status }
+      );
+    } catch (e) {
+      this.logger.error(`Failed to send notification: ${e.message}`);
+    }
 
     return { success: true, data: updated };
   }
