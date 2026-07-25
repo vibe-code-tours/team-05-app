@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseClient } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/auth.store";
 import { ShoppingBag } from "lucide-react";
 
@@ -15,6 +15,7 @@ export default function AuthCallbackPage() {
     async function handleCallback() {
       try {
         // Get the session from the URL hash (set by Supabase after OAuth redirect)
+        const supabase = getSupabaseClient();
         const { data, error } = await supabase.auth.getSession();
 
         if (error) {
