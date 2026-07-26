@@ -85,7 +85,7 @@ export default function AuthCallbackPage() {
           <p className="text-gray-500 mb-6">{errorMessage}</p>
           <button
             onClick={() => router.push("/login")}
-            className="px-6 py-3 bg-rose-600 text-white rounded-xl font-semibold hover:bg-rose-700 transition-colors"
+            className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary/90 transition-colors"
           >
             Back to Login
           </button>
@@ -97,8 +97,8 @@ export default function AuthCallbackPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
       <div className="text-center">
-        <div className="w-16 h-16 bg-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-6 animate-pulse">
-          <ShoppingBag className="w-8 h-8 text-white" />
+        <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-6 animate-pulse rotate-3 transition-transform hover:rotate-6">
+          <ShoppingBag className="w-8 h-8 text-primary-foreground" />
         </div>
         <h1 className="text-xl font-bold text-gray-900 mb-2">
           Signing you in...
