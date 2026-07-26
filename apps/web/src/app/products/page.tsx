@@ -215,7 +215,7 @@ function ProductsContent() {
               className={`
                 fixed inset-y-0 left-0 z-50 w-[280px] bg-card border-r border-border overflow-y-auto
                 transform transition-transform duration-300 ease-in-out
-                lg:relative lg:transform-none lg:transition-none
+                lg:relative lg:transform-none lg:transition-none lg:z-0
                 ${isFilterOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
               `}
             >
