@@ -120,7 +120,7 @@ export default function AdminProductsPage() {
   const { data, isLoading } = useAdminProducts();
   const approveMutation = useApproveProduct();
 
-  const products: AdminProduct[] = Array.isArray(data) ? data : [];
+  const products: AdminProduct[] = Array.isArray(data?.data) ? data.data : [];
 
   // ---- state ----
   const [searchQuery, setSearchQuery] = useState("");

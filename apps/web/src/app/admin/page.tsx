@@ -26,22 +26,7 @@ import { ProtectedRoute } from "@/components/auth/protected-route";
 // Helpers
 // ---------------------------------------------------------------------------
 
-function statusBadge(status: string) {
-  switch (status) {
-    case "APPROVED":
-      return <Badge variant="success">Approved</Badge>;
-    case "PENDING":
-      return <Badge variant="warning">Pending</Badge>;
-    case "REJECTED":
-      return <Badge variant="destructive">Rejected</Badge>;
-    case "DRAFT":
-      return <Badge variant="secondary">Draft</Badge>;
-    case "ARCHIVED":
-      return <Badge variant="outline">Archived</Badge>;
-    default:
-      return <Badge variant="outline">{status}</Badge>;
-  }
-}
+
 
 function orderStatusBadge(status: string) {
   const s = status?.toLowerCase?.() ?? "";
@@ -138,9 +123,9 @@ export default function AdminDashboardPage() {
     );
   }
 
-  const products: AdminProduct[] = Array.isArray(productsData) ? productsData : [];
-  const orders: AdminOrder[] = Array.isArray(ordersData) ? ordersData : [];
-  const sellers: AdminSeller[] = Array.isArray(sellersData) ? sellersData : [];
+  const products: AdminProduct[] = Array.isArray(productsData?.data) ? productsData.data : [];
+  const orders: AdminOrder[] = Array.isArray(ordersData?.data) ? ordersData.data : [];
+  const sellers: AdminSeller[] = Array.isArray(sellersData?.data) ? sellersData.data : [];
 
   // Compute metrics from real data
   const totalProducts = products.length;
