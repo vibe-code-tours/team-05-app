@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth.store';
+import { getSupabaseClient } from '@/lib/supabase';
 import { User } from '@/types/user';
 
 interface AuthContextType {
@@ -92,10 +93,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     storeLogout();
     setUser(null);
-    router.push('/');
+    try {
+      const supabase = getSupabaseClient();
+      await supabase.auth.signOut();
+    } catch (e) {
+      // Ignore errors if supabase is not initialized
+    }
+    window.location.href = '/';
   };
 
   const clearAuth = () => {
