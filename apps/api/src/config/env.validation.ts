@@ -29,7 +29,16 @@ export const envValidationSchema = Joi.object({
 
   // Meilisearch
   MEILISEARCH_HOST: Joi.string().uri().default("http://localhost:7700"),
-  MEILISEARCH_API_KEY: Joi.string().allow("").default(""),
+  MEILISEARCH_API_KEY: Joi.string()
+    .when("NODE_ENV", {
+      is: "production",
+      then: Joi.string().min(16).required().messages({
+        "any.required": "MEILISEARCH_API_KEY is required in production.",
+        "string.min": "MEILISEARCH_API_KEY must be at least 16 characters long in production.",
+        "string.empty": "MEILISEARCH_API_KEY cannot be empty in production.",
+      }),
+      otherwise: Joi.string().allow("").default(""),
+    }),
 
   // Cloudflare R2
   R2_ACCOUNT_ID: Joi.string().allow("").optional(),
