@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { PublicLayout } from '@/components/layout/public-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,9 +37,20 @@ function formatDate(timestamp: string): string {
   }
 }
 
-export default function TrackOrderPage() {
-  const [trackingNumber, setTrackingNumber] = useState('');
-  const [searchedTrackingNumber, setSearchedTrackingNumber] = useState('');
+function TrackOrderContent() {
+  const searchParams = useSearchParams();
+  const initialTracking = searchParams.get('tracking') || '';
+
+  const [trackingNumber, setTrackingNumber] = useState(initialTracking);
+  const [searchedTrackingNumber, setSearchedTrackingNumber] = useState(initialTracking);
+
+  useEffect(() => {
+    const tracking = searchParams.get('tracking');
+    if (tracking) {
+      setTrackingNumber(tracking);
+      setSearchedTrackingNumber(tracking);
+    }
+  }, [searchParams]);
 
   const {
     data: apiResponse,
@@ -80,9 +92,8 @@ export default function TrackOrderPage() {
       : '';
 
   return (
-    <PublicLayout>
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-12">
+    <>
+      <div className="text-center mb-12">
           <h1 className="text-4xl font-bold tracking-tight mb-4">Track Your Order</h1>
           <p className="text-lg text-muted-foreground">
             Enter your tracking number to see real-time cargo tracking updates.
@@ -177,6 +188,17 @@ export default function TrackOrderPage() {
             </CardContent>
           </Card>
         )}
+    </>
+  );
+}
+
+export default function TrackOrderPage() {
+  return (
+    <PublicLayout>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>}>
+          <TrackOrderContent />
+        </Suspense>
       </div>
     </PublicLayout>
   );
