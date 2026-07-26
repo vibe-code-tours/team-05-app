@@ -45,10 +45,11 @@ export interface CargoShipment {
       id?: string;
       name?: string;
       phone?: string;
-      address?: string;
+      street?: string;
       city: string;
-      state: string;
-      zipCode?: string;
+      district: string;
+      state?: string;
+      postalCode?: string;
     };
   };
 }

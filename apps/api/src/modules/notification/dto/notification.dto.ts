@@ -8,7 +8,7 @@ import {
   IsBoolean,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { Type } from "class-transformer";
+import { Type, Transform } from "class-transformer";
 
 const NOTIFICATION_TYPES = [
   "ORDER",
@@ -60,7 +60,7 @@ export class NotificationQueryDto {
   @ApiPropertyOptional({ description: "Filter by read status" })
   @IsOptional()
   @IsBoolean()
-  @Type(() => Boolean)
+  @Transform(({ value }) => value === 'true' || value === true)
   read?: boolean;
 
   @ApiPropertyOptional({ enum: NOTIFICATION_TYPES, description: "Filter by type" })

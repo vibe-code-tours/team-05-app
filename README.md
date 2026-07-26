@@ -11,7 +11,8 @@
 ## Quickstart
 
 ```bash
-git clone <your-repo-url> && cd <repo>
+git clone https://github.com/vibe-code-tours/team-05-app.git
+cd team-05-app
 cp .env.example .env        # fill in real values LOCALLY — never commit .env
 
 # We use Next.js (Frontend) and NestJS (Backend)
