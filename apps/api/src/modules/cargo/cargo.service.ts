@@ -124,14 +124,12 @@ export class CargoService {
         orderId: dto.orderId,
         trackingNumber: dto.trackingNumber,
         carrier: dto.carrier,
-        origin: dto.origin,
         currentMilestone: "ORDER_PLACED",
         estimatedArrival: eta,
         history: {
           create: {
             milestone: "ORDER_PLACED",
-            location: dto.origin,
-            notes: "Shipment created",
+            notes: dto.origin ? `Shipment created at ${dto.origin}` : "Shipment created",
             recordedBy: sellerId,
           },
         },
