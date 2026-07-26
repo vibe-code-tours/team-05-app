@@ -50,6 +50,12 @@ export interface Order {
   seller?: { id: string; name: string };
   createdAt: string;
   updatedAt: string;
+  cargoTracking?: {
+    id: string;
+    trackingNumber: string;
+    carrier: string;
+    currentMilestone: string;
+  } | null;
 }
 
 export interface CreateOrderInput {

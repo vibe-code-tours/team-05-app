@@ -115,6 +115,7 @@ function mapApiOrderToUiOrder(apiOrder: ApiOrder): Order {
       postalCode: apiOrder.shippingAddress?.postalCode ?? '',
       country: 'Myanmar',
     },
+    trackingNumber: apiOrder.cargoTracking?.trackingNumber,
   };
 }
 
@@ -475,6 +476,28 @@ export default function OrderDetailPage({
                       </p>
                     </div>
                   </div>
+
+                  {order.trackingNumber && (
+                    <>
+                      <Separator />
+                      <div className="flex items-center gap-3">
+                        <Truck className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-xs text-muted-foreground">Tracking Number</p>
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-foreground">
+                              {order.trackingNumber}
+                            </p>
+                            <Link href={`/track-order?tracking=${order.trackingNumber}`}>
+                              <Button variant="outline" size="sm" className="h-6 text-xs px-2">
+                                Track
+                              </Button>
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>
