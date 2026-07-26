@@ -34,10 +34,17 @@ async function request<T>(
   }
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({
+    const errorData = await res.json().catch(() => ({
       error: { code: "NETWORK_ERROR", message: "Request failed" },
     }));
-    throw new Error(error.error?.message || `HTTP ${res.status}`);
+    
+    // Handle our custom { error: { message } } format or NestJS { message, error } format
+    const errorMessage = errorData.error?.message || errorData.message || `HTTP ${res.status}`;
+    
+    // Throw an error object with a response property so the frontend can access the raw error if needed
+    const error = new Error(errorMessage);
+    (error as any).response = { data: errorData };
+    throw error;
   }
 
   return res.json();
