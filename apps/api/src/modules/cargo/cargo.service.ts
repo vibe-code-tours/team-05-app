@@ -121,7 +121,7 @@ export class CargoService {
 
     const tracking = await this.prisma.cargoTracking.create({
       data: {
-        orderId: dto.orderId,
+        order: { connect: { id: dto.orderId } },
         trackingNumber: dto.trackingNumber,
         carrier: dto.carrier,
         origin: dto.origin,
