@@ -1,7 +1,14 @@
-import { describe, it, expect } from "vitest";
+import { vi, describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Page from "../page";
+
+vi.mock("@/contexts/auth-context", () => ({
+  useAuth: () => ({
+    user: null,
+    logout: vi.fn(),
+  }),
+}));
 
 function renderWithQuery(ui: React.ReactNode) {
   const queryClient = new QueryClient({

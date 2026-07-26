@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useCart } from '@/lib/services/cart.service';
 import { useAuthStore } from '@/stores/auth.store';
+import { useAuth } from '@/contexts/auth-context';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -39,7 +40,9 @@ export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const { data: cart } = useCart();
   const cartItemCount = cart?.data?.itemCount ?? 0;
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { user } = useAuthStore();
+  const isAuthenticated = !!user;
+  const { logout } = useAuth();
   const searchRef = useRef<HTMLDivElement>(null);
 
   // Handle scroll effect
