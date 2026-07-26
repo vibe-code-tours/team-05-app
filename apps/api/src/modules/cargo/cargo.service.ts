@@ -143,6 +143,28 @@ export class CargoService {
   }
 
   /**
+   * Seller: List all shipments for their orders.
+   */
+  async sellerListShipments(sellerId: string) {
+    const shipments = await this.prisma.cargoTracking.findMany({
+      where: {
+        order: {
+          sellerId,
+        },
+      },
+      include: {
+        history: { orderBy: { timestamp: "asc" } },
+        order: {
+          select: { shippingAddress: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return { success: true, data: shipments };
+  }
+
+  /**
    * Seller updates cargo milestone.
    * Validates sequential order and recalculates ETA.
    */

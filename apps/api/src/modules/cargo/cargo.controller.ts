@@ -44,6 +44,15 @@ export class CargoController {
     return this.cargoService.createTracking(user.id, dto);
   }
 
+  @Get()
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles("SELLER")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "List all shipments (seller)" })
+  getSellerShipments(@CurrentUser() user: { id: string }) {
+    return this.cargoService.sellerListShipments(user.id);
+  }
+
   @Put(":id/milestone")
   @UseGuards(AuthGuard("jwt"), RolesGuard)
   @Roles("SELLER")
