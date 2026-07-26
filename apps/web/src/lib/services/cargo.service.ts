@@ -58,7 +58,7 @@ export const cargoApi = {
   getSellerShipments: () => api.get<CargoShipment[]>("/cargo"),
   getByOrder: (orderId: string) => api.get<CargoShipment>(`/cargo/order/${orderId}`),
   getByTracking: (trackingNumber: string) => api.get<CargoShipment>(`/cargo/track/${trackingNumber}`),
-  createTracking: (data: { orderId: string; carrier: string; trackingNumber: string }) =>
+  createTracking: (data: { orderId: string; carrier: string; trackingNumber: string; origin: string; estimatedArrival?: string }) =>
     api.post<CargoShipment>("/cargo", data),
   updateMilestone: (id: string, milestone: CargoMilestone, notes?: string) =>
     api.put<CargoShipment>(`/cargo/${id}/milestone`, { milestone, notes }),

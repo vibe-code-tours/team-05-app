@@ -45,6 +45,7 @@ import {
 import { toast } from "@/components/ui/use-toast";
 import { formatPrice } from "@/lib/utils";
 import { useSellerOrders, useUpdateSellerOrderStatus } from "@/lib/services/seller.service";
+import { useCreateTracking } from "@/lib/services/cargo.service";
 import type { SellerOrderStatus } from "@/types/seller";
 import type { SellerOrder as ApiSellerOrder } from "@/lib/services/seller.service";
 import { ProtectedRoute } from "@/components/auth/protected-route";
@@ -192,8 +193,13 @@ export default function SellerOrdersPage() {
   const [statusTargetOrder, setStatusTargetOrder] = useState<UIOrder | null>(null);
   const [newStatus, setNewStatus] = useState<SellerOrderStatus | null>(null);
 
+  const [cargoTrackingNumber, setCargoTrackingNumber] = useState("");
+  const [cargoCarrier, setCargoCarrier] = useState("Vibe Express");
+  const [cargoOrigin, setCargoOrigin] = useState("Bangkok, Thailand");
+
   const { data: apiOrders, isLoading, isError } = useSellerOrders();
   const updateStatusMutation = useUpdateSellerOrderStatus();
+  const createTrackingMutation = useCreateTracking();
 
   const orders = useMemo(() => {
     if (!apiOrders?.data) return [];
@@ -241,6 +247,9 @@ export default function SellerOrdersPage() {
   const handleStatusChangeClick = (order: UIOrder, targetStatus: SellerOrderStatus) => {
     setStatusTargetOrder(order);
     setNewStatus(targetStatus);
+    setCargoTrackingNumber(`TRK-${order.orderNumber}`);
+    setCargoCarrier("Vibe Express");
+    setCargoOrigin("Bangkok, Thailand");
     setStatusDialogOpen(true);
   };
 
@@ -254,6 +263,16 @@ export default function SellerOrdersPage() {
         status: STATUS_MAP_UI_TO_BACKEND[newStatus],
         version: statusTargetOrder.version,
       });
+
+      if (newStatus === "shipped") {
+        await createTrackingMutation.mutateAsync({
+          orderId: statusTargetOrder.id,
+          trackingNumber: cargoTrackingNumber,
+          carrier: cargoCarrier,
+          origin: cargoOrigin,
+        });
+      }
+
       toast({
         title: "Status updated",
         description: `Order ${statusTargetOrder.orderNumber} status changed to ${statusConfig[newStatus].label}.`,
@@ -707,6 +726,36 @@ export default function SellerOrdersPage() {
               ?
             </DialogDescription>
           </DialogHeader>
+
+          {newStatus === "shipped" && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <label className="text-sm font-medium">Tracking Number</label>
+                <Input
+                  value={cargoTrackingNumber}
+                  onChange={(e) => setCargoTrackingNumber(e.target.value)}
+                  placeholder="e.g. TRK-123456"
+                />
+              </div>
+              <div className="grid gap-2">
+                <label className="text-sm font-medium">Carrier</label>
+                <Input
+                  value={cargoCarrier}
+                  onChange={(e) => setCargoCarrier(e.target.value)}
+                  placeholder="e.g. Vibe Express"
+                />
+              </div>
+              <div className="grid gap-2">
+                <label className="text-sm font-medium">Origin</label>
+                <Input
+                  value={cargoOrigin}
+                  onChange={(e) => setCargoOrigin(e.target.value)}
+                  placeholder="e.g. Bangkok, Thailand"
+                />
+              </div>
+            </div>
+          )}
+
           <DialogFooter>
             <Button
               variant="outline"
