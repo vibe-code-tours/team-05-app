@@ -66,7 +66,7 @@ export default function CheckoutPage() {
 
   // --- API hooks ---
   const { data: cart, isLoading: cartLoading } = useCart()
-  const { data: addressesResponse, isLoading: addressesLoading } = useAddresses()
+  const { data: addressesResponse, isLoading: addressesLoading, isError: addressesError, refetch: refetchAddresses } = useAddresses()
   const addresses = addressesResponse?.data ?? []
   const createAddressMutation = useCreateAddress()
   const createOrderMutation = useCreateOrder()
@@ -225,7 +225,22 @@ export default function CheckoutPage() {
   }
 
   if (cartItems.length === 0) {
-    return null
+    return (
+      <ProtectedRoute>
+        <PublicLayout>
+          <div className="bg-background">
+            <div className="container mx-auto px-4 py-8 max-w-4xl flex flex-col items-center justify-center min-h-[50vh] space-y-4">
+              <ShoppingCart className="h-16 w-16 text-muted-foreground opacity-20" />
+              <h2 className="text-2xl font-bold text-foreground">Your cart is empty</h2>
+              <p className="text-muted-foreground">You have no items in your cart to checkout.</p>
+              <Link href="/products">
+                <Button>Browse Products</Button>
+              </Link>
+            </div>
+          </div>
+        </PublicLayout>
+      </ProtectedRoute>
+    )
   }
 
   return (
@@ -311,6 +326,11 @@ export default function CheckoutPage() {
                       {addressesLoading ? (
                         <div className="flex items-center justify-center py-8">
                           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : addressesError ? (
+                        <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                          <p className="text-muted-foreground">Failed to load addresses.</p>
+                          <Button variant="outline" onClick={() => refetchAddresses()}>Retry</Button>
                         </div>
                       ) : (
                         <>

@@ -368,9 +368,35 @@ export default function ProductDetailPage() {
     );
   }
 
-  // ── Error / Not found state ───────────────────────────────────
+  if (error) {
+    return (
+      <PublicLayout>
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+          <div className="max-w-md w-full text-center space-y-6 bg-card p-8 rounded-xl border border-border shadow-sm">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto text-red-600 mb-2">
+              <AlertCircle className="w-8 h-8" />
+            </div>
+            <h2 className="text-2xl font-bold text-foreground">Something went wrong</h2>
+            <p className="text-muted-foreground">
+              We encountered a network error while fetching this product. Please try again.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+              <Button onClick={() => window.location.reload()} variant="default" className="w-full sm:w-auto">
+                Try Again
+              </Button>
+              <Link href="/products" className="w-full sm:w-auto">
+                <Button variant="outline" className="w-full">
+                  Browse Products
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </PublicLayout>
+    );
+  }
 
-  if (error || !product) {
+  if (!product) {
     return <ProductNotFound slug={slug} />;
   }
 
@@ -431,6 +457,7 @@ export default function ProductDetailPage() {
                   onBuyNow={handleBuyNow}
                   onWishlist={handleWishlist}
                   onShare={handleShare}
+                  disabled={addToCartMutation.isPending}
                 />
               </div>
 
@@ -453,7 +480,10 @@ export default function ProductDetailPage() {
                       value={quantity}
                       onChange={(e) => {
                         const val = parseInt(e.target.value, 10);
-                        if (!isNaN(val) && val >= 1) setQuantity(val);
+                        if (!isNaN(val)) setQuantity(val);
+                      }}
+                      onBlur={() => {
+                        setQuantity(Math.min(product.stock, Math.max(1, quantity)));
                       }}
                       min={1}
                       max={product.stock}
@@ -469,6 +499,11 @@ export default function ProductDetailPage() {
                       +
                     </button>
                   </div>
+                  {quantity >= product.stock * 0.9 && product.stock > 0 && (
+                    <p className="text-xs text-orange-500 mt-2">
+                      Only {product.stock} left in stock
+                    </p>
+                  )}
                 </div>
               )}
             </div>

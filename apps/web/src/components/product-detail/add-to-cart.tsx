@@ -12,6 +12,7 @@ export interface AddToCartProps {
   onBuyNow: () => void
   onWishlist: () => void
   onShare: () => void
+  disabled?: boolean
 }
 
 export function AddToCart({
@@ -21,6 +22,7 @@ export function AddToCart({
   onBuyNow,
   onWishlist,
   onShare,
+  disabled,
 }: AddToCartProps) {
   const [isWishlisted, setIsWishlisted] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
@@ -59,6 +61,7 @@ export function AddToCart({
             showSuccess && 'bg-green-500 hover:bg-green-600'
           )}
           onClick={handleAddToCart}
+          disabled={disabled}
         >
           {showSuccess ? (
             <>
