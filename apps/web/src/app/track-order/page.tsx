@@ -66,7 +66,7 @@ export default function TrackOrderPage() {
       history: history.map((h: any) => ({
         milestone: MILESTONE_LABELS[h.milestone] || h.milestone,
         date: h.timestamp ? formatDate(h.timestamp) : '',
-        location: h.location ?? '',
+        location: h.notes ?? h.location ?? '',
       })),
     };
   }, [apiResponse]);

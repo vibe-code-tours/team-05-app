@@ -97,7 +97,7 @@ function getStatusBadge(milestone: string): { label: string; className: string }
 
 /** Build the full 12-milestone timeline from API history + currentMilestone. */
 function buildMilestones(
-  history: Array<{ milestone: string; timestamp: string; location?: string | null }>,
+  history: Array<{ milestone: string; timestamp: string; location?: string | null; notes?: string | null }>,
   currentMilestone: string,
 ): MilestoneDisplay[] {
   const currentIndex = MILESTONE_SEQUENCE.indexOf(currentMilestone as (typeof MILESTONE_SEQUENCE)[number]);
@@ -110,7 +110,7 @@ function buildMilestones(
       milestone,
       label: MILESTONE_LABELS[milestone] || milestone,
       timestamp: entry?.timestamp ?? null,
-      location: entry?.location ?? null,
+      location: entry?.notes ?? entry?.location ?? null,
       completed: isCompleted,
     };
   });
@@ -207,7 +207,7 @@ export default function CargoTrackingPage() {
     return {
       trackingNumber: d.trackingNumber,
       carrier: d.carrier,
-      origin: d.origin,
+      origin: d.origin ?? 'Bangkok, Thailand',
       destination,
       estimatedArrival: d.estimatedArrival,
       currentMilestone,
