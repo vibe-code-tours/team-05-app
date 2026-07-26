@@ -121,15 +121,17 @@ export class CargoService {
 
     const tracking = await this.prisma.cargoTracking.create({
       data: {
-        orderId: dto.orderId,
+        order: { connect: { id: dto.orderId } },
         trackingNumber: dto.trackingNumber,
         carrier: dto.carrier,
+        origin: dto.origin,
         currentMilestone: "ORDER_PLACED",
         estimatedArrival: eta,
         history: {
           create: {
             milestone: "ORDER_PLACED",
-            notes: dto.origin ? `Shipment created at ${dto.origin}` : "Shipment created",
+            location: dto.origin,
+            notes: "Shipment created",
             recordedBy: sellerId,
           },
         },
