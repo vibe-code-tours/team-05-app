@@ -21,6 +21,20 @@
 - CI (`ci`) must be green. Never commit secrets or `.env`.
 - Pull `main` daily to avoid merge conflicts.
 
+## UAT & Bug Fixing Phase (Current Phase)
+- **Current State**: The application's core infrastructure (Frontend, Backend, and DB connection configs) is **STABLE**.
+- **Manual Testing**: We are now conducting UAT (User Acceptance Testing). The app must be reviewed manually by the team.
+- **Reporting Issues**: All bugs and issues must be listed on Git/GitHub with clear steps to reproduce.
+- **Fixing Issues (CRITICAL RULE)**: When fixing issues, team members are **NOT ALLOWED** to touch or modify infrastructure code, frontend configuration, backend configuration, or DB configuration. Only modify application logic and UI to fix the reported bugs.
+- **Standard Git Workflow for Bug Fixes**:
+  1. **Create Branch**: Create a new branch from `main` for each specific issue from the Git issue list (e.g., `git checkout -b fix/issue-name`).
+  2. **Fix Issue**: Implement the fix locally.
+  3. **Sync with Main**: After fixing the issue, pull the latest changes from main (`git pull origin main`) into your branch to resolve any conflicts locally.
+  4. **Commit & Push**: Commit your resolved changes and push the branch.
+  5. **Create PR**: Open a Pull Request.
+  6. **Check CI**: Verify the Continuous Integration (CI) status on the PR.
+  7. **Resolve Issues**: If there are merge conflicts on the PR or if the CI fails, fix them directly on your current branch, then commit and push again.
+
 ## Roles (rotate weekly)
 - **Anchor** — owns the board + `main` health + unblocking. (this week: ____)
 - **Driver / Navigator** — pair on hard issues, swap who types.

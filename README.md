@@ -42,3 +42,7 @@ We have thoroughly documented the business and technical requirements of CrossMa
 - **Code Owners:** Managed via `.github/CODEOWNERS`.
 
 **Git rule:** branch → PR → 1 teammate review → merge. No push to `main`, no self-merge.
+
+> **⚠️ CURRENT PHASE: UAT & Bug Fixing**
+> Our core infrastructure (Frontend, Backend, DB connection configs) is **STABLE**. We are currently manually reviewing the application (UAT) and listing issues on Git. 
+> **CRITICAL:** When fixing issues, DO NOT touch infrastructure or configuration files. Only application logic and UI should be modified. See the [Working Agreement](./working-agreement.md) for details.
