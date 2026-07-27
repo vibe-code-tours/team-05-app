@@ -32,10 +32,10 @@ export default function RegisterPage() {
       <header className="bg-white border-b border-gray-100">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-rose-600 rounded-xl flex items-center justify-center">
-              <ShoppingBag className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center rotate-3 transition-transform hover:rotate-6">
+              <ShoppingBag className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="text-lg font-bold text-gray-900">CrossMart</span>
+            <span className="text-xl font-bold text-foreground">CrossMart</span>
           </Link>
           <span className="text-sm font-medium text-gray-500">Create Account</span>
         </div>
