@@ -56,9 +56,9 @@ export function Header() {
     if (href.startsWith('/products')) {
       const hrefUrl = new URL(href, 'http://localhost');
       const hrefParams = hrefUrl.searchParams;
-      if (hrefParams.toString() === '') return pathname === '/products' && searchParams.toString() === '';
-      const sort = searchParams.get('sort');
-      const category = searchParams.get('category');
+      if (hrefParams.toString() === '') return pathname === '/products' && !(searchParams?.toString());
+      const sort = searchParams?.get('sort');
+      const category = searchParams?.get('category');
       const hrefSort = hrefParams.get('sort');
       const hrefCategory = hrefParams.get('category');
       if (hrefSort) return sort === hrefSort;
