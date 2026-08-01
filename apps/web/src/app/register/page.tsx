@@ -8,9 +8,11 @@ import { getSupabaseClient } from '@/lib/supabase'
 
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleGoogleSignUp = async () => {
     try {
+      setError(null)
       setIsLoading(true)
       const supabase = getSupabaseClient()
       const { error } = await supabase.auth.signInWithOAuth({
@@ -20,8 +22,10 @@ export default function RegisterPage() {
         },
       })
       if (error) throw error
-    } catch (error) {
-      console.error('Google sign up error:', error)
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to start Google sign-up'
+      )
       setIsLoading(false)
     }
   }
@@ -94,6 +98,9 @@ export default function RegisterPage() {
                 </span>
               )}
             </Button>
+            {error && (
+              <p className="text-sm text-red-600 text-center mt-2">{error}</p>
+            )}
 
           </div>
 
