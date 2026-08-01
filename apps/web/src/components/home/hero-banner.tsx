@@ -134,14 +134,21 @@ export function HeroBanner() {
           className="flex flex-wrap items-center justify-center gap-2 mb-10"
           style={{ animation: 'stagger-in 0.6s cubic-bezier(0.16,1,0.3,1) 0.3s both' }}
         >
-          {['🇹🇭 Thai Skincare', '📱 Electronics', '👗 Fashion', '🌸 K-Beauty', '🏠 Home Decor', '⚡ Flash Deals'].map((tag, i) => (
+          {[
+            { label: '🇹🇭 Thai Skincare', href: '/products?category=beauty' },
+            { label: '📱 Electronics', href: '/products?category=electronics' },
+            { label: '👗 Fashion', href: '/products?category=fashion' },
+            { label: '🌸 K-Beauty', href: '/products?category=beauty' },
+            { label: '🏠 Home Decor', href: '/products?category=home-and-living' },
+            { label: '⚡ Flash Deals', href: '/products?sort=deals' },
+          ].map((tag, i) => (
             <Link
-              key={tag}
-              href="/products"
+              key={tag.label}
+              href={tag.href}
               className="px-4 py-1.5 rounded-full bg-white/8 backdrop-blur-sm border border-white/12 text-white/75 text-sm font-medium hover:bg-white/15 hover:text-white hover:border-white/25 transition-all duration-200"
               style={{ animation: `badge-pop 0.4s cubic-bezier(0.16,1,0.3,1) ${0.4 + i * 0.06}s both` }}
             >
-              {tag}
+              {tag.label}
             </Link>
           ))}
         </div>

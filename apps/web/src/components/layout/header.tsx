@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { Search, ShoppingCart, User, Menu, X, ChevronRight, Heart, Package, LogOut, Settings, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +21,7 @@ import { useAuth } from '@/contexts/auth-context';
 const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/products', label: 'Products' },
-  { href: '/products?category=electronics', label: 'Categories' },
+  { href: '/categories', label: 'Categories' },
   { href: '/cargo-tracking', label: 'Cargo Tracking' },
   { href: '/products?sort=deals', label: 'Deals' },
 ];
@@ -44,6 +45,28 @@ export function Header() {
   const isAuthenticated = !!user;
   const { logout } = useAuth();
   const searchRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const isActive = (href: string) => {
+    if (href === '/') return pathname === '/';
+    if (href === '/categories') return pathname === '/categories';
+    if (href === '/cargo-tracking') return pathname === '/cargo-tracking';
+    // For /products with query params, match both path and relevant params
+    if (href.startsWith('/products')) {
+      const hrefUrl = new URL(href, 'http://localhost');
+      const hrefParams = hrefUrl.searchParams;
+      if (hrefParams.toString() === '') return pathname === '/products' && searchParams.toString() === '';
+      const sort = searchParams.get('sort');
+      const category = searchParams.get('category');
+      const hrefSort = hrefParams.get('sort');
+      const hrefCategory = hrefParams.get('category');
+      if (hrefSort) return sort === hrefSort;
+      if (hrefCategory) return category === hrefCategory;
+      return pathname === '/products';
+    }
+    return pathname === href;
+  };
 
   // Handle scroll effect
   useEffect(() => {
@@ -106,16 +129,24 @@ export function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200"
-              >
-                {link.label}
-              </Link>
-            ))}
+          <nav className="hidden md:flex items-center gap-1" aria-label="Main navigation">
+            {navLinks.map((link) => {
+              const active = isActive(link.href);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  aria-current={active ? 'page' : undefined}
+                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    active
+                      ? 'text-primary bg-primary/10 font-semibold'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Search Bar - Desktop */}
@@ -300,18 +331,26 @@ export function Header() {
       <div className={`md:hidden border-t bg-background overflow-hidden transition-all duration-300 ${
         mobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
       }`}>
-        <nav className="container mx-auto px-4 py-4 space-y-1">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="flex items-center justify-between px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              {link.label}
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
-          ))}
+        <nav className="container mx-auto px-4 py-4 space-y-1" aria-label="Mobile navigation">
+          {navLinks.map((link) => {
+            const active = isActive(link.href);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={active ? 'page' : undefined}
+                className={`flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                  active
+                    ? 'text-primary bg-primary/10 font-semibold'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {link.label}
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            );
+          })}
           <div className="pt-2 border-t mt-2">
             <Link
               href="/wishlist"
