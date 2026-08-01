@@ -37,12 +37,14 @@ export class ProductController {
   @ApiQuery({ name: "page", required: false })
   @ApiQuery({ name: "limit", required: false })
   @ApiQuery({ name: "category", required: false })
+  @ApiQuery({ name: "brand", required: false })
   @ApiQuery({ name: "type", required: false })
   @ApiQuery({ name: "search", required: false })
   findAll(
     @Query("page") page?: string,
     @Query("limit") limit?: string,
     @Query("category") category?: string,
+    @Query("brand") brand?: string,
     @Query("type") type?: string,
     @Query("search") search?: string,
   ) {
@@ -51,6 +53,7 @@ export class ProductController {
       page: page ? parseInt(page) : 1,
       limit: take,
       category,
+      brand,
       type,
       search,
     });

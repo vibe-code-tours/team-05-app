@@ -30,6 +30,7 @@ export class ProductService {
     page?: number;
     limit?: number;
     category?: string;
+    brand?: string;
     type?: string;
     search?: string;
   }) {
@@ -43,11 +44,12 @@ export class ProductService {
     }
 
     try {
-      const { page = 1, limit = 20, category, type, search } = params;
+      const { page = 1, limit = 20, category, brand, type, search } = params;
       const skip = (page - 1) * limit;
 
       const where: Prisma.ProductWhereInput = { status: "APPROVED" };
       if (category) where.category = { slug: category };
+      if (brand) where.brand = { slug: brand };
       if (type) where.type = type as Prisma.EnumProductTypeFilter["equals"];
       if (search) {
         where.OR = [
