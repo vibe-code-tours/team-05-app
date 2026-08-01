@@ -94,6 +94,30 @@ export default function ProductsPage() {
   );
 }
 
+function buildInitialFilters(searchParams: URLSearchParams): Filters {
+  const category = searchParams.get('category');
+  const type = searchParams.get('type');
+  const brand = searchParams.get('brand');
+
+  let productType: Filters['productType'] = 'all';
+  if (type) {
+    const t = type.toUpperCase();
+    if (t === 'CARGO') productType = 'cargo';
+    else if (t === 'IN_STOCK') productType = 'in-stock';
+    else if (t === 'PROMOTION') productType = 'all'; // promotions handled via isDeals
+  }
+
+  return {
+    categories: category ? [category] : [],
+    brands: brand ? [brand] : [],
+    priceMin: '',
+    priceMax: '',
+    productType,
+    inStockOnly: false,
+    rating: null,
+  };
+}
+
 function ProductsContent() {
   const searchParams = useSearchParams();
   const isDeals = searchParams.get('sort') === 'deals';
@@ -101,7 +125,7 @@ function ProductsContent() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [sortBy, setSortBy] = useState('relevance');
   const [currentPage, setCurrentPage] = useState(1);
-  const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
+  const [filters, setFilters] = useState<Filters>(() => buildInitialFilters(searchParams));
 
   const apiFilters = useMemo(
     () => buildApiFilters(filters, sortBy, currentPage, isDeals),
