@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Search, ShoppingCart, User, Menu, X, ChevronRight, Heart, Package, LogOut, Settings, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,25 +46,11 @@ export function Header() {
   const { logout } = useAuth();
   const searchRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
-    if (href === '/categories') return pathname === '/categories';
-    if (href === '/cargo-tracking') return pathname === '/cargo-tracking';
-    // For /products with query params, match both path and relevant params
-    if (href.startsWith('/products')) {
-      const hrefUrl = new URL(href, 'http://localhost');
-      const hrefParams = hrefUrl.searchParams;
-      if (hrefParams.toString() === '') return pathname === '/products' && !(searchParams?.toString());
-      const sort = searchParams?.get('sort');
-      const category = searchParams?.get('category');
-      const hrefSort = hrefParams.get('sort');
-      const hrefCategory = hrefParams.get('category');
-      if (hrefSort) return sort === hrefSort;
-      if (hrefCategory) return category === hrefCategory;
-      return pathname === '/products';
-    }
+    // For /products links, match on pathname prefix
+    if (href.startsWith('/products')) return pathname === '/products';
     return pathname === href;
   };
 
