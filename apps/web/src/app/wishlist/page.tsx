@@ -10,8 +10,9 @@ import { Separator } from '@/components/ui/separator';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { useWishlistStore } from '@/stores/wishlist.store';
-import { useCartStore } from '@/stores/cart.store';
+import { useAddToCart } from '@/lib/services/cart.service';
 import { MOCK_WISHLIST } from '@/lib/mock-wishlist';
+import { toast } from '@/components/ui/use-toast';
 import { formatPrice } from '@/lib/utils';
 import type { WishlistItem } from '@/types/wishlist';
 import { ProtectedRoute } from '@/components/auth/protected-route';
@@ -19,25 +20,31 @@ import { ProtectedRoute } from '@/components/auth/protected-route';
 export default function WishlistPage() {
   const wishlistItems = useWishlistStore((s) => s.items);
   const removeWishlistItem = useWishlistStore((s) => s.removeItem);
-  const addToCart = useCartStore((s) => s.addItem);
+  const addToCartMutation = useAddToCart();
   const [addedToCart, setAddedToCart] = useState<string | null>(null);
 
   const items = wishlistItems.length > 0 ? wishlistItems : MOCK_WISHLIST;
 
-  const handleAddToCart = (item: WishlistItem) => {
-    addToCart({
-      id: item.productId,
-      productId: item.productId,
-      name: item.name,
-      price: item.price,
-      image: item.image,
-      quantity: 1,
-      stock: item.stock,
-      seller: item.seller,
-    });
-    removeWishlistItem(item.id);
-    setAddedToCart(item.id);
-    setTimeout(() => setAddedToCart(null), 2000);
+  const handleAddToCart = async (item: WishlistItem) => {
+    try {
+      await addToCartMutation.mutateAsync({
+        productId: item.productId,
+        quantity: 1,
+      });
+      removeWishlistItem(item.id);
+      setAddedToCart(item.id);
+      setTimeout(() => setAddedToCart(null), 2000);
+      toast({
+        title: 'Added to cart',
+        description: `${item.name} has been added to your cart.`,
+      });
+    } catch (err) {
+      toast({
+        title: 'Failed to add to cart',
+        description: err instanceof Error ? err.message : 'Something went wrong',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleRemove = (id: string) => {

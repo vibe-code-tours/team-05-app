@@ -6,6 +6,10 @@ import { Heart, ShoppingCart, Star, Package, Truck, Eye, X, Minus, Plus } from '
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { useAddToCart } from '@/lib/services/cart.service';
+import { useCartStore } from '@/stores/cart.store';
+import { useAuthStore } from '@/stores/auth.store';
+import { toast } from '@/components/ui/use-toast';
 
 export interface Product {
   id: string;
@@ -33,6 +37,9 @@ export function ProductCard({ product }: ProductCardProps) {
   const [quantity, setQuantity] = useState(1);
   const [isHovered, setIsHovered] = useState(false);
   const addedToCartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const addToCartMutation = useAddToCart();
+  const isAuthenticated = useAuthStore((s) => !!s.accessToken);
+  const storeAddItem = useCartStore((s) => s.addItem);
 
   useEffect(() => {
     return () => {
@@ -50,7 +57,41 @@ export function ProductCard({ product }: ProductCardProps) {
     }).format(price);
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
+    if (isAuthenticated) {
+      try {
+        await addToCartMutation.mutateAsync({
+          productId: product.id,
+          quantity,
+        });
+        toast({
+          title: 'Added to cart',
+          description: `${product.name} has been added to your cart.`,
+        });
+      } catch (err) {
+        toast({
+          title: 'Failed to add to cart',
+          description: err instanceof Error ? err.message : 'Something went wrong',
+          variant: 'destructive',
+        });
+        return;
+      }
+    } else {
+      storeAddItem({
+        id: `guest-${Date.now()}`,
+        productId: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image || '/placeholder.png',
+        quantity,
+        stock: 0,
+        seller: product.seller,
+      });
+      toast({
+        title: 'Added to cart',
+        description: `${product.name} has been added to your cart.`,
+      });
+    }
     setAddedToCart(true);
     if (addedToCartTimeoutRef.current) {
       clearTimeout(addedToCartTimeoutRef.current);
