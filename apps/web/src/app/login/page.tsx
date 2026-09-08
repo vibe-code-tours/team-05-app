@@ -29,6 +29,7 @@ export default function LoginPage() {
     rememberMe: false,
   })
   const [errors, setErrors] = useState<ValidationErrors>({})
+  const [googleError, setGoogleError] = useState<string | null>(null)
 
   const isLoading = loginMutation.isPending
 
@@ -238,12 +239,20 @@ export default function LoginPage() {
           <div className="space-y-3">
             <Button
               type="button"
-              onClick={() => {
-                  const supabase = getSupabaseClient();
-                  supabase.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: { redirectTo: `${window.location.origin}/auth/callback` },
-                  });
+              onClick={async () => {
+                  try {
+                    setGoogleError(null);
+                    const supabase = getSupabaseClient();
+                    const { error } = await supabase.auth.signInWithOAuth({
+                      provider: 'google',
+                      options: { redirectTo: `${window.location.origin}/auth/callback` },
+                    });
+                    if (error) throw error;
+                  } catch (err) {
+                    setGoogleError(
+                      err instanceof Error ? err.message : 'Failed to start Google sign-in'
+                    );
+                  }
                 }}
               className="w-full h-11 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl border border-gray-200 transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
               disabled={isLoading}
@@ -270,6 +279,9 @@ export default function LoginPage() {
                 Sign in with Google
               </span>
             </Button>
+            {googleError && (
+              <p className="text-sm text-red-600 text-center mt-2">{googleError}</p>
+            )}
           </div>
 
           {/* Sign Up Link */}

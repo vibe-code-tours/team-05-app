@@ -130,10 +130,16 @@ export class SupabaseAuthService {
 
     const user = await this.findOrCreateUser(supabaseUser);
 
-    return this.generateTokens(user.id, user.email, user.role);
+    return this.generateTokens(user.id, user.email, user.role, user.name, user.avatar);
   }
 
-  private async generateTokens(userId: string, email: string, role: string) {
+  private async generateTokens(
+    userId: string,
+    email: string,
+    role: string,
+    name?: string | null,
+    avatar?: string | null,
+  ) {
     const payload = { sub: userId, email, role };
 
     const accessToken = this.jwt.sign(payload, { expiresIn: "15m" });
@@ -156,7 +162,7 @@ export class SupabaseAuthService {
     return {
       success: true,
       data: {
-        user: { id: userId, email, role },
+        user: { id: userId, email, role, name: name || null, avatar: avatar || null },
         accessToken,
         refreshToken,
       },
