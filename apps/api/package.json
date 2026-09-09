@@ -29,13 +29,13 @@
     "@nestjs/throttler": "^6.0.0",
     "@nestjs/websockets": "^11.2.3",
     "@prisma/client": "^6.0.0",
-    "@supabase/supabase-js": "^2.112.4",
+    "@supabase/supabase-js": "^2.114.0",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.0.0",
     "class-transformer": "^0.5.0",
     "class-validator": "^0.15.1",
     "helmet": "^8.3.0",
-    "joi": "^18.2.5",
+    "joi": "^18.2.7",
     "meilisearch": "^0.60.0",
     "otplib": "^13.5.0",
     "passport": "^0.7.0",
@@ -44,23 +44,23 @@
     "rxjs": "^7.8.0"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.6",
+    "@eslint/eslintrc": "^3.3.7",
     "@eslint/js": "^9.39.4",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.2.3",
     "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^30.0.0",
-    "@types/node": "^26.3.0",
+    "@types/node": "^26.4.1",
     "@types/passport-jwt": "^4.0.0",
     "@types/supertest": "^7.2.1",
     "eslint": "^9.0.0",
-    "jest": "^30.0.0",
+    "jest": "^30.5.1",
     "prisma": "^6.0.0",
     "supertest": "^7.0.0",
     "ts-jest": "^29.4.12",
     "ts-node": "^10.9.0",
     "typescript": "^5.6.0",
-    "typescript-eslint": "^8.68.0"
+    "typescript-eslint": "^8.69.0"
   }
 }
